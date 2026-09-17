@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentos — Paróquia Sagrado Coração de Jesus</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <header class="topbar">
+    <h1>📁 Documentos da Paróquia</h1>
+    <div id="userBox" class="user-box" hidden>
+      <span id="userEmail"></span>
+      <button id="btnSair">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginScreen" class="login-screen">
+      <p>Faça login com a conta Google autorizada da secretaria para acessar os documentos.</p>
+      <div id="googleBtn"></div>
+      <p id="loginErro" class="erro" hidden></p>
+    </section>
+
+    <section id="appScreen" class="app-screen" hidden>
+      <div class="filtros">
+        <input type="text" id="busca" placeholder="Buscar por nome, tipo ou arquivo...">
+        <select id="filtroTipo">
+          <option value="">Todos os tipos</option>
+          <option value="PIX Dízimo">PIX Dízimo</option>
+          <option value="PIX Doação">PIX Doação</option>
+          <option value="Documentos">Documentos</option>
+        </select>
+        <button id="btnAtualizar" title="Recarregar dados da planilha">🔄 Atualizar</button>
+        <button id="btnImprimirLista" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+      </div>
+
+      <p id="statusMsg" class="status"></p>
+
+      <table id="tabela">
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Contato</th>
+            <th>Número</th>
+            <th>Tipo</th>
+            <th>Arquivo</th>
+            <th class="no-print">Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaCorpo"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
