@@ -42,34 +42,33 @@ function iniciarBotaoGoogle(tentativas) {
     return;
   }
 
-  google.accounts.id.initialize({
-    client_id: CONFIG.CLIENT_ID,
-    callback: () => {}, // não usamos o ID token aqui, só o botão visual
-  });
+  try {
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email',
+      callback: async (resp) => {
+        if (resp.error) {
+          mostrarErroLogin('Não foi possível entrar com essa conta Google (' + resp.error + ').');
+          return;
+        }
+        accessToken = resp.access_token;
+        await handleLoginSucesso();
+      },
+    });
 
-  const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CONFIG.CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email',
-    callback: async (resp) => {
-      if (resp.error) {
-        mostrarErroLogin('Não foi possível entrar com essa conta Google.');
-        return;
-      }
-      accessToken = resp.access_token;
-      await handleLoginSucesso();
-    },
-  });
-
-  // Botão próprio (mais confiável em GitHub Pages do que o widget padrão do GIS)
-  const btn = document.createElement('button');
-  btn.textContent = 'Entrar com Google';
-  btn.className = 'btn-google';
-  btn.style.cssText = 'background:#fff;border:1px solid #ccc;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;';
-  btn.onclick = () => {
-    el('loginErro').hidden = true;
-    tokenClient.requestAccessToken();
-  };
-  el('googleBtn').appendChild(btn);
+    // Botão próprio (mais confiável em GitHub Pages do que o widget padrão do GIS)
+    const btn = document.createElement('button');
+    btn.textContent = 'Entrar com Google';
+    btn.className = 'btn-google';
+    btn.style.cssText = 'background:#fff;border:1px solid #ccc;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;';
+    btn.onclick = () => {
+      el('loginErro').hidden = true;
+      tokenClient.requestAccessToken();
+    };
+    el('googleBtn').appendChild(btn);
+  } catch (e) {
+    mostrarErroLogin('Erro ao iniciar o login do Google: ' + e.message);
+  }
 }
 
 async function handleLoginSucesso() {
