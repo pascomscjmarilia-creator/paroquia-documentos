@@ -1,320 +1,271 @@
-// ============================================================
-// CONFIGURAÇÃO — preencha estes valores antes de publicar
-// ============================================================
-const CONFIG = {
-  // Client ID OAuth criado no Google Cloud Console (tela "Credenciais")
-  CLIENT_ID: '172692599350-9ssc0ir4r4j4rtn3v7ksd5i6un41damc.apps.googleusercontent.com',
-
-  // Planilha "Pascom_Controle" — usada pelas duas abas (Índice de Documentos e Recados)
-  SHEET_ID: '1-9ZRasNVZK3qX3j51QffsZjOzI59axMkh4pCZxxhFws',
-  DOCS_RANGE: 'Índice de Documentos!A2:F',
-  RECADOS_RANGE: 'Recados!A2:G',
-  RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
-
-  // E-mails autorizados a usar o app (checagem de UX — a segurança
-  // de verdade é a permissão de compartilhamento da planilha no Google)
-  ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
-};
-// ============================================================
-
-let accessToken = null;
-let linhasDocs = [];
-let linhasRecados = [];
-
-const el = (id) => document.getElementById(id);
-
-function mostrarErroLogin(msg) {
-  const erro = el('loginErro');
-  erro.textContent = msg;
-  erro.hidden = false;
+:root {
+  --vinho: #7a1f2b;
+  --vinho-escuro: #591622;
+  --dourado: #c9a24a;
+  --cinza-claro: #f4f1ec;
+  --cinza-borda: #ddd6cb;
+  --texto: #2b2420;
 }
 
-function iniciarBotaoGoogle(tentativas) {
-  tentativas = tentativas || 0;
-  if (!window.google || !window.google.accounts) {
-    // O script do Google carrega em paralelo (async) e pode ainda não
-    // ter chegado quando a página termina de montar — tenta de novo por alguns segundos.
-    if (tentativas < 20) {
-      setTimeout(() => iniciarBotaoGoogle(tentativas + 1), 200);
-      return;
-    }
-    mostrarErroLogin('Não foi possível carregar o login do Google. Verifique sua conexão com a internet e recarregue a página.');
-    return;
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--cinza-claro);
+  color: var(--texto);
+}
+
+.topbar {
+  background: var(--vinho);
+  color: #fff;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.topbar h1 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.user-box button {
+  background: var(--dourado);
+  color: var(--vinho-escuro);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+.login-screen {
+  background: #fff;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 10px;
+  padding: 40px 24px;
+  text-align: center;
+  max-width: 420px;
+  margin: 60px auto 0;
+}
+
+.login-screen p {
+  margin-bottom: 20px;
+  color: #555;
+}
+
+#googleBtn {
+  display: flex;
+  justify-content: center;
+}
+
+.erro {
+  color: #b3261e;
+  margin-top: 16px;
+  font-weight: 600;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--cinza-borda);
+}
+
+.aba-btn {
+  background: none;
+  border: none;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #777;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.aba-btn:hover {
+  color: var(--vinho);
+}
+
+.aba-btn.ativa {
+  color: var(--vinho);
+  border-bottom-color: var(--vinho);
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-pill.pendente {
+  background: #fbe6b8;
+  color: #8a5a00;
+}
+
+.status-pill.resolvido {
+  background: #d9f0dc;
+  color: #276e35;
+}
+
+.acoes-recado {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-acao {
+  display: inline-block;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.btn-acao {
+  background: #25d366;
+  color: #fff;
+}
+
+a.btn-acao:hover {
+  background: #1ebe5a;
+  text-decoration: none;
+}
+
+button.btn-resolver {
+  background: var(--vinho);
+  color: #fff;
+}
+
+button.btn-resolver:hover {
+  background: var(--vinho-escuro);
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filtros input,
+.filtros select {
+  padding: 8px 10px;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.filtros input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filtros button {
+  background: var(--vinho);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.filtros button:hover {
+  background: var(--vinho-escuro);
+}
+
+.status {
+  color: #666;
+  font-size: 0.9rem;
+  min-height: 1.2em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+thead {
+  background: var(--vinho);
+  color: #fff;
+}
+
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--cinza-borda);
+}
+
+tbody tr:hover {
+  background: #faf7f0;
+}
+
+td a {
+  color: var(--vinho);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+td a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  table, thead, tbody, th, td, tr { display: block; }
+  thead { display: none; }
+  tbody tr {
+    margin-bottom: 12px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    padding: 8px;
   }
-
-  try {
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CONFIG.CLIENT_ID,
-      // spreadsheets (não .readonly): precisamos gravar o Status ao marcar um recado como Resolvido.
-      scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
-      callback: async (resp) => {
-        if (resp.error) {
-          mostrarErroLogin('Não foi possível entrar com essa conta Google (' + resp.error + ').');
-          return;
-        }
-        accessToken = resp.access_token;
-        await handleLoginSucesso();
-      },
-    });
-
-    // Botão próprio (mais confiável em GitHub Pages do que o widget padrão do GIS)
-    const btn = document.createElement('button');
-    btn.textContent = 'Entrar com Google';
-    btn.className = 'btn-google';
-    btn.style.cssText = 'background:#fff;border:1px solid #ccc;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;';
-    btn.onclick = () => {
-      el('loginErro').hidden = true;
-      tokenClient.requestAccessToken();
-    };
-    el('googleBtn').appendChild(btn);
-  } catch (e) {
-    mostrarErroLogin('Erro ao iniciar o login do Google: ' + e.message);
+  td {
+    border: none;
+    padding: 4px 6px;
+  }
+  td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    display: block;
+    font-size: 0.75rem;
+    color: var(--vinho);
   }
 }
 
-async function handleLoginSucesso() {
-  try {
-    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: 'Bearer ' + accessToken },
-    });
-    const perfil = await resp.json();
-    const email = (perfil.email || '').toLowerCase();
-
-    if (!CONFIG.ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email)) {
-      mostrarErroLogin('Conta "' + email + '" não autorizada para este app.');
-      accessToken = null;
-      return;
-    }
-
-    el('userEmail').textContent = email;
-    el('userBox').hidden = false;
-    el('loginScreen').hidden = true;
-    el('appScreen').hidden = false;
-
-    await carregarDocumentos();
-    await carregarRecados();
-  } catch (e) {
-    mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
-  }
+@media print {
+  .topbar, .filtros, .status, .abas, .no-print { display: none !important; }
+  body { background: #fff; }
+  main { max-width: 100%; padding: 0; }
+  table { box-shadow: none; }
 }
-
-async function buscarValoresSheet(range) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}`;
-  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
-  if (resp.status === 403) throw new Error('SEM_PERMISSAO');
-  if (!resp.ok) throw new Error('STATUS_' + resp.status);
-  const data = await resp.json();
-  return data.values || [];
-}
-
-async function carregarDocumentos() {
-  const statusMsg = el('statusMsg');
-  statusMsg.textContent = 'Carregando documentos...';
-
-  try {
-    const valores = await buscarValoresSheet(CONFIG.DOCS_RANGE);
-    linhasDocs = valores
-      .filter(row => row && row.length > 0)
-      .map(row => ({
-        data: row[0] || '',
-        nome: row[1] || '',
-        numero: row[2] || '',
-        tipo: row[3] || '',
-        arquivo: row[4] || '',
-        link: row[5] || '',
-      }));
-
-    statusMsg.textContent = linhasDocs.length + ' documento(s) encontrado(s).';
-    renderizarTabela();
-  } catch (e) {
-    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
-      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
-      : 'Erro ao carregar documentos.';
-  }
-}
-
-async function carregarRecados() {
-  const statusMsg = el('statusMsgRecados');
-  statusMsg.textContent = 'Carregando recados...';
-
-  try {
-    const valores = await buscarValoresSheet(CONFIG.RECADOS_RANGE);
-    // Mantém o número da linha real da planilha (RECADOS_RANGE começa em A2 → primeira linha = 2)
-    // mesmo depois de filtrar linhas em branco, pra gravar o status de volta na célula certa.
-    linhasRecados = valores
-      .map((row, idx) => ({
-        linha: idx + 2,
-        data: row[1] || '',
-        hora: row[2] || '',
-        nome: row[3] || '',
-        whatsapp: row[4] || '',
-        assunto: row[5] || '',
-        status: row[6] || '',
-      }))
-      .filter(l => l.nome || l.whatsapp || l.assunto);
-
-    statusMsg.textContent = linhasRecados.length + ' recado(s) encontrado(s).';
-    renderizarRecados();
-  } catch (e) {
-    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
-      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
-      : 'Erro ao carregar recados.';
-  }
-}
-
-async function marcarComoResolvido(linhaNumero) {
-  const confirmado = confirm('Confirma que já entrou em contato e quer marcar este recado como Resolvido?');
-  if (!confirmado) return;
-
-  const range = `${CONFIG.RECADOS_ABA}!G${linhaNumero}`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
-
-  try {
-    const resp = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        Authorization: 'Bearer ' + accessToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ values: [['Resolvido']] }),
-    });
-    if (!resp.ok) throw new Error('status ' + resp.status);
-    await carregarRecados();
-  } catch (e) {
-    alert('Não foi possível atualizar o status agora. Tente novamente em instantes.');
-  }
-}
-
-function linkWhatsApp(numero) {
-  const digits = String(numero || '').replace(/\D/g, '');
-  return digits ? `https://wa.me/${digits}` : '';
-}
-
-function renderizarTabela() {
-  const termo = el('busca').value.trim().toLowerCase();
-  const tipoFiltro = el('filtroTipo').value;
-
-  const filtradas = linhasDocs.filter(l => {
-    const bateTexto = !termo || (l.nome + ' ' + l.tipo + ' ' + l.arquivo + ' ' + l.numero).toLowerCase().includes(termo);
-    const bateTipo = !tipoFiltro || l.tipo === tipoFiltro;
-    return bateTexto && bateTipo;
-  });
-
-  const corpo = el('tabelaCorpo');
-  corpo.innerHTML = '';
-
-  if (filtradas.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="6">Nenhum documento encontrado.</td></tr>';
-    return;
-  }
-
-  filtradas.forEach(l => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td data-label="Data/Hora">${escapeHtml(l.data)}</td>
-      <td data-label="Contato">${escapeHtml(l.nome)}</td>
-      <td data-label="Número">${escapeHtml(l.numero)}</td>
-      <td data-label="Tipo">${escapeHtml(l.tipo)}</td>
-      <td data-label="Arquivo">${escapeHtml(l.arquivo)}</td>
-      <td data-label="Ação" class="no-print">${l.link ? `<a href="${escapeAttr(l.link)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td>
-    `;
-    corpo.appendChild(tr);
-  });
-}
-
-function renderizarRecados() {
-  const termo = el('buscaRecados').value.trim().toLowerCase();
-  const statusFiltro = el('filtroStatus').value;
-
-  const filtradas = linhasRecados.filter(l => {
-    const bateTexto = !termo || (l.nome + ' ' + l.whatsapp + ' ' + l.assunto).toLowerCase().includes(termo);
-    const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
-    return bateTexto && bateStatus;
-  });
-
-  const corpo = el('tabelaRecadosCorpo');
-  corpo.innerHTML = '';
-
-  if (filtradas.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="7">Nenhum recado encontrado.</td></tr>';
-    return;
-  }
-
-  filtradas.forEach(l => {
-    const statusNorm = norm(l.status);
-    const jaResolvido = statusNorm.includes('resolvid');
-    const statusClasse = jaResolvido ? 'resolvido' : 'pendente';
-    const wa = linkWhatsApp(l.whatsapp);
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td data-label="Data">${escapeHtml(l.data)}</td>
-      <td data-label="Hora">${escapeHtml(l.hora)}</td>
-      <td data-label="Nome">${escapeHtml(l.nome)}</td>
-      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
-      <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
-      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Pendente')}</span></td>
-      <td data-label="Ação" class="no-print acoes-recado">
-        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
-        ${jaResolvido ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✅ Marcar Resolvido</button>`}
-      </td>
-    `;
-    corpo.appendChild(tr);
-  });
-}
-
-function norm(s) {
-  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-function escapeAttr(s) {
-  return String(s).replace(/"/g, '&quot;');
-}
-
-function trocarAba(aba) {
-  const ehDocs = aba === 'documentos';
-  el('abaDocumentos').hidden = !ehDocs;
-  el('abaRecados').hidden = ehDocs;
-  el('btnAbaDocumentos').classList.toggle('ativa', ehDocs);
-  el('btnAbaRecados').classList.toggle('ativa', !ehDocs);
-}
-
-function sair() {
-  if (accessToken) {
-    google.accounts.oauth2.revoke(accessToken, () => {});
-  }
-  accessToken = null;
-  linhasDocs = [];
-  linhasRecados = [];
-  el('userBox').hidden = true;
-  el('appScreen').hidden = true;
-  el('loginScreen').hidden = false;
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  iniciarBotaoGoogle();
-
-  el('busca').addEventListener('input', renderizarTabela);
-  el('filtroTipo').addEventListener('change', renderizarTabela);
-  el('btnAtualizar').addEventListener('click', carregarDocumentos);
-  el('btnImprimirLista').addEventListener('click', () => window.print());
-
-  el('buscaRecados').addEventListener('input', renderizarRecados);
-  el('filtroStatus').addEventListener('change', renderizarRecados);
-  el('btnAtualizarRecados').addEventListener('click', carregarRecados);
-  el('btnImprimirRecados').addEventListener('click', () => window.print());
-
-  // Delegação de evento: os botões "Marcar Resolvido" são recriados a cada renderização
-  el('tabelaRecadosCorpo').addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-resolver');
-    if (btn) marcarComoResolvido(Number(btn.dataset.linha));
-  });
-
-  el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
-  el('btnAbaRecados').addEventListener('click', () => trocarAba('recados'));
-
-  el('btnSair').addEventListener('click', sair);
-});
