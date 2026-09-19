@@ -185,6 +185,26 @@ async function marcarComoResolvido(linhaNumero) {
   }
 }
 
+async function marcarResolvidoAutomatico(linhaNumero) {
+  const range = `${CONFIG.RECADOS_ABA}!G${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [['Resolvido']] }),
+    });
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    await carregarRecados();
+  } catch (e) {
+    // Falha silenciosa: o WhatsApp já abriu numa aba própria; só não deu pra atualizar o status agora.
+  }
+}
+
 function linkWhatsApp(numero) {
   const digits = String(numero || '').replace(/\D/g, '');
   return digits ? `https://wa.me/${digits}` : '';
@@ -255,7 +275,7 @@ function renderizarRecados() {
       <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Pendente')}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
-        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao${jaResolvido ? '' : ' btn-whatsapp-auto'}" data-linha="${l.linha}">💬 WhatsApp</a>` : ''}
         ${jaResolvido ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✅ Marcar Resolvido</button>`}
       </td>
     `;
@@ -309,8 +329,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Delegação de evento: os botões "Marcar Resolvido" são recriados a cada renderização
   el('tabelaRecadosCorpo').addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-resolver');
-    if (btn) marcarComoResolvido(Number(btn.dataset.linha));
+    const btnResolver = e.target.closest('.btn-resolver');
+    if (btnResolver) { marcarComoResolvido(Number(btnResolver.dataset.linha)); return; }
+
+    const btnWhats = e.target.closest('.btn-whatsapp-auto');
+    if (btnWhats) marcarResolvidoAutomatico(Number(btnWhats.dataset.linha));
   });
 
   el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
