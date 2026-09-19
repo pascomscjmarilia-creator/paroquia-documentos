@@ -10,7 +10,7 @@
 <body>
 
   <header class="topbar">
-    <h1>📁 Documentos da Paróquia</h1>
+    <h1>📁 Paróquia — Documentos e Recados</h1>
     <div id="userBox" class="user-box" hidden>
       <span id="userEmail"></span>
       <button id="btnSair">Sair</button>
@@ -19,39 +19,78 @@
 
   <main>
     <section id="loginScreen" class="login-screen">
-      <p>Faça login com a conta Google autorizada da secretaria para acessar os documentos.</p>
+      <p>Faça login com a conta Google autorizada da secretaria para acessar os dados.</p>
       <div id="googleBtn"></div>
       <p id="loginErro" class="erro" hidden></p>
     </section>
 
     <section id="appScreen" class="app-screen" hidden>
-      <div class="filtros">
-        <input type="text" id="busca" placeholder="Buscar por nome, tipo ou arquivo...">
-        <select id="filtroTipo">
-          <option value="">Todos os tipos</option>
-          <option value="PIX Dízimo">PIX Dízimo</option>
-          <option value="PIX Doação">PIX Doação</option>
-          <option value="Documentos">Documentos</option>
-        </select>
-        <button id="btnAtualizar" title="Recarregar dados da planilha">🔄 Atualizar</button>
-        <button id="btnImprimirLista" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+      <div class="abas no-print">
+        <button class="aba-btn ativa" id="btnAbaDocumentos" data-aba="documentos">📁 Documentos</button>
+        <button class="aba-btn" id="btnAbaRecados" data-aba="recados">📞 Recados / Retorno</button>
       </div>
 
-      <p id="statusMsg" class="status"></p>
+      <!-- ABA: DOCUMENTOS -->
+      <div id="abaDocumentos" class="conteudo-aba">
+        <div class="filtros">
+          <input type="text" id="busca" placeholder="Buscar por nome, tipo ou arquivo...">
+          <select id="filtroTipo">
+            <option value="">Todos os tipos</option>
+            <option value="PIX Dízimo">PIX Dízimo</option>
+            <option value="PIX Doação">PIX Doação</option>
+            <option value="Documentos">Documentos</option>
+          </select>
+          <button id="btnAtualizar" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirLista" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+        </div>
 
-      <table id="tabela">
-        <thead>
-          <tr>
-            <th>Data/Hora</th>
-            <th>Contato</th>
-            <th>Número</th>
-            <th>Tipo</th>
-            <th>Arquivo</th>
-            <th class="no-print">Ação</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaCorpo"></tbody>
-      </table>
+        <p id="statusMsg" class="status"></p>
+
+        <table id="tabela">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Contato</th>
+              <th>Número</th>
+              <th>Tipo</th>
+              <th>Arquivo</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: RECADOS -->
+      <div id="abaRecados" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaRecados" placeholder="Buscar por nome, WhatsApp ou assunto...">
+          <select id="filtroStatus">
+            <option value="">Todos os status</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Resolvido">Resolvido</option>
+          </select>
+          <button id="btnAtualizarRecados" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirRecados" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+        </div>
+
+        <p id="statusMsgRecados" class="status"></p>
+
+        <table id="tabelaRecados">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Nome</th>
+              <th>WhatsApp</th>
+              <th>Assunto</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaRecadosCorpo"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
