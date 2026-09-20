@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guia da Secretaria — Paróquia Sagrado Coração de Jesus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vinho: #7a1f2b;
+    --vinho-escuro: #591622;
+    --dourado: #c9a24a;
+    --dourado-suave: #e7d3a3;
+    --creme: #f8f4ec;
+    --creme-card: #ffffff;
+    --borda: #e6dcc8;
+    --tinta: #2b2420;
+    --tinta-suave: #6b6055;
+    --verde: #3f7a52;
+    --verde-bg: #e7f2ea;
+    --sombra: 0 2px 10px rgba(89, 22, 34, 0.07);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 40px 20px;
+    background: var(--creme);
+    color: var(--tinta);
+    font-family: 'Karla', -apple-system, sans-serif;
+    line-height: 1.55;
+  }
+
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1, h2, h3 { font-family: 'Lora', Georgia, serif; }
+
+  .topo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .topo .selo {
+    font-size: 2.2rem;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .topo h1 {
+    font-size: clamp(1.6rem, 5vw, 2.1rem);
+    font-weight: 700;
+    color: var(--vinho);
+    margin: 0 0 6px;
+  }
+
+  .topo p {
+    color: var(--tinta-suave);
+    font-size: 1rem;
+    margin: 0 auto;
+    max-width: 46ch;
+  }
+
+  .acesso {
+    background: var(--creme-card);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    padding: 22px 24px;
+    box-shadow: var(--sombra);
+    margin-bottom: 36px;
+    text-align: center;
+  }
+
+  .acesso p.label {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--dourado);
+    margin: 0 0 10px;
+  }
+
+  .btn-principal {
+    display: inline-block;
+    background: var(--vinho);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 13px 28px;
+    border-radius: 8px;
+    font-size: 1.02rem;
+    transition: background 0.15s ease;
+  }
+
+  .btn-principal:hover { background: var(--vinho-escuro); }
+
+  .acesso .conta {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: var(--tinta-suave);
+  }
+
+  .acesso .conta strong { color: var(--tinta); }
+
+  section {
+    margin-bottom: 40px;
+  }
+
+  section > h2 {
+    font-size: 1.3rem;
+    color: var(--vinho);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  section > .intro {
+    color: var(--tinta-suave);
+    font-size: 0.95rem;
+    margin: 0 0 18px;
+  }
+
+  .passos {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .passo {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 14px;
+    background: var(--creme-card);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: var(--sombra);
+  }
+
+  .passo .num {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--vinho);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Lora', serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    flex-shrink: 0;
+  }
+
+  .passo h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--tinta);
+  }
+
+  .passo p {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--tinta-suave);
+  }
+
+  .inline-code {
+    background: var(--dourado-suave);
+    color: var(--vinho-escuro);
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 0.88em;
+    font-weight: 600;
+    font-family: inherit;
+  }
+
+  .destaque-caixa {
+    background: var(--verde-bg);
+    border: 1px solid var(--verde);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.92rem;
+    margin-top: 14px;
+  }
+
+  .destaque-caixa strong { color: var(--verde); }
+
+  table.mapa {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--creme-card);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.9rem;
+    box-shadow: var(--sombra);
+  }
+
+  table.mapa th {
+    background: var(--vinho);
+    color: #fff;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+  }
+
+  table.mapa td {
+    padding: 10px 12px;
+    border-top: 1px solid var(--borda);
+    vertical-align: top;
+  }
+
+  table.mapa tr:nth-child(even) td { background: #f2ede1; }
+
+  .faq details {
+    background: var(--creme-card);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 4px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--sombra);
+  }
+
+  .faq summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 12px 0;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    color: var(--tinta);
+  }
+
+  .faq summary::-webkit-details-marker { display: none; }
+
+  .faq summary::after {
+    content: '+';
+    font-family: 'Lora', serif;
+    font-size: 1.3rem;
+    color: var(--dourado);
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+
+  .faq details[open] summary::after { transform: rotate(45deg); }
+
+  .faq details p {
+    margin: 0 0 14px;
+    font-size: 0.92rem;
+    color: var(--tinta-suave);
+  }
+
+  footer {
+    text-align: center;
+    padding-top: 24px;
+    border-top: 1px solid var(--borda);
+    font-size: 0.82rem;
+    color: var(--tinta-suave);
+  }
+
+  footer a { color: var(--vinho); }
+
+  .rodape-tecnico {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    opacity: 0.85;
+  }
+
+  @media (max-width: 480px) {
+    .passo { grid-template-columns: 28px 1fr; }
+    table.mapa { font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<main>
+
+  <div class="topo">
+    <span class="selo">⛪</span>
+    <h1>Guia da Secretaria</h1>
+    <p>Como usar o sistema de busca de documentos, comprovantes e recados da Paróquia Sagrado Coração de Jesus.</p>
+  </div>
+
+  <div class="acesso">
+    <p class="label">Acesso ao sistema</p>
+    <a class="btn-principal" href="index.html">Abrir o Sistema</a>
+    <p class="conta">Entre com a conta autorizada:<br><strong>pascomscjmarilia@gmail.com</strong></p>
+  </div>
+
+  <section>
+    <h2>🔑 Entrando no sistema</h2>
+    <p class="intro">O acesso é feito com login do Google — não existe usuário e senha separados. Só a conta autorizada consegue entrar.</p>
+    <div class="passos">
+      <div class="passo">
+        <div class="num">1</div>
+        <div><h3>Abra o link do sistema</h3><p>Use o botão "Abrir o Sistema" acima, ou salve o link nos favoritos do navegador.</p></div>
+      </div>
+      <div class="passo">
+        <div class="num">2</div>
+        <div><h3>Clique em "Entrar com Google"</h3><p>Escolha a conta <span class="inline-code">pascomscjmarilia@gmail.com</span> quando o Google pedir.</p></div>
+      </div>
+      <div class="passo">
+        <div class="num">3</div>
+        <div><h3>Pronto</h3><p>A tela principal abre já com a aba de Documentos carregada.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>📁 Aba Documentos</h2>
+    <p class="intro">Aqui aparecem os comprovantes e documentos que os fiéis enviam pelo WhatsApp — o sistema guarda tudo automaticamente.</p>
+
+    <table class="mapa">
+      <tr><th>O que você quer fazer</th><th>Onde clicar</th></tr>
+      <tr><td>Buscar por nome, tipo de arquivo ou número</td><td>Digite na caixa de busca no topo da lista</td></tr>
+      <tr><td>Ver só um tipo (Dízimo, Doação ou Documentos)</td><td>Use o menu "Todos os tipos"</td></tr>
+      <tr><td>Abrir um arquivo específico</td><td>Clique em <span class="inline-code">Abrir</span> na linha do arquivo — abre o Google Drive numa aba nova</td></tr>
+      <tr><td>Atualizar a lista (se algo novo não aparece)</td><td>Botão <span class="inline-code">🔄 Atualizar</span></td></tr>
+      <tr><td>Imprimir a lista filtrada</td><td>Botão <span class="inline-code">🖨️ Imprimir lista</span></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>📞 Aba Recados / Retorno</h2>
+    <p class="intro">Sempre que um fiel pede pelo WhatsApp que a secretaria retorne o contato, o assistente virtual anota o pedido aqui automaticamente, com o assunto e o número.</p>
+
+    <table class="mapa">
+      <tr><th>O que você quer fazer</th><th>Onde clicar</th></tr>
+      <tr><td>Buscar por nome, WhatsApp ou assunto</td><td>Caixa de busca no topo</td></tr>
+      <tr><td>Ver só os pendentes ou só os resolvidos</td><td>Menu "Todos os status"</td></tr>
+      <tr><td>Chamar o fiel no WhatsApp</td><td>Botão <span class="inline-code">💬 WhatsApp</span> — abre a conversa numa aba nova</td></tr>
+      <tr><td>Marcar como resolvido sem usar o WhatsApp (ex: ligou por telefone)</td><td>Botão <span class="inline-code">✅ Marcar Resolvido</span></td></tr>
+    </table>
+
+    <div class="destaque-caixa">
+      <strong>Atenção:</strong> ao clicar em <span class="inline-code">💬 WhatsApp</span>, o recado já é marcado como <strong>Resolvido</strong> automaticamente — não precisa clicar nos dois botões. Só use "Marcar Resolvido" separadamente se você resolver o assunto sem passar pelo botão do WhatsApp.
+    </div>
+  </section>
+
+  <section>
+    <h2>🚪 Saindo do sistema</h2>
+    <p class="intro">Clique em <span class="inline-code">Sair</span>, no canto superior direito, ao lado do seu e-mail. Isso é recomendado se o computador for compartilhado com outras pessoas.</p>
+  </section>
+
+  <section class="faq">
+    <h2>❓ Dúvidas comuns</h2>
+
+    <details>
+      <summary>O Google diz que minha conta não é autorizada</summary>
+      <p>Só a conta <strong>pascomscjmarilia@gmail.com</strong> tem permissão. Se você usou outra conta Google, saia e entre de novo escolhendo a certa.</p>
+    </details>
+
+    <details>
+      <summary>A página aparece toda branca ou sem cor</summary>
+      <p>Isso costuma ser cache do navegador. Feche a aba, abra de novo e aperte <span class="inline-code">Ctrl + Shift + R</span> para recarregar sem cache.</p>
+    </details>
+
+    <details>
+      <summary>Não aparece nenhum documento ou recado novo</summary>
+      <p>Clique em <span class="inline-code">🔄 Atualizar</span> na aba correspondente. Se ainda não aparecer, confira sua conexão de internet.</p>
+    </details>
+
+    <details>
+      <summary>Cliquei errado e marquei um recado como resolvido sem querer</summary>
+      <p>Anote os dados do fiel (nome e assunto) e avise quem administra o sistema — a correção pode ser feita direto na planilha por trás do sistema.</p>
+    </details>
+
+  </section>
+
+  <footer>
+    Sistema desenvolvido para a Paróquia Sagrado Coração de Jesus — Marília/SP.
+    <div class="rodape-tecnico">Repositório técnico (uso da equipe de TI): <a href="https://github.com/pascomscjmarilia-creator/paroquia-documentos" target="_blank" rel="noopener">github.com/pascomscjmarilia-creator/paroquia-documentos</a></div>
+  </footer>
+
+</main>
+</body>
+</html>
