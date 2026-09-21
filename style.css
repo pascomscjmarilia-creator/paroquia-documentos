@@ -34,6 +34,16 @@ body {
   margin: 0;
 }
 
+@media (max-width: 480px) {
+  .topbar-titulo {
+    align-items: flex-start;
+  }
+
+  .brasao {
+    height: 42px;
+  }
+}
+
 .topbar-titulo {
   display: flex;
   align-items: center;
