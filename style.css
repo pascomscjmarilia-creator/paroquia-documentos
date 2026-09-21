@@ -34,6 +34,18 @@ body {
   margin: 0;
 }
 
+.topbar-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brasao {
+  height: 44px;
+  width: auto;
+  flex-shrink: 0;
+}
+
 .user-box {
   display: flex;
   align-items: center;
