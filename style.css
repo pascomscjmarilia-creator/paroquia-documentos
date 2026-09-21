@@ -310,6 +310,8 @@ td a:hover {
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 8px;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   td[data-label="Data"]::before,
@@ -326,18 +328,22 @@ td a:hover {
   td[data-label="Contato"],
   td[data-label="Número"],
   td[data-label="Tipo"],
-  td[data-label="Arquivo"] {
+  td[data-label="Arquivo"],
+  td[data-label="Ação"] {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 4px 8px;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   td[data-label="Data/Hora"]::before,
   td[data-label="Contato"]::before,
   td[data-label="Número"]::before,
   td[data-label="Tipo"]::before,
-  td[data-label="Arquivo"]::before {
+  td[data-label="Arquivo"]::before,
+  td[data-label="Ação"]::before {
     display: inline;
     margin: 0;
     flex-shrink: 0;
