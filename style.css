@@ -286,15 +286,25 @@ td a:hover {
     justify-content: flex-end;
   }
 
+  td[data-label="Data"],
+  td[data-label="Hora"],
+  td[data-label="Nome"],
+  td[data-label="WhatsApp"],
   td[data-label="Status"] {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
   }
 
+  td[data-label="Data"]::before,
+  td[data-label="Hora"]::before,
+  td[data-label="Nome"]::before,
+  td[data-label="WhatsApp"]::before,
   td[data-label="Status"]::before {
     display: inline;
     margin: 0;
+    flex-shrink: 0;
   }
 }
 
