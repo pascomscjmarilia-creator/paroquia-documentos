@@ -222,6 +222,18 @@ button.btn-resolver:hover {
   background: var(--vinho-escuro);
 }
 
+.filtros select {
+  flex: 1 1 100%;
+}
+
+.filtros button {
+  flex: 1;
+}
+
+.acoes-recado {
+  justify-content: flex-end;
+}
+
 .status {
   color: #666;
   font-size: 0.9rem;
