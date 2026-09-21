@@ -34,16 +34,6 @@ body {
   margin: 0;
 }
 
-@media (max-width: 480px) {
-  .topbar-titulo {
-    align-items: flex-start;
-  }
-
-  .brasao {
-    height: 42px;
-  }
-}
-
 .topbar-titulo {
   display: flex;
   align-items: center;
@@ -222,18 +212,6 @@ button.btn-resolver:hover {
   background: var(--vinho-escuro);
 }
 
-.filtros select {
-  flex: 1 1 100%;
-}
-
-.filtros button {
-  flex: 1;
-}
-
-.acoes-recado {
-  justify-content: flex-end;
-}
-
 .status {
   color: #666;
   font-size: 0.9rem;
@@ -294,6 +272,39 @@ td a:hover {
     display: block;
     font-size: 0.75rem;
     color: var(--vinho);
+  }
+
+  .filtros select {
+    flex: 1 1 100%;
+  }
+
+  .filtros button {
+    flex: 1;
+  }
+
+  .acoes-recado {
+    justify-content: flex-end;
+  }
+
+  td[data-label="Status"] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  td[data-label="Status"]::before {
+    display: inline;
+    margin: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-titulo {
+    align-items: flex-start;
+  }
+
+  .brasao {
+    height: 42px;
   }
 }
 
