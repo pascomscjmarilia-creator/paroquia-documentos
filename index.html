@@ -31,6 +31,7 @@
       <div class="abas no-print">
         <button class="aba-btn ativa" id="btnAbaDocumentos" data-aba="documentos">📁 Documentos</button>
         <button class="aba-btn" id="btnAbaRecados" data-aba="recados">📞 Recados / Retorno</button>
+        <button class="aba-btn" id="btnAbaReservas" data-aba="reservas">🗓️ Reservas</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -41,7 +42,6 @@
             <option value="">Todos os tipos</option>
             <option value="PIX Dízimo">PIX Dízimo</option>
             <option value="PIX Doação">PIX Doação</option>
-            <option value="PIX Pagamento">PIX Pagamento</option>
             <option value="Documentos">Documentos</option>
           </select>
           <button id="btnAtualizar" title="Recarregar dados da planilha">🔄 Atualizar</button>
@@ -95,8 +95,97 @@
           <tbody id="tabelaRecadosCorpo"></tbody>
         </table>
       </div>
+      <!-- ABA: RESERVAS -->
+      <div id="abaReservas" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaReservas" placeholder="Buscar por sala, nome ou atividade...">
+          <select id="filtroSala">
+            <option value="">Todas as salas</option>
+            <option value="Salão principal">Salão principal</option>
+            <option value="Sala com TV">Sala com TV</option>
+            <option value="Sala 01">Sala 01</option>
+            <option value="Sala 02">Sala 02</option>
+            <option value="Sala 03">Sala 03</option>
+            <option value="Sala 04">Sala 04</option>
+          </select>
+          <select id="filtroStatusReserva">
+            <option value="">Todos os status</option>
+            <option value="Confirmado">Confirmado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+          <button id="btnAtualizarReservas" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovaReserva" title="Reservar uma sala">➕ Nova Reserva</button>
+        </div>
+
+        <p id="statusMsgReservas" class="status"></p>
+
+        <table id="tabelaReservas">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora Início</th>
+              <th>Hora Fim</th>
+              <th>Sala</th>
+              <th>Nome</th>
+              <th>WhatsApp</th>
+              <th>Atividade</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaReservasCorpo"></tbody>
+        </table>
+      </div>
     </section>
   </main>
+
+  <div id="modalReserva" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2>Nova Reserva</h2>
+        <button id="btnFecharModal" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <form id="formNovaReserva">
+        <label for="modalSala">Sala</label>
+        <select id="modalSala" required>
+          <option value="">Selecione...</option>
+          <option value="Salão principal">Salão principal</option>
+          <option value="Sala com TV">Sala com TV</option>
+          <option value="Sala 01">Sala 01</option>
+          <option value="Sala 02">Sala 02</option>
+          <option value="Sala 03">Sala 03</option>
+          <option value="Sala 04">Sala 04</option>
+        </select>
+
+        <label for="modalData">Data</label>
+        <input type="date" id="modalData" required>
+
+        <div class="modal-linha-dupla">
+          <div>
+            <label for="modalHoraInicio">Hora início</label>
+            <input type="time" id="modalHoraInicio" required step="900">
+          </div>
+          <div>
+            <label for="modalHoraFim">Hora fim</label>
+            <input type="time" id="modalHoraFim" required step="900">
+          </div>
+        </div>
+
+        <label for="modalNome">Nome</label>
+        <input type="text" id="modalNome" required>
+
+        <label for="modalWhatsapp">WhatsApp</label>
+        <input type="tel" id="modalWhatsapp" required placeholder="(14) 99999-9999">
+
+        <label for="modalAtividade">Atividade / motivo</label>
+        <input type="text" id="modalAtividade" required placeholder="Ex: Reunião da pastoral, curso de casais...">
+
+        <button type="submit" id="btnConfirmarReserva">Confirmar reserva</button>
+        <p id="modalResultado"></p>
+      </form>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
