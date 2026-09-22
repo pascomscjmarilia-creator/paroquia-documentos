@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secretaria SCJM — Acompanhamento</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #14110f;
+    --bg-elev: #1c1815;
+    --bg-elev-2: #241f1a;
+    --line: #33291f;
+    --gold: #c9a15a;
+    --gold-soft: #e3c88a;
+    --wine: #7a3b3b;
+    --text: #ede6da;
+    --text-dim: #9c9186;
+    --text-faint: #6b6155;
+    --ok: #6a9b6e;
+    --bad: #b25b52;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 500px at 18% -10%, rgba(201,161,90,0.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{
+    width:40px;height:40px;border-radius:50%;
+    border:1px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;color:var(--gold-soft);
+    flex-shrink:0;
+    background:radial-gradient(circle at 35% 30%, rgba(201,161,90,0.18), transparent 70%);
+  }
+  .brand h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:21px;
+    margin:0;
+    letter-spacing:0.2px;
+    color:var(--gold-soft);
+  }
+  .brand p{margin:2px 0 0;font-size:12.5px;color:var(--text-dim);}
+
+  .status{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:var(--text-dim);
+    padding:7px 12px;
+    border:1px solid var(--line);
+    border-radius:100px;
+    background:var(--bg-elev);
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;}
+  .dot.live{animation:pulse 1.8s ease-in-out infinite;}
+  .dot.off{background:var(--bad);}
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(106,155,110,0.5);}
+    50%{box-shadow:0 0 0 5px rgba(106,155,110,0);}
+  }
+
+  /* ---------- controls ---------- */
+  .tabs{
+    display:flex;gap:8px;margin-bottom:16px;
+  }
+  .tab-btn{
+    background:var(--bg-elev);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    padding:9px 16px;
+    border-radius:8px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .tab-btn.active{
+    border-color:var(--gold);
+    color:var(--gold-soft);
+    background:var(--bg-elev-2);
+  }
+  .tab-btn .badge{
+    display:inline-block;
+    margin-left:6px;
+    padding:1px 7px;
+    border-radius:100px;
+    font-size:11px;
+    background:rgba(201,161,90,0.18);
+    color:var(--gold-soft);
+  }
+
+  .sr-item{
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--bg-elev);
+    padding:14px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .sr-item .sr-meta{
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:12px;color:var(--text-faint);
+  }
+  .sr-item .sr-who{color:var(--gold-soft);font-weight:600;}
+  .sr-item .sr-pergunta{
+    font-size:13.5px;color:var(--text);line-height:1.5;
+  }
+
+  .controls{
+    display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;
+  }
+  .search{
+    flex:1;min-width:200px;
+    background:var(--bg-elev);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:10px 14px;
+    border-radius:8px;
+    font-size:13.5px;
+    font-family:inherit;
+  }
+  .search::placeholder{color:var(--text-faint);}
+  .search:focus{outline:none;border-color:var(--gold);}
+
+  button.ghost{
+    background:var(--bg-elev);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    padding:10px 14px;
+    border-radius:8px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+    transition:border-color .15s, color .15s;
+    white-space:nowrap;
+  }
+  button.ghost:hover{border-color:var(--gold);color:var(--gold-soft);}
+  button.ghost.active{border-color:var(--gold);color:var(--gold-soft);background:var(--bg-elev-2);}
+
+  .count-pill{
+    font-size:12px;color:var(--text-faint);
+    padding:10px 4px;
+  }
+
+  /* ---------- feed ---------- */
+  #feed{display:flex;flex-direction:column;gap:14px;}
+
+  .entry{
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--bg-elev);
+    overflow:hidden;
+    animation:fadeIn .35s ease;
+  }
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+
+  .entry-meta{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 16px;
+    border-bottom:1px solid var(--line);
+    background:var(--bg-elev-2);
+    font-size:12px;
+  }
+  .entry-meta .who{color:var(--gold-soft);font-weight:600;}
+  .entry-meta .num{color:var(--text-faint);font-weight:400;margin-left:6px;}
+  .entry-meta .when{color:var(--text-faint);}
+
+  .bubbles{padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+
+  .bubble{
+    max-width:88%;
+    padding:9px 13px;
+    border-radius:10px;
+    font-size:13.5px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    word-wrap:break-word;
+  }
+  .bubble.pergunta{
+    align-self:flex-start;
+    background:var(--bg-elev-2);
+    border:1px solid var(--line);
+    border-top-left-radius:3px;
+    color:var(--text);
+  }
+  .bubble.resposta{
+    align-self:flex-end;
+    background:linear-gradient(155deg, rgba(201,161,90,0.16), rgba(201,161,90,0.07));
+    border:1px solid rgba(201,161,90,0.35);
+    border-top-right-radius:3px;
+    color:var(--text);
+  }
+  .bubble-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-faint);
+    margin-bottom:4px;
+    display:block;
+  }
+  .bubble.resposta .bubble-label{color:var(--gold-soft);text-align:right;}
+
+  .empty{
+    text-align:center;
+    padding:70px 20px;
+    color:var(--text-faint);
+    font-size:14px;
+  }
+  .empty .glyph{font-size:26px;display:block;margin-bottom:10px;opacity:0.6;}
+
+  footer{
+    text-align:center;
+    margin-top:30px;
+    font-size:11.5px;
+    color:var(--text-faint);
+  }
+
+  @media (max-width:560px){
+    .bubble{max-width:96%;}
+    header{align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">✚</div>
+      <div>
+        <h1>Secretaria SCJM</h1>
+        <p>Acompanhamento do atendimento via WhatsApp</p>
+      </div>
+    </div>
+    <div class="status" id="statusPill">
+      <span class="dot live" id="statusDot"></span>
+      <span id="statusText">conectando…</span>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabConversas">💬 Conversas</button>
+    <button class="tab-btn" id="tabSemResposta">❓ Sem resposta <span class="badge" id="badgeSemResposta">0</span></button>
+  </div>
+
+  <div class="controls">
+    <input class="search" id="searchInput" type="text" placeholder="Filtrar por nome, número ou palavra na conversa…">
+    <button class="ghost active" id="autoBtn">⏱ Auto: ligado</button>
+    <button class="ghost" id="refreshBtn">↻ Atualizar agora</button>
+    <span class="count-pill" id="countPill"></span>
+  </div>
+
+  <div id="feed">
+    <div class="empty" id="emptyState">
+      <span class="glyph">⛪</span>
+      Carregando conversas…
+    </div>
+  </div>
+
+  <footer>Atualiza automaticamente a cada 60 segundos · dados vêm da planilha Log_Conversas</footer>
+</div>
+
+<script>
+  // ================================================
+  // CONFIGURAÇÃO
+  // ================================================
+  // Confirme se esse é o endereço correto do n8n oficial (o que estamos usando nesta conversa).
+  const WEBHOOK_URL = 'https://n8n-paroquia.ndjgby.easypanel.host/webhook/paroquia-log';
+
+  // Cole aqui o MESMO valor que você colocou na credencial "Header Auth" do node 🔔 Webhook Log no n8n.
+  const PAINEL_TOKEN = 'COLE_AQUI_O_MESMO_TOKEN_DO_N8N';
+  const PAINEL_TOKEN_HEADER = 'X-Painel-Token';
+
+  const POLL_INTERVAL_MS = 60000;
+
+  const feedEl = document.getElementById('feed');
+  const emptyEl = document.getElementById('emptyState');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const countPill = document.getElementById('countPill');
+  const searchInput = document.getElementById('searchInput');
+  const autoBtn = document.getElementById('autoBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+
+  let ultimaLista = [];
+  let ultimaListaSemResposta = [];
+  let autoOn = true;
+  let timer = null;
+  let abaAtiva = 'conversas'; // 'conversas' | 'sem_resposta'
+
+  const tabConversas = document.getElementById('tabConversas');
+  const tabSemResposta = document.getElementById('tabSemResposta');
+  const badgeSemResposta = document.getElementById('badgeSemResposta');
+
+  function escapeHtml(str){
+    return String(str || '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
+
+  function formatarQuando(ts){
+    if(!ts) return '';
+    const d = new Date(ts);
+    if(isNaN(d)) return ts;
+    const hoje = new Date();
+    const mesmodia = d.toDateString() === hoje.toDateString();
+    const hora = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', timeZone:'America/Sao_Paulo'});
+    if(mesmodia) return 'hoje, ' + hora;
+    return d.toLocaleDateString('pt-BR', {timeZone:'America/Sao_Paulo'}) + ' às ' + hora;
+  }
+
+  function renderConversas(lista){
+    const termo = searchInput.value.trim().toLowerCase();
+
+    const filtrada = !termo ? lista : lista.filter(c => {
+      const alvo = ((c.Nome||'') + ' ' + (c.Numero||'') + ' ' + (c.Pergunta||'') + ' ' + (c.Resposta||'')).toLowerCase();
+      return alvo.includes(termo);
+    });
+
+    countPill.textContent = filtrada.length + (filtrada.length === 1 ? ' conversa' : ' conversas');
+
+    if(filtrada.length === 0){
+      feedEl.innerHTML = '';
+      emptyEl.innerHTML = '<span class="glyph">⛪</span>' + (termo ? 'Nenhuma conversa encontrada para esse filtro.' : 'Nenhuma conversa registrada ainda.');
+      feedEl.appendChild(emptyEl);
+      return;
+    }
+
+    feedEl.innerHTML = filtrada.map(c => `
+      <div class="entry">
+        <div class="entry-meta">
+          <div><span class="who">${escapeHtml(c.Nome || 'Fiel')}</span><span class="num">${escapeHtml(c.Numero || '')}</span></div>
+          <div class="when">${formatarQuando(c.Timestamp)}</div>
+        </div>
+        <div class="bubbles">
+          <div class="bubble pergunta">
+            <span class="bubble-label">Pergunta</span>
+            ${escapeHtml(c.Pergunta)}
+          </div>
+          <div class="bubble resposta">
+            <span class="bubble-label">Resposta do bot</span>
+            ${escapeHtml(c.Resposta)}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderSemResposta(lista){
+    const termo = searchInput.value.trim().toLowerCase();
+
+    const filtrada = !termo ? lista : lista.filter(c => {
+      const alvo = ((c.Nome||'') + ' ' + (c.Numero||'') + ' ' + (c.Pergunta||'')).toLowerCase();
+      return alvo.includes(termo);
+    });
+
+    countPill.textContent = filtrada.length + (filtrada.length === 1 ? ' pergunta' : ' perguntas');
+
+    if(filtrada.length === 0){
+      feedEl.innerHTML = '';
+      emptyEl.innerHTML = '<span class="glyph">✅</span>' + (termo ? 'Nenhuma pergunta sem resposta encontrada para esse filtro.' : 'Nenhuma pergunta sem resposta registrada — base de dados completa!');
+      feedEl.appendChild(emptyEl);
+      return;
+    }
+
+    feedEl.innerHTML = filtrada.map(c => `
+      <div class="sr-item">
+        <div class="sr-meta">
+          <div><span class="sr-who">${escapeHtml(c.Nome || 'Fiel')}</span> ${escapeHtml(c.Numero || '')}</div>
+          <div>${formatarQuando(c.Timestamp)}</div>
+        </div>
+        <div class="sr-pergunta">${escapeHtml(c.Pergunta)}</div>
+      </div>
+    `).join('');
+  }
+
+  function render(){
+    if(abaAtiva === 'conversas'){
+      renderConversas(ultimaLista);
+    } else {
+      renderSemResposta(ultimaListaSemResposta);
+    }
+  }
+
+  function trocarAba(aba){
+    abaAtiva = aba;
+    tabConversas.classList.toggle('active', aba === 'conversas');
+    tabSemResposta.classList.toggle('active', aba === 'sem_resposta');
+    searchInput.placeholder = aba === 'conversas'
+      ? 'Filtrar por nome, número ou palavra na conversa…'
+      : 'Filtrar por nome, número ou palavra na pergunta…';
+    render();
+  }
+
+  tabConversas.addEventListener('click', () => trocarAba('conversas'));
+  tabSemResposta.addEventListener('click', () => trocarAba('sem_resposta'));
+
+  async function buscar(){
+    try{
+      const resp = await fetch(WEBHOOK_URL, {
+        method:'GET',
+        headers: { [PAINEL_TOKEN_HEADER]: PAINEL_TOKEN }
+      });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      ultimaLista = data.conversas || data.records || [];
+      ultimaListaSemResposta = data.sem_resposta || [];
+      badgeSemResposta.textContent = ultimaListaSemResposta.length;
+      statusDot.className = 'dot live';
+      statusText.textContent = 'ao vivo · ' + new Date().toLocaleTimeString('pt-BR', {timeZone:'America/Sao_Paulo'});
+      render();
+    }catch(err){
+      statusDot.className = 'dot off';
+      statusText.textContent = 'sem conexão';
+      console.error('Erro ao buscar log:', err);
+    }
+  }
+
+  function agendar(){
+    if(timer) clearInterval(timer);
+    if(autoOn){
+      timer = setInterval(buscar, POLL_INTERVAL_MS);
+    }
+  }
+
+  autoBtn.addEventListener('click', () => {
+    autoOn = !autoOn;
+    autoBtn.textContent = autoOn ? '⏱ Auto: ligado' : '⏱ Auto: pausado';
+    autoBtn.classList.toggle('active', autoOn);
+    agendar();
+  });
+
+  refreshBtn.addEventListener('click', buscar);
+  searchInput.addEventListener('input', render);
+
+  buscar();
+  agendar();
+</script>
+</body>
+</html>
