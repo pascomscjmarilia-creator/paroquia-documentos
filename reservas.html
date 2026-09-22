@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reserva de Salas — Paróquia Sagrado Coração de Jesus</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Reserva de Salas</h1>
+    </div>
+  </header>
+
+  <main>
+    <section class="login-screen" style="max-width:520px;">
+      <p style="margin-bottom:20px;">Preencha os dados abaixo para reservar uma sala. Você recebe a confirmação na hora.</p>
+
+      <form id="formReserva" style="display:flex; flex-direction:column; gap:14px; text-align:left;">
+        <div>
+          <label for="sala" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Sala</label>
+          <select id="sala" required style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+            <option value="">Selecione...</option>
+            <option value="Salão principal">Salão principal</option>
+            <option value="Sala com TV">Sala com TV</option>
+            <option value="Sala 01">Sala 01</option>
+            <option value="Sala 02">Sala 02</option>
+            <option value="Sala 03">Sala 03</option>
+            <option value="Sala 04">Sala 04</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="data" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Data</label>
+          <input type="date" id="data" required style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+        </div>
+
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label for="horaInicio" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Hora início</label>
+            <input type="time" id="horaInicio" required style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+          </div>
+          <div style="flex:1;">
+            <label for="horaFim" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Hora fim</label>
+            <input type="time" id="horaFim" required style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+          </div>
+        </div>
+
+        <div>
+          <label for="nome" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Seu nome</label>
+          <input type="text" id="nome" required style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+        </div>
+
+        <div>
+          <label for="whatsapp" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">WhatsApp</label>
+          <input type="tel" id="whatsapp" required placeholder="(14) 99999-9999" style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+        </div>
+
+        <div>
+          <label for="atividade" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Atividade / motivo</label>
+          <input type="text" id="atividade" required placeholder="Ex: Reunião da pastoral, curso de casais..." style="width:100%; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;">
+        </div>
+
+        <button type="submit" id="btnEnviar" style="background:var(--vinho); color:#fff; border:none; padding:12px; border-radius:6px; font-size:1rem; font-weight:600; cursor:pointer;">Confirmar reserva</button>
+      </form>
+
+      <p id="resultado" style="margin-top:16px; font-weight:600;"></p>
+    </section>
+  </main>
+
+<script>
+  const WEBHOOK_URL = 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala';
+
+  const form = document.getElementById('formReserva');
+  const resultado = document.getElementById('resultado');
+  const btnEnviar = document.getElementById('btnEnviar');
+
+  function formatarDataBR(isoDate) {
+    const [ano, mes, dia] = isoDate.split('-');
+    return dia + '/' + mes + '/' + ano;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    resultado.textContent = '';
+    resultado.style.color = '';
+    btnEnviar.disabled = true;
+    btnEnviar.textContent = 'Enviando...';
+
+    const payload = {
+      sala: document.getElementById('sala').value,
+      data: formatarDataBR(document.getElementById('data').value),
+      horaInicio: document.getElementById('horaInicio').value,
+      horaFim: document.getElementById('horaFim').value,
+      nome: document.getElementById('nome').value.trim(),
+      numero: document.getElementById('whatsapp').value.trim(),
+      atividade: document.getElementById('atividade').value.trim()
+    };
+
+    try {
+      const resp = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const dados = await resp.json();
+
+      if (dados.sucesso) {
+        resultado.style.color = '#276e35';
+        resultado.textContent = '✅ ' + dados.mensagem;
+        form.reset();
+      } else {
+        resultado.style.color = '#b3261e';
+        resultado.textContent = '⚠️ ' + dados.mensagem;
+      }
+    } catch (err) {
+      resultado.style.color = '#b3261e';
+      resultado.textContent = '⚠️ Não foi possível enviar sua reserva agora. Tente novamente em instantes.';
+      console.error(err);
+    } finally {
+      btnEnviar.disabled = false;
+      btnEnviar.textContent = 'Confirmar reserva';
+    }
+  });
+</script>
+</body>
+</html>
