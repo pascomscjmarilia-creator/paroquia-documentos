@@ -10,6 +10,9 @@ const CONFIG = {
   DOCS_RANGE: 'Índice de Documentos!A2:F',
   RECADOS_RANGE: 'Recados!A2:G',
   RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
+  RESERVAS_RANGE: 'Reservas_Salas!A2:I',
+  RESERVAS_ABA: 'Reservas_Salas',
+  WEBHOOK_RESERVA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala',
 
   // E-mails autorizados a usar o app (checagem de UX — a segurança
   // de verdade é a permissão de compartilhamento da planilha no Google)
@@ -20,6 +23,7 @@ const CONFIG = {
 let accessToken = null;
 let linhasDocs = [];
 let linhasRecados = [];
+let linhasReservas = [];
 
 const el = (id) => document.getElementById(id);
 
@@ -93,6 +97,7 @@ async function handleLoginSucesso() {
 
     await carregarDocumentos();
     await carregarRecados();
+    await carregarReservas();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -159,6 +164,119 @@ async function carregarRecados() {
     statusMsg.textContent = e.message === 'SEM_PERMISSAO'
       ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
       : 'Erro ao carregar recados.';
+  }
+}
+
+async function carregarReservas() {
+  const statusMsg = el('statusMsgReservas');
+  statusMsg.textContent = 'Carregando reservas...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.RESERVAS_RANGE);
+    linhasReservas = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        data: row[0] || '',
+        horaInicio: row[1] || '',
+        horaFim: row[2] || '',
+        sala: row[3] || '',
+        nome: row[4] || '',
+        whatsapp: row[5] || '',
+        atividade: row[6] || '',
+        status: row[7] || '',
+      }))
+      .filter(l => l.sala || l.nome);
+
+    statusMsg.textContent = linhasReservas.length + ' reserva(s) encontrada(s).';
+    renderizarReservas();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : 'Erro ao carregar reservas.';
+  }
+}
+
+async function cancelarReserva(linhaNumero) {
+  const confirmado = confirm('Confirma que quer cancelar essa reserva?');
+  if (!confirmado) return;
+
+  const range = `${CONFIG.RESERVAS_ABA}!H${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [['Cancelado']] }),
+    });
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    await carregarReservas();
+  } catch (e) {
+    alert('Não foi possível cancelar a reserva agora. Tente novamente em instantes.');
+  }
+}
+
+function abrirModalReserva() {
+  el('formNovaReserva').reset();
+  el('modalResultado').textContent = '';
+  el('modalResultado').className = '';
+  el('modalReserva').hidden = false;
+}
+
+function fecharModalReserva() {
+  el('modalReserva').hidden = true;
+}
+
+function formatarDataBR(isoDate) {
+  const [ano, mes, dia] = isoDate.split('-');
+  return dia + '/' + mes + '/' + ano;
+}
+
+async function enviarNovaReserva(e) {
+  e.preventDefault();
+  const resultado = el('modalResultado');
+  const btn = el('btnConfirmarReserva');
+  resultado.textContent = '';
+  resultado.className = '';
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const payload = {
+    sala: el('modalSala').value,
+    data: formatarDataBR(el('modalData').value),
+    horaInicio: el('modalHoraInicio').value,
+    horaFim: el('modalHoraFim').value,
+    nome: el('modalNome').value.trim(),
+    numero: el('modalWhatsapp').value.trim(),
+    atividade: el('modalAtividade').value.trim(),
+  };
+
+  try {
+    const resp = await fetch(CONFIG.WEBHOOK_RESERVA, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const dados = await resp.json();
+
+    if (dados.sucesso) {
+      resultado.className = 'sucesso';
+      resultado.textContent = '✅ ' + dados.mensagem;
+      await carregarReservas();
+      setTimeout(fecharModalReserva, 1200);
+    } else {
+      resultado.className = 'erro';
+      resultado.textContent = '⚠️ ' + dados.mensagem;
+    }
+  } catch (err) {
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ Não foi possível enviar a reserva agora. Tente novamente em instantes.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirmar reserva';
   }
 }
 
@@ -283,6 +401,48 @@ function renderizarRecados() {
   });
 }
 
+function renderizarReservas() {
+  const termo = el('buscaReservas').value.trim().toLowerCase();
+  const salaFiltro = el('filtroSala').value;
+  const statusFiltro = el('filtroStatusReserva').value;
+
+  const filtradas = linhasReservas.filter(l => {
+    const bateTexto = !termo || (l.sala + ' ' + l.nome + ' ' + l.atividade).toLowerCase().includes(termo);
+    const bateSala = !salaFiltro || l.sala === salaFiltro;
+    const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
+    return bateTexto && bateSala && bateStatus;
+  });
+
+  const corpo = el('tabelaReservasCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="9">Nenhuma reserva encontrada.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const cancelado = norm(l.status).includes('cancelado');
+    const statusClasse = cancelado ? 'pendente' : 'resolvido';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data">${escapeHtml(l.data)}</td>
+      <td data-label="Hora Início">${escapeHtml(l.horaInicio)}</td>
+      <td data-label="Hora Fim">${escapeHtml(l.horaFim)}</td>
+      <td data-label="Sala">${escapeHtml(l.sala)}</td>
+      <td data-label="Nome">${escapeHtml(l.nome)}</td>
+      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
+      <td data-label="Atividade">${escapeHtml(l.atividade)}</td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Confirmado')}</span></td>
+      <td data-label="Ação" class="no-print">
+        ${cancelado ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✖ Cancelar</button>`}
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -295,11 +455,12 @@ function escapeAttr(s) {
 }
 
 function trocarAba(aba) {
-  const ehDocs = aba === 'documentos';
-  el('abaDocumentos').hidden = !ehDocs;
-  el('abaRecados').hidden = ehDocs;
-  el('btnAbaDocumentos').classList.toggle('ativa', ehDocs);
-  el('btnAbaRecados').classList.toggle('ativa', !ehDocs);
+  el('abaDocumentos').hidden = aba !== 'documentos';
+  el('abaRecados').hidden = aba !== 'recados';
+  el('abaReservas').hidden = aba !== 'reservas';
+  el('btnAbaDocumentos').classList.toggle('ativa', aba === 'documentos');
+  el('btnAbaRecados').classList.toggle('ativa', aba === 'recados');
+  el('btnAbaReservas').classList.toggle('ativa', aba === 'reservas');
 }
 
 function sair() {
@@ -309,6 +470,7 @@ function sair() {
   accessToken = null;
   linhasDocs = [];
   linhasRecados = [];
+  linhasReservas = [];
   el('userBox').hidden = true;
   el('appScreen').hidden = true;
   el('loginScreen').hidden = false;
@@ -336,8 +498,25 @@ window.addEventListener('DOMContentLoaded', () => {
     if (btnWhats) marcarResolvidoAutomatico(Number(btnWhats.dataset.linha));
   });
 
+  el('buscaReservas').addEventListener('input', renderizarReservas);
+  el('filtroSala').addEventListener('change', renderizarReservas);
+  el('filtroStatusReserva').addEventListener('change', renderizarReservas);
+  el('btnAtualizarReservas').addEventListener('click', carregarReservas);
+  el('btnNovaReserva').addEventListener('click', abrirModalReserva);
+  el('btnFecharModal').addEventListener('click', fecharModalReserva);
+  el('formNovaReserva').addEventListener('submit', enviarNovaReserva);
+  el('modalReserva').addEventListener('click', (e) => {
+    if (e.target === el('modalReserva')) fecharModalReserva();
+  });
+
+  el('tabelaReservasCorpo').addEventListener('click', (e) => {
+    const btnCancelar = e.target.closest('.btn-resolver');
+    if (btnCancelar) cancelarReserva(Number(btnCancelar.dataset.linha));
+  });
+
   el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
   el('btnAbaRecados').addEventListener('click', () => trocarAba('recados'));
+  el('btnAbaReservas').addEventListener('click', () => trocarAba('reservas'));
 
   el('btnSair').addEventListener('click', sair);
 });
