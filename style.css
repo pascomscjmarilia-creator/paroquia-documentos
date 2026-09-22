@@ -303,6 +303,10 @@ td a:hover {
 
   td[data-label="Data"],
   td[data-label="Hora"],
+  td[data-label="Hora Início"],
+  td[data-label="Hora Fim"],
+  td[data-label="Sala"],
+  td[data-label="Atividade"],
   td[data-label="Nome"],
   td[data-label="WhatsApp"],
   td[data-label="Status"] {
@@ -316,6 +320,10 @@ td a:hover {
 
   td[data-label="Data"]::before,
   td[data-label="Hora"]::before,
+  td[data-label="Hora Início"]::before,
+  td[data-label="Hora Fim"]::before,
+  td[data-label="Sala"]::before,
+  td[data-label="Atividade"]::before,
   td[data-label="Nome"]::before,
   td[data-label="WhatsApp"]::before,
   td[data-label="Status"]::before {
@@ -348,6 +356,120 @@ td a:hover {
     margin: 0;
     flex-shrink: 0;
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 17, 15, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+}
+
+.modal-caixa {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-topo h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--vinho);
+}
+
+.modal-fechar {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #777;
+  padding: 0 4px;
+}
+
+.modal-fechar:hover {
+  color: var(--vinho);
+}
+
+#formNovaReserva {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#formNovaReserva label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+#formNovaReserva input,
+#formNovaReserva select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.modal-linha-dupla {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-linha-dupla > div {
+  flex: 1;
+}
+
+#formNovaReserva button[type="submit"] {
+  background: var(--vinho);
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#formNovaReserva button[type="submit"]:hover {
+  background: var(--vinho-escuro);
+}
+
+#formNovaReserva button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+#modalResultado {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+#modalResultado.sucesso {
+  color: #276e35;
+}
+
+#modalResultado.erro {
+  color: #b3261e;
 }
 
 @media print {
