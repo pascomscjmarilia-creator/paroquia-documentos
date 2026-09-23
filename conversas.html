@@ -49,6 +49,18 @@
   .tab-btn.active,.ghost.active{border-color:var(--gold);color:var(--gold-soft);background:var(--bg-elev-2);}
   .ghost:hover,.tab-btn:hover{border-color:var(--gold);color:var(--gold-soft);}
   .ghost.flag.active{border-color:var(--flag);color:var(--flag);}
+  .tab-grupo{display:inline-flex;align-items:center;gap:6px;}
+  .ajuda-btn{width:24px;height:24px;flex-shrink:0;padding:0;border:1.5px solid var(--gold);border-radius:50%;background:transparent;color:var(--gold-soft);font-size:12px;font-weight:700;line-height:1;cursor:pointer;font-family:inherit;}
+  .ajuda-btn:hover,.ajuda-btn[aria-expanded="true"]{background:var(--gold);color:#1c1815;}
+  .ajuda-box{background:var(--bg-elev);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;padding:14px 18px;margin:0 0 16px;font-size:13.5px;line-height:1.55;color:var(--text);}
+  .ajuda-box h3{font-family:'Fraunces',serif;color:var(--gold-soft);font-size:16px;margin:0 0 8px;}
+  .ajuda-box h4{color:var(--gold-soft);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px;}
+  .ajuda-box p{margin:0 0 8px;}
+  .ajuda-box ol,.ajuda-box ul{margin:0 0 8px;padding-left:20px;}
+  .ajuda-box li{margin-bottom:5px;}
+  .ajuda-box ul{list-style:disc;}
+  .ajuda-box b{color:#f3e2b5;}
+  .ajuda-box .nota{font-size:12px;color:var(--text-dim);border-top:1px solid var(--line);padding-top:8px;margin-top:10px;}
   .badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:100px;font-size:11px;background:rgba(201,161,90,0.18);color:var(--gold-soft);}
   .controls{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
   .search,select{background:var(--bg-elev);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13.5px;font-family:inherit;}
@@ -116,8 +128,63 @@
   <!-- APP -->
   <div id="app" hidden>
     <div class="tabs">
-      <button class="tab-btn active" id="tabConversas" type="button">💬 Conversas</button>
-      <button class="tab-btn" id="tabSem" type="button">❓ Sem resposta <span class="badge" id="badgeSem">0</span></button>
+      <span class="tab-grupo">
+        <button class="tab-btn active" id="tabConversas" type="button">💬 Conversas</button>
+        <button class="ajuda-btn" data-ajuda="ajudaConversas" aria-expanded="false" aria-controls="ajudaConversas" aria-label="Como usar a aba Conversas" type="button">?</button>
+      </span>
+      <span class="tab-grupo">
+        <button class="tab-btn" id="tabSem" type="button">❓ Sem resposta <span class="badge" id="badgeSem">0</span></button>
+        <button class="ajuda-btn" data-ajuda="ajudaSem" aria-expanded="false" aria-controls="ajudaSem" aria-label="Como usar a aba Sem resposta" type="button">?</button>
+      </span>
+    </div>
+
+    <div class="ajuda-box" id="ajudaConversas" hidden>
+      <h3>💬 Conversas — para que serve</h3>
+      <p>Mostra tudo o que os fiéis perguntaram ao bot e o que ele respondeu (as 200 mais recentes, da mais nova para a mais antiga). É o lugar para <b>conferir se o bot está respondendo certo</b> e descobrir o que precisa melhorar.</p>
+      <h4>Como usar para corrigir e melhorar</h4>
+      <ol>
+        <li><b>Leia a resposta do bot</b> e compare com o que é o certo (planilhas, avisos, regras da paróquia). Estando certa, não há nada a fazer.</li>
+        <li>Se estiver <b>errada, incompleta ou com tom ruim</b>, clique em <b>🚩 Marcar para corrigir</b>.</li>
+        <li><b>Descubra a causa</b> e escolha a correção:
+          <ul>
+            <li><b>Informação errada ou desatualizada</b> → corrija na planilha certa (Missas, Atividades, Paróquia…) ou, se for mudança temporária, cadastre um aviso em <b>Informações Extras</b> no painel da secretaria.</li>
+            <li><b>Informação certa, mas o bot não usou ou entendeu mal</b> → o ajuste é no prompt ou no código do n8n. Leve o caso ao Claude.</li>
+            <li><b>Tom, tamanho ou jeito de falar</b> (muito longo, repete a apresentação, promete o que não pode) → ajuste de prompt (estilo, saudação, regras).</li>
+          </ul>
+        </li>
+        <li>Para levar os casos ao Claude ou às notas, use <b>📋 Copiar</b> (uma conversa) ou <b>📋 Copiar marcadas</b> (todas as marcadas de uma vez).</li>
+        <li><b>Depois de corrigir, teste</b> com a mesma pergunta e confira se agora responde certo.</li>
+      </ol>
+      <h4>O que vale procurar</h4>
+      <ul>
+        <li>Horários, datas e locais que não batem com as planilhas.</li>
+        <li>Respostas inventadas ou promessas ("vou avisar o padre", "já anotei").</li>
+        <li>Saudação repetida a cada mensagem, ou frase padrão "Não tenho essa informação" quando a informação existe.</li>
+        <li>Perguntas que exigiam uma pessoa (visita a doente, retorno) e o bot não registrou recado.</li>
+      </ul>
+      <p class="nota">Os cartões tracejados com o rótulo <b>Sistema</b> não são respostas do bot: são registros automáticos (número bloqueado, bot pausado por atendimento humano).</p>
+      <p class="nota">As marcações 🚩 ficam só neste navegador (não são compartilhadas entre vocês). Esta página tem dados pessoais de fiéis: use só para o trabalho da paróquia e não compartilhe prints.</p>
+    </div>
+
+    <div class="ajuda-box" id="ajudaSem" hidden>
+      <h3>❓ Sem resposta — para que serve</h3>
+      <p>Lista as perguntas em que o bot usou a frase padrão <i>"Não tenho essa informação aqui no momento"</i> e encaminhou o fiel para a secretaria. <b>Não quer dizer que o bot ficou calado</b>: ele respondeu, mas sem a informação. É a sua lista de <b>lacunas do sistema</b>.</p>
+      <h4>Como usar para corrigir e melhorar</h4>
+      <ol>
+        <li>Para cada pergunta, descubra o <b>motivo</b>:
+          <ul>
+            <li><b>A informação não existe</b> → cadastre. Se for avulsa ou temporária, use <b>Informações Extras</b>; se for fixa, coloque na planilha correspondente.</li>
+            <li><b>Existe, mas o bot não achou</b> (nome escrito de outro jeito, pergunta que a busca não cobre) → marque 🚩 e leve ao Claude para ajustar a busca ou o prompt.</li>
+            <li><b>Precisa de uma pessoa</b> (visita a doente, pedido de retorno, assunto pessoal) → <b>contate o fiel</b>, confira se um recado foi registrado na aba Recados e, se não foi, peça o ajuste do bot para registrar.</li>
+            <li><b>Fora do escopo</b> (outras paróquias, assuntos alheios) → normalmente é só ignorar.</li>
+          </ul>
+        </li>
+        <li><b>Prioridades:</b> primeiro o que exige atendimento humano (o mesmo dia), depois as perguntas <b>repetidas por vários fiéis</b>, que rendem mais quando cadastradas.</li>
+        <li>Use <b>📋 Copiar</b> e <b>📋 Copiar marcadas</b> para levar os casos ao Claude.</li>
+        <li>Quando resolver um caso, teste perguntando ao bot: a pergunta deve deixar de cair aqui.</li>
+      </ol>
+      <p class="nota"><b>Limite da lista:</b> ela só registra quando a resposta traz exatamente aquela frase padrão. Se o bot reformular ("infelizmente não sei"), a pergunta não entra aqui. Por isso vale olhar também a aba Conversas.</p>
+      <p class="nota">Esta página tem dados pessoais de fiéis: use só para o trabalho da paróquia e não compartilhe prints.</p>
     </div>
 
     <div class="controls">
@@ -354,6 +421,11 @@
       const bloco = itens.map(l => textoConversa(l, ehDaAbaSem(idDe(l)))).join('\n\n---\n\n');
       copiar('Conversas para corrigir (' + itens.length + '):\n\n' + bloco);
     });
+    document.querySelectorAll('.ajuda-btn').forEach(btn => btn.addEventListener('click', () => {
+      const caixa = $(btn.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btn.setAttribute('aria-expanded', String(!caixa.hidden));
+    }));
     $('feed').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-acao]'); if (!b) return;
       const id = b.dataset.id;
