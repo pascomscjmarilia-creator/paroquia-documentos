@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260923a">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -192,7 +192,7 @@
           </div>
           <div id="ajudaAssunto" class="ajuda-texto" hidden>
             <p><strong>O que é:</strong> o tema do aviso, em poucas palavras. É por ele que o bot reconhece quando o fiel pergunta sobre esse assunto.</p>
-            <p class="exemplo">Exemplos: Curso de Casais · Local do curso de batismo · Missa de Ação de Graças</p>
+            <p class="exemplo">Exemplos: Curso de Casais · Local do curso de batismo · Pe. Willians ausente (21 a 27/09)</p>
           </div>
           <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
         </div>
@@ -205,7 +205,9 @@
           <div id="ajudaInformacao" class="ajuda-texto" hidden>
             <p><strong>O que é:</strong> a resposta pronta que o bot vai dar ao fiel. Escreva do jeito que quer que ele fale, com dia, horário e local.</p>
             <p><strong>Atenção:</strong> use só para avisos especiais ou temporários. O que já está nas outras abas (missas, atividades, pastorais…) não precisa repetir aqui.</p>
-            <p class="exemplo">Exemplo: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial. Ainda há vagas!</p>
+            <p><strong>Também serve para avisar mudanças</strong> em qualquer informação normal do bot: data ou horário alterado, missa/evento/atividade cancelado, local trocado, padre ausente… O aviso <strong>vale mais</strong> que a informação normal.</p>
+            <p><strong>Dica para mudanças:</strong> cite o nome do que mudou e diga o que valia antes e o que vale agora. Preencha o <em>Válido até</em> e o aviso sai do ar sozinho.</p>
+            <p class="exemplo">Exemplos: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial. · A missa de domingo, 28/09, às 19h na Matriz está cancelada; haverá missa às 18h.</p>
           </div>
           <textarea id="extraInformacao" rows="4" required placeholder="Ex: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial."></textarea>
         </div>
@@ -277,6 +279,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20260923a"></script>
 </body>
 </html>
