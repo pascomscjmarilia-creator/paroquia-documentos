@@ -90,6 +90,17 @@
   .mini{background:transparent;border:1px solid var(--line);color:var(--text-dim);padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;}
   .mini:hover{border-color:var(--gold);color:var(--gold-soft);}
   .mini.on{border-color:var(--flag);color:var(--flag);}
+  .mini.ok{border-color:var(--ok);color:#9cc9a0;}
+  .mini.ok:hover{background:rgba(106,155,110,0.15);}
+  .acoes-sem{justify-content:space-between;align-items:center;}
+  .acoes-sem .botoes{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .status-sem{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text-faint);}
+  .chip{display:inline-block;padding:2px 10px;border-radius:100px;font-size:11.5px;font-weight:600;}
+  .chip.pend{background:rgba(217,138,28,0.16);color:var(--flag);}
+  .chip.em{background:rgba(201,161,90,0.18);color:var(--gold-soft);}
+  .chip.ok{background:rgba(106,155,110,0.2);color:#9cc9a0;}
+  .entry.st-corrigida{opacity:.72;}
+  .entry.st-correcao{border-color:rgba(201,161,90,0.5);}
   .vazio{text-align:center;padding:70px 20px;color:var(--text-faint);font-size:14px;}
   .aviso-lim{color:var(--text-faint);font-size:12.5px;margin:0 0 10px;}
   footer{text-align:center;margin-top:30px;font-size:11.5px;color:var(--text-faint);}
@@ -106,7 +117,7 @@
       <div class="brand-mark">✚</div>
       <div>
         <h1>Conversas do bot</h1>
-        <p>Equipe de criação · somente leitura</p>
+        <p>Equipe de criação · acompanhamento e correções</p>
       </div>
     </div>
     <div class="lado" id="lado" hidden>
@@ -122,7 +133,7 @@
     <p>Aqui você acompanha o que os fiéis perguntam e o que o bot respondeu, para conferir se as respostas estão corretas ou se precisam de correção.</p>
     <div id="googleBtn"></div>
     <p class="erro" id="loginErro" hidden></p>
-    <p class="aviso">Contém dados pessoais dos fiéis (LGPD). Use só para o trabalho da paróquia e não compartilhe prints.<br>Precisa de permissão de leitura na planilha Pascom_Controle.</p>
+    <p class="aviso">Contém dados pessoais dos fiéis (LGPD). Use só para o trabalho da paróquia e não compartilhe prints.<br>Precisa de permissão de <b>Editor</b> na planilha Pascom_Controle (a página só grava o status das perguntas sem resposta).</p>
   </section>
 
   <!-- APP -->
@@ -180,10 +191,18 @@
           </ul>
         </li>
         <li><b>Prioridades:</b> primeiro o que exige atendimento humano (o mesmo dia), depois as perguntas <b>repetidas por vários fiéis</b>, que rendem mais quando cadastradas.</li>
-        <li>Use <b>📋 Copiar</b> e <b>📋 Copiar marcadas</b> para levar os casos ao Claude.</li>
-        <li>Quando resolver um caso, teste perguntando ao bot: a pergunta deve deixar de cair aqui.</li>
+        <li><b>Acompanhe pelo status</b> (aparece para os 4 da equipe, porque fica gravado na planilha):
+          <ul>
+            <li><b>Pendente</b> — ninguém pegou ainda.</li>
+            <li><b>🛠️ Em correção</b> — vira automaticamente quando alguém clica em <b>📋 Copiar</b>: significa que o caso já foi levado ao Claude. O e-mail e o horário de quem copiou ficam ao lado.</li>
+            <li><b>✅ Corrigida</b> — clique em <b>✅ Marcar corrigida</b> depois de resolver <b>e testar</b> (a pergunta deve deixar de cair aqui). Ela sai da lista principal e fica no filtro <b>Corrigidas</b>.</li>
+          </ul>
+          Se marcou errado, use <b>↩ Reabrir</b> (ou <b>Voltar para pendente</b>).
+        </li>
+        <li>O filtro ao lado da busca vem em <b>A resolver</b> (pendentes + em correção, o padrão) e também alterna entre <b>Só pendentes</b>, <b>Em correção</b>, <b>Corrigidas</b> e <b>Todas</b>. O número na aba conta o que ainda não foi corrigido.</li>
       </ol>
       <p class="nota"><b>Limite da lista:</b> ela só registra quando a resposta traz exatamente aquela frase padrão. Se o bot reformular ("infelizmente não sei"), a pergunta não entra aqui. Por isso vale olhar também a aba Conversas.</p>
+      <p class="nota">O status é gravado na planilha, nas colunas <b>Status</b> e <b>Atualizado por</b> (H e I) da aba Perguntas_Sem_Resposta. Se duas pessoas mexerem na mesma pergunta quase ao mesmo tempo, vale a última.</p>
       <p class="nota">Esta página tem dados pessoais de fiéis: use só para o trabalho da paróquia e não compartilhe prints.</p>
     </div>
 
@@ -193,6 +212,13 @@
         <option value="">Todo o período</option>
         <option value="hoje">Só hoje</option>
         <option value="7dias">Últimos 7 dias</option>
+      </select>
+      <select id="filtroSituacao" hidden aria-label="Situação da correção">
+        <option value="aresolver">A resolver</option>
+        <option value="pendente">Só pendentes</option>
+        <option value="correcao">Em correção</option>
+        <option value="corrigida">Corrigidas</option>
+        <option value="">Todas</option>
       </select>
     </div>
     <div class="controls">
@@ -206,7 +232,7 @@
     <div id="feed"></div>
   </div>
 
-  <footer>Somente leitura · dados da planilha Log_Conversas / Perguntas_Sem_Resposta · atualiza a cada 60 segundos</footer>
+  <footer>Lê Log_Conversas e Perguntas_Sem_Resposta · grava apenas o status das perguntas sem resposta · atualiza a cada 60 segundos</footer>
 </div>
 <div id="toast"></div>
 
@@ -217,11 +243,12 @@
     CLIENT_ID: '172692599350-9ssc0ir4r4j4rtn3v7ksd5i6un41damc.apps.googleusercontent.com',
     SHEET_ID: '1-9ZRasNVZK3qX3j51QffsZjOzI59axMkh4pCZxxhFws', // Pascom_Controle
     LOG_RANGE: 'Log_Conversas!A2:H',                 // Timestamp, Data, Hora, Nome, Numero, Pergunta, Resposta, SessionId
-    SEM_RANGE: 'Perguntas_Sem_Resposta!A2:G',        // Timestamp, Data, Hora, Nome, Numero, Pergunta, SessionId
+    SEM_RANGE: 'Perguntas_Sem_Resposta!A2:I',        // Timestamp, Data, Hora, Nome, Numero, Pergunta, SessionId, Status, Atualizado por
+    SEM_ABA: 'Perguntas_Sem_Resposta',
     ATUALIZA_MS: 60000,
     LIMITE: 200,
-    // Somente leitura: esta página nunca altera a planilha.
-    SCOPE: 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email',
+    // Leitura + gravação (mesmo acesso do site da secretaria). A página só grava as colunas H:I (Status) de Perguntas_Sem_Resposta.
+    SCOPE: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -229,6 +256,7 @@
   let conversas = [], semResposta = [];
   let aba = 'conversas', auto = true, timer = null, soMarcadas = false;
   let marcadas = new Set();
+  let emailUsuario = '';
   const CHAVE_MARCADAS = 'conversas_marcadas_v1';
 
   try { marcadas = new Set(JSON.parse(localStorage.getItem(CHAVE_MARCADAS) || '[]')); } catch (e) { marcadas = new Set(); }
@@ -301,7 +329,8 @@
     try {
       const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } });
       const p = await r.json();
-      $('emailTxt').textContent = p.email || '';
+      emailUsuario = p.email || '';
+      $('emailTxt').textContent = emailUsuario;
     } catch (e) { /* e-mail é só informativo */ }
     $('loginBox').hidden = true; $('app').hidden = false; $('lado').hidden = false;
     await carregar();
@@ -337,9 +366,9 @@
       const [log, sem] = await Promise.all([lerAba(CONFIG.LOG_RANGE), lerAba(CONFIG.SEM_RANGE)]);
       conversas = log.map((r, i) => ({ linha: i + 2, timestamp: r[0] || '', data: r[1] || '', hora: r[2] || '', nome: r[3] || '', numero: limparNumero(r[4]), pergunta: r[5] || '', resposta: r[6] || '' }))
         .filter(l => l.pergunta || l.resposta);
-      semResposta = sem.map((r, i) => ({ linha: i + 2, timestamp: r[0] || '', data: r[1] || '', hora: r[2] || '', nome: r[3] || '', numero: limparNumero(r[4]), pergunta: r[5] || '' }))
+      semResposta = sem.map((r, i) => ({ linha: i + 2, timestamp: r[0] || '', data: r[1] || '', hora: r[2] || '', nome: r[3] || '', numero: limparNumero(r[4]), pergunta: r[5] || '', status: (r[7] || '').trim(), atualizadoPor: r[8] || '' }))
         .filter(l => l.pergunta);
-      $('badgeSem').textContent = semResposta.length;
+      atualizarBadge();
       $('dot').className = 'dot live';
       $('statusTxt').textContent = 'ao vivo · ' + new Date().toLocaleTimeString('pt-BR', TZ);
       $('msg').textContent = '';
@@ -349,6 +378,55 @@
       $('statusTxt').textContent = 'sem conexão';
       $('msg').textContent = mensagemErro(e);
       console.error('Erro ao carregar conversas:', e);
+    }
+  }
+
+  // ---------- status das perguntas sem resposta (gravado na planilha: colunas H e I) ----------
+  const situacaoSem = (l) => {
+    const s = norm(l.status);
+    return s.includes('corrigid') ? 'corrigida' : (s.includes('correc') ? 'correcao' : 'pendente');
+  };
+  function atualizarBadge() { $('badgeSem').textContent = semResposta.filter(l => situacaoSem(l) !== 'corrigida').length; }
+  function agoraTexto() {
+    return new Date().toLocaleDateString('pt-BR', TZ) + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', ...TZ });
+  }
+  function mensagemErroGravacao(e) {
+    const s = e && e.status;
+    if (s === 401) return 'Sessão expirou. Clique em "Sair" e entre de novo.';
+    if (s === 403) return 'Sua conta não tem permissão de EDITAR a planilha Pascom_Controle. Peça acesso de Editor.';
+    if (s === 400 || s === 404) return 'Não encontrei a aba Perguntas_Sem_Resposta.';
+    return 'Não foi possível gravar agora. Tente de novo.';
+  }
+
+  // Grava o status na linha da pergunta. Antes, confere se a linha ainda é a mesma (outra pessoa pode ter mexido na planilha).
+  async function gravarStatus(l, novoStatus) {
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/`;
+    const cab = { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
+    const conferir = await fetch(base + encodeURIComponent(`${CONFIG.SEM_ABA}!A${l.linha}:G${l.linha}`), { headers: cab });
+    if (!conferir.ok) { const e = new Error('HTTP ' + conferir.status); e.status = conferir.status; throw e; }
+    const linha = ((await conferir.json()).values || [[]])[0] || [];
+    if ((linha[0] || '') !== l.timestamp || (linha[5] || '') !== l.pergunta) {
+      const e = new Error('linha mudou'); e.linhaMudou = true; throw e;
+    }
+    const info = novoStatus ? `${emailUsuario} · ${agoraTexto()}` : '';
+    const r = await fetch(base + encodeURIComponent(`${CONFIG.SEM_ABA}!H${l.linha}:I${l.linha}`) + '?valueInputOption=RAW', {
+      method: 'PUT', headers: cab, body: JSON.stringify({ values: [[novoStatus, info]] }),
+    });
+    if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    l.status = novoStatus; l.atualizadoPor = info;
+  }
+
+  async function mudarStatus(id, novoStatus, aviso) {
+    const l = semResposta.find(x => idDe(x) === id);
+    if (!l) return;
+    try {
+      await gravarStatus(l, novoStatus);
+      atualizarBadge(); desenhar();
+      if (aviso) toast(aviso);
+    } catch (e) {
+      if (e.linhaMudou) { toast('A planilha mudou. Atualizando…'); carregar(true); return; }
+      console.error('Erro ao gravar status:', e);
+      toast(mensagemErroGravacao(e));
     }
   }
 
@@ -367,16 +445,22 @@
     $('qtdMarcadas').textContent = marcadas.size;
     $('btnSoMarcadas').classList.toggle('active', soMarcadas);
 
+    const situacaoFiltro = $('filtroSituacao').value;
     let lista = (ehSem ? semResposta : conversas)
       .filter(l => noPeriodo(l, periodo))
+      .filter(l => !ehSem || !situacaoFiltro || (situacaoFiltro === 'aresolver' ? situacaoSem(l) !== 'corrigida' : situacaoSem(l) === situacaoFiltro))
       .filter(l => !soMarcadas || marcadas.has(idDe(l)))
       .filter(l => !termo || norm(l.nome + ' ' + l.numero + ' ' + l.pergunta + ' ' + (l.resposta || '')).includes(termo))
       .sort((a, b) => { const da = dataDe(a), db = dataDe(b); return ((db ? db.getTime() : 0) - (da ? da.getTime() : 0)) || (b.linha - a.linha); });
 
     $('contagem').textContent = lista.length + (ehSem ? (lista.length === 1 ? ' pergunta' : ' perguntas') : (lista.length === 1 ? ' conversa' : ' conversas'));
+    if (ehSem) {
+      const n = (s) => semResposta.filter(l => situacaoSem(l) === s).length;
+      $('contagem').textContent += ` · ${n('pendente')} pendentes · ${n('correcao')} em correção · ${n('corrigida')} corrigidas`;
+    }
 
     if (lista.length === 0) {
-      $('feed').innerHTML = '<div class="vazio">' + (soMarcadas ? 'Nenhuma conversa marcada com esse filtro.' : (ehSem ? '✅ Nenhuma pergunta sem resposta encontrada.' : 'Nenhuma conversa encontrada.')) + '</div>';
+      $('feed').innerHTML = '<div class="vazio">' + (soMarcadas ? 'Nenhuma conversa marcada com esse filtro.' : (ehSem ? (situacaoFiltro === 'aresolver' ? '✅ Nenhuma pergunta a resolver. Tudo em dia!' : 'Nenhuma pergunta nesse filtro.') : 'Nenhuma conversa encontrada.')) + '</div>';
       return;
     }
     const mostradas = lista.slice(0, CONFIG.LIMITE);
@@ -386,6 +470,20 @@
       const id = idDe(l), on = marcadas.has(id);
       const sistema = !ehSem && /^\s*\[/.test(l.resposta);
       const resp = ehSem ? '' : `<div class="bubble ${sistema ? 'sistema' : 'resposta'}"><span class="rot">${sistema ? 'Sistema' : 'Resposta do bot'}</span>${esc(l.resposta)}</div>`;
+      if (ehSem) {
+        const st = situacaoSem(l);
+        const chip = st === 'corrigida' ? `<span class="chip ok">✅ Corrigida</span>` : (st === 'correcao' ? `<span class="chip em">🛠️ Em correção</span>` : `<span class="chip pend">Pendente</span>`);
+        const quem = l.atualizadoPor ? `<span class="quem">${esc(l.atualizadoPor)}</span>` : '';
+        const botoesSem = st === 'corrigida'
+          ? `<button class="mini" data-acao="reabrir" data-id="${esc(id)}" type="button">↩ Reabrir</button>`
+          : `<button class="mini ok" data-acao="concluir" data-id="${esc(id)}" type="button">✅ Marcar corrigida</button>` + (st === 'correcao' ? `<button class="mini" data-acao="reabrir" data-id="${esc(id)}" type="button">↩ Voltar para pendente</button>` : '');
+        return `<div class="entry st-${st}">
+        <div class="meta"><div><span class="who">${esc(l.nome || 'Fiel')}</span><span class="num">${esc(l.numero)}</span></div><div class="when">${esc(quando(l))}</div></div>
+        <div class="bubbles"><div class="bubble pergunta"><span class="rot">Pergunta</span>${esc(l.pergunta)}</div></div>
+        <div class="acoes acoes-sem"><div class="status-sem">${chip}${quem}</div><div class="botoes">
+          <button class="mini" data-acao="copiar" data-id="${esc(id)}" type="button">📋 Copiar</button>${botoesSem}
+        </div></div></div>`;
+      }
       return `<div class="entry${on ? ' marcada' : ''}">
         <div class="meta"><div><span class="who">${esc(l.nome || 'Fiel')}</span><span class="num">${esc(l.numero)}</span></div><div class="when">${esc(quando(l))}</div></div>
         <div class="bubbles"><div class="bubble pergunta"><span class="rot">Pergunta</span>${esc(l.pergunta)}</div>${resp}</div>
@@ -403,8 +501,9 @@
   window.addEventListener('DOMContentLoaded', () => {
     iniciarLogin();
     $('btnSair').addEventListener('click', sair);
-    $('tabConversas').addEventListener('click', () => { aba = 'conversas'; $('tabConversas').classList.add('active'); $('tabSem').classList.remove('active'); desenhar(); });
-    $('tabSem').addEventListener('click', () => { aba = 'sem'; $('tabSem').classList.add('active'); $('tabConversas').classList.remove('active'); desenhar(); });
+    $('tabConversas').addEventListener('click', () => { aba = 'conversas'; $('tabConversas').classList.add('active'); $('tabSem').classList.remove('active'); $('filtroSituacao').hidden = true; desenhar(); });
+    $('tabSem').addEventListener('click', () => { aba = 'sem'; $('tabSem').classList.add('active'); $('tabConversas').classList.remove('active'); $('filtroSituacao').hidden = false; desenhar(); });
+    $('filtroSituacao').addEventListener('change', desenhar);
     $('busca').addEventListener('input', desenhar);
     $('periodo').addEventListener('change', desenhar);
     $('btnAtualizar').addEventListener('click', () => carregar());
@@ -433,7 +532,15 @@
         if (marcadas.has(id)) marcadas.delete(id); else marcadas.add(id);
         salvarMarcadas(); desenhar();
       } else if (b.dataset.acao === 'copiar') {
-        const l = achar(id); if (l) copiar(textoConversa(l, ehDaAbaSem(id)));
+        const l = achar(id); if (!l) return;
+        copiar(textoConversa(l, ehDaAbaSem(id)));
+        // Ao copiar uma pergunta sem resposta que ainda está pendente, marca como "Em correção" na planilha
+        const sem = semResposta.find(x => idDe(x) === id);
+        if (sem && situacaoSem(sem) === 'pendente') mudarStatus(id, 'Em correção', 'Copiado e marcado como "Em correção"');
+      } else if (b.dataset.acao === 'concluir') {
+        mudarStatus(id, 'Corrigida', 'Marcada como corrigida ✅');
+      } else if (b.dataset.acao === 'reabrir') {
+        mudarStatus(id, '', 'Voltou para pendente');
       }
     });
   });
