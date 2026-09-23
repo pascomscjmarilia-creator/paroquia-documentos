@@ -457,10 +457,66 @@ td a:hover {
   resize: vertical;
 }
 
-.modal-dica {
-  margin: -6px 0 0;
+.modal-intro {
+  margin: -6px 0 14px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+#formExtra .campo-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+#formExtra .campo-rotulo label {
+  margin-bottom: 0;
+}
+
+.btn-ajuda {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1.5px solid var(--vinho);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--vinho);
   font-size: 0.8rem;
-  color: #777;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-ajuda:hover,
+.btn-ajuda[aria-expanded="true"] {
+  background: var(--vinho);
+  color: #fff;
+}
+
+.ajuda-texto {
+  background: #faf7f0;
+  border-left: 3px solid var(--dourado);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #444;
+}
+
+.ajuda-texto p {
+  margin: 0 0 4px;
+}
+
+.ajuda-texto p:last-child {
+  margin-bottom: 0;
+}
+
+.ajuda-texto .exemplo {
+  color: var(--vinho);
+  font-style: italic;
 }
 
 .modal-linha-dupla {
