@@ -182,16 +182,46 @@
         <button id="btnFecharModalExtra" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
       </div>
 
+      <p class="modal-intro">Toque no <strong>?</strong> ao lado de cada campo para ver como preencher.</p>
+
       <form id="formExtra">
-        <label for="extraAssunto">Assunto</label>
-        <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
+        <div class="campo">
+          <div class="campo-rotulo">
+            <label for="extraAssunto">Assunto</label>
+            <button type="button" class="btn-ajuda" data-ajuda="ajudaAssunto" aria-expanded="false" aria-label="Como preencher o Assunto">?</button>
+          </div>
+          <div id="ajudaAssunto" class="ajuda-texto" hidden>
+            <p><strong>O que é:</strong> o tema do aviso, em poucas palavras. É por ele que o bot reconhece quando o fiel pergunta sobre esse assunto.</p>
+            <p class="exemplo">Exemplos: Curso de Casais · Local do curso de batismo · Missa de Ação de Graças</p>
+          </div>
+          <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
+        </div>
 
-        <label for="extraInformacao">Informação (como o bot deve responder)</label>
-        <textarea id="extraInformacao" rows="4" required placeholder="Ex: Toda quinta-feira, 19h, no Salão Paroquial."></textarea>
+        <div class="campo">
+          <div class="campo-rotulo">
+            <label for="extraInformacao">Informação</label>
+            <button type="button" class="btn-ajuda" data-ajuda="ajudaInformacao" aria-expanded="false" aria-label="Como preencher a Informação">?</button>
+          </div>
+          <div id="ajudaInformacao" class="ajuda-texto" hidden>
+            <p><strong>O que é:</strong> a resposta pronta que o bot vai dar ao fiel. Escreva do jeito que quer que ele fale, com dia, horário e local.</p>
+            <p><strong>Atenção:</strong> use só para avisos especiais ou temporários. O que já está nas outras abas (missas, atividades, pastorais…) não precisa repetir aqui.</p>
+            <p class="exemplo">Exemplo: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial. Ainda há vagas!</p>
+          </div>
+          <textarea id="extraInformacao" rows="4" required placeholder="Ex: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial."></textarea>
+        </div>
 
-        <label for="extraValidoAte">Válido até (opcional)</label>
-        <input type="date" id="extraValidoAte">
-        <p class="modal-dica">Deixe em branco se a informação não tem data pra acabar.</p>
+        <div class="campo">
+          <div class="campo-rotulo">
+            <label for="extraValidoAte">Válido até (opcional)</label>
+            <button type="button" class="btn-ajuda" data-ajuda="ajudaValidoAte" aria-expanded="false" aria-label="Como preencher o Válido até">?</button>
+          </div>
+          <div id="ajudaValidoAte" class="ajuda-texto" hidden>
+            <p><strong>O que é:</strong> o último dia em que o aviso deve ser usado. Depois dessa data o bot para de usar o aviso sozinho — não precisa apagar.</p>
+            <p><strong>Deixe em branco</strong> se a informação não tem data para acabar (por exemplo, um horário fixo).</p>
+            <p class="exemplo">Exemplo: evento no dia 05/10 → escolha 05/10.</p>
+          </div>
+          <input type="date" id="extraValidoAte">
+        </div>
 
         <button type="submit" id="btnSalvarExtra">Salvar</button>
         <p id="modalExtraResultado"></p>
