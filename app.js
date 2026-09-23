@@ -322,19 +322,31 @@ async function salvarExtra(e) {
         method: 'POST', headers: cabecalhos, body: JSON.stringify({ values: valores }),
       });
     }
-    if (!resp.ok) throw new Error('status ' + resp.status);
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
 
     resultado.className = 'sucesso';
     resultado.textContent = '✅ Aviso salvo.';
     await carregarExtras();
     setTimeout(fecharModalExtra, 900);
   } catch (err) {
+    console.error('Erro ao salvar aviso:', err);
     resultado.className = 'erro';
-    resultado.textContent = '⚠️ Não foi possível salvar agora. Tente novamente em instantes.';
+    resultado.textContent = '⚠️ ' + mensagemErroGravacao(err);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Salvar';
   }
+}
+
+// Traduz o erro do Google Sheets numa mensagem que diz o que fazer (em vez de um "tente novamente" genérico).
+function mensagemErroGravacao(err) {
+  const s = err && err.status;
+  if (s === 401) return 'Sua sessão do Google expirou. Clique em "Sair" (canto superior direito), entre de novo e tente outra vez.';
+  if (s === 403) return 'Sua conta Google não tem permissão para EDITAR a planilha de dados da paróquia (só para ver). Peça para compartilhá-la com você como Editor e tente de novo.';
+  if (s === 400 || s === 404) return 'Não encontrei a aba "' + CONFIG.EXTRAS_ABA + '" na planilha de dados da paróquia. Confira se o nome da aba está exatamente assim.';
+  if (s === 429) return 'O Google está limitando os acessos neste momento. Aguarde 1 minuto e tente de novo.';
+  if (s) return 'O Google recusou a gravação (código ' + s + '). Tente novamente em instantes; se continuar, avise a equipe técnica.';
+  return 'Sem conexão com o Google. Confira a internet e tente novamente.';
 }
 
 async function excluirExtra(linhaNumero) {
@@ -351,10 +363,11 @@ async function excluirExtra(linhaNumero) {
       headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
       body: '{}',
     });
-    if (!resp.ok) throw new Error('status ' + resp.status);
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
     await carregarExtras();
   } catch (e) {
-    alert('Não foi possível excluir o aviso agora. Tente novamente em instantes.');
+    console.error('Erro ao excluir aviso:', e);
+    alert(mensagemErroGravacao(e));
   }
 }
 
