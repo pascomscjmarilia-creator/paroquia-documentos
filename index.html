@@ -191,8 +191,9 @@
             <button type="button" class="btn-ajuda" data-ajuda="ajudaAssunto" aria-expanded="false" aria-label="Como preencher o Assunto">?</button>
           </div>
           <div id="ajudaAssunto" class="ajuda-texto" hidden>
-            <p><strong>O que é:</strong> o tema do aviso, em poucas palavras. É por ele que o bot reconhece quando o fiel pergunta sobre esse assunto.</p>
-            <p class="exemplo">Exemplos: Curso de Casais · Local do curso de batismo · Pe. Willians ausente (21 a 27/09)</p>
+            <p><strong>O que é:</strong> o tema do aviso, em poucas palavras. É por ele que o bot liga o aviso à pergunta do fiel.</p>
+            <p><strong>Se for uma mudança:</strong> use o nome que as pessoas usam no dia a dia (Missa de domingo, Confissão, Festa de Nossa Senhora…) e diga o que mudou.</p>
+            <p class="exemplo">Exemplos: Curso de Casais · Missa de domingo 28/09 cancelada · Pe. Willians ausente (21 a 27/09)</p>
           </div>
           <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
         </div>
@@ -204,9 +205,13 @@
           </div>
           <div id="ajudaInformacao" class="ajuda-texto" hidden>
             <p><strong>O que é:</strong> a resposta pronta que o bot vai dar ao fiel. Escreva do jeito que quer que ele fale, com dia, horário e local.</p>
-            <p><strong>Atenção:</strong> use só para avisos especiais ou temporários. O que já está nas outras abas (missas, atividades, pastorais…) não precisa repetir aqui.</p>
-            <p><strong>Também serve para avisar mudanças</strong> em qualquer informação normal do bot: data ou horário alterado, missa/evento/atividade cancelado, local trocado, padre ausente… O aviso <strong>vale mais</strong> que a informação normal.</p>
-            <p><strong>Dica para mudanças:</strong> cite o nome do que mudou e diga o que valia antes e o que vale agora. Preencha o <em>Válido até</em> e o aviso sai do ar sozinho.</p>
+            <p><strong>Use para dois casos:</strong></p>
+            <ul style="margin:0 0 4px; padding-left:18px;">
+              <li><strong>Informação avulsa</strong> que não está em nenhuma outra aba (ex.: local de um curso).</li>
+              <li><strong>Mudança</strong> em algo que já existe nas outras abas: data ou horário alterado, cancelamento, local trocado, padre ausente… O aviso <strong>vale mais</strong> que a informação normal.</li>
+            </ul>
+            <p><strong>Nas mudanças,</strong> cite o nome do que mudou e diga o que valia antes e o que vale agora.</p>
+            <p>Não use para repetir uma informação que já está certa nas outras abas.</p>
             <p class="exemplo">Exemplos: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial. · A missa de domingo, 28/09, às 19h na Matriz está cancelada; haverá missa às 18h.</p>
           </div>
           <textarea id="extraInformacao" rows="4" required placeholder="Ex: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial."></textarea>
@@ -219,8 +224,9 @@
           </div>
           <div id="ajudaValidoAte" class="ajuda-texto" hidden>
             <p><strong>O que é:</strong> o último dia em que o aviso deve ser usado. Depois dessa data o bot para de usar o aviso sozinho — não precisa apagar.</p>
-            <p><strong>Deixe em branco</strong> se a informação não tem data para acabar (por exemplo, um horário fixo).</p>
-            <p class="exemplo">Exemplo: evento no dia 05/10 → escolha 05/10.</p>
+            <p><strong>Em avisos de mudança,</strong> preencha com o último dia da mudança. Assim, quando ela acabar, o bot volta a usar a informação normal.</p>
+            <p><strong>Deixe em branco</strong> só se a informação não tem data para acabar.</p>
+            <p class="exemplo">Exemplos: evento no dia 05/10 → escolha 05/10 · padre ausente até 27/09 → escolha 27/09.</p>
           </div>
           <input type="date" id="extraValidoAte">
         </div>
