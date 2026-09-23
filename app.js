@@ -253,7 +253,7 @@ function renderizarExtras() {
       <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
       <td data-label="Informação" class="texto-longo">${escapeHtml(l.informacao)}</td>
       <td data-label="Válido até">${escapeHtml(l.validoAte || '—')}</td>
-      <td data-label="Situação"><span class="status-pill ${classe}">${rotulo}</span></td>
+      <td data-label="Situação"><span class="status-pill ${classe}" title="A situação depende do 'Válido até'. Para mudar, clique em Editar.">${rotulo}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
         <button class="btn-acao btn-editar" data-linha="${l.linha}">✏️ Editar</button>
         <button class="btn-acao btn-excluir" data-linha="${l.linha}">🗑️ Excluir</button>
