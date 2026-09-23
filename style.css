@@ -112,6 +112,7 @@ main {
 
 .abas {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 16px;
   border-bottom: 2px solid var(--cinza-borda);
@@ -289,6 +290,17 @@ td a:hover {
     color: var(--vinho);
   }
 
+  .abas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .aba-btn {
+    padding: 10px 6px;
+    font-size: 0.9rem;
+  }
+
   .filtros select {
     flex: 1 1 100%;
   }
@@ -301,6 +313,10 @@ td a:hover {
     justify-content: flex-end;
   }
 
+  td[data-label="Assunto"],
+  td[data-label="Informação"],
+  td[data-label="Válido até"],
+  td[data-label="Situação"],
   td[data-label="Data"],
   td[data-label="Hora"],
   td[data-label="Hora Início"],
@@ -318,6 +334,10 @@ td a:hover {
     overflow-wrap: anywhere;
   }
 
+  td[data-label="Assunto"]::before,
+  td[data-label="Informação"]::before,
+  td[data-label="Válido até"]::before,
+  td[data-label="Situação"]::before,
   td[data-label="Data"]::before,
   td[data-label="Hora"]::before,
   td[data-label="Hora Início"]::before,
@@ -406,13 +426,15 @@ td a:hover {
   color: var(--vinho);
 }
 
-#formNovaReserva {
+#formNovaReserva,
+#formExtra {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-#formNovaReserva label {
+#formNovaReserva label,
+#formExtra label {
   display: block;
   font-weight: 600;
   margin-bottom: 4px;
@@ -420,13 +442,25 @@ td a:hover {
 }
 
 #formNovaReserva input,
-#formNovaReserva select {
+#formNovaReserva select,
+#formExtra input,
+#formExtra textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--cinza-borda);
   border-radius: 6px;
   font-size: 0.95rem;
   font-family: inherit;
+}
+
+#formExtra textarea {
+  resize: vertical;
+}
+
+.modal-dica {
+  margin: -6px 0 0;
+  font-size: 0.8rem;
+  color: #777;
 }
 
 .modal-linha-dupla {
@@ -438,7 +472,8 @@ td a:hover {
   flex: 1;
 }
 
-#formNovaReserva button[type="submit"] {
+#formNovaReserva button[type="submit"],
+#formExtra button[type="submit"] {
   background: var(--vinho);
   color: #fff;
   border: none;
@@ -449,27 +484,54 @@ td a:hover {
   cursor: pointer;
 }
 
-#formNovaReserva button[type="submit"]:hover {
+#formNovaReserva button[type="submit"]:hover,
+#formExtra button[type="submit"]:hover {
   background: var(--vinho-escuro);
 }
 
-#formNovaReserva button[type="submit"]:disabled {
+#formNovaReserva button[type="submit"]:disabled,
+#formExtra button[type="submit"]:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-#modalResultado {
+#modalResultado,
+#modalExtraResultado {
   margin: 0;
   font-weight: 600;
   font-size: 0.9rem;
 }
 
-#modalResultado.sucesso {
+#modalResultado.sucesso,
+#modalExtraResultado.sucesso {
   color: #276e35;
 }
 
-#modalResultado.erro {
+#modalResultado.erro,
+#modalExtraResultado.erro {
   color: #b3261e;
+}
+
+button.btn-editar {
+  background: var(--dourado);
+  color: var(--vinho-escuro);
+}
+
+button.btn-editar:hover {
+  background: #b8913f;
+}
+
+button.btn-excluir {
+  background: #b3261e;
+  color: #fff;
+}
+
+button.btn-excluir:hover {
+  background: #8f1d17;
+}
+
+td.texto-longo {
+  white-space: pre-line;
 }
 
 @media print {
