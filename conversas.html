@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Conversas do bot — Equipe de criação</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#14110f; --bg-elev:#1c1815; --bg-elev-2:#241f1a; --line:#33291f;
+    --gold:#c9a15a; --gold-soft:#e3c88a; --text:#ede6da; --text-dim:#9c9186; --text-faint:#6b6155;
+    --ok:#6a9b6e; --bad:#b25b52; --flag:#d98a1c;
+  }
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  html,body{min-height:100%;}
+  body{
+    margin:0;
+    background:radial-gradient(1100px 500px at 18% -10%, rgba(201,161,90,0.10), transparent 60%), var(--bg);
+    color:var(--text); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:22px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand-mark{width:40px;height:40px;border-radius:50%;border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--gold-soft);flex-shrink:0;background:radial-gradient(circle at 35% 30%, rgba(201,161,90,0.18), transparent 70%);}
+  .brand h1{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:0;color:var(--gold-soft);}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:var(--text-dim);}
+  .lado{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .pill{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);padding:7px 12px;border:1px solid var(--line);border-radius:100px;background:var(--bg-elev);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;}
+  .dot.live{animation:pulse 1.8s ease-in-out infinite;}
+  .dot.off{background:var(--bad);}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(106,155,110,0.5);}50%{box-shadow:0 0 0 5px rgba(106,155,110,0);}}
+
+  /* login */
+  .login{max-width:460px;margin:70px auto 0;text-align:center;background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;padding:38px 26px;}
+  .login h2{font-family:'Fraunces',serif;color:var(--gold-soft);margin:0 0 8px;font-size:22px;}
+  .login p{color:var(--text-dim);font-size:13.5px;line-height:1.55;margin:0 0 20px;}
+  .login .aviso{font-size:12px;color:var(--text-faint);margin-top:18px;}
+  .btn-google{background:#fff;border:1px solid #ccc;padding:10px 22px;border-radius:8px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;font-family:inherit;}
+  .erro{color:#e08d84;margin-top:16px;font-weight:600;font-size:13.5px;}
+
+  /* abas e controles */
+  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .tab-btn,.ghost{background:var(--bg-elev);border:1px solid var(--line);color:var(--text-dim);padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s,background .15s;white-space:nowrap;}
+  .tab-btn.active,.ghost.active{border-color:var(--gold);color:var(--gold-soft);background:var(--bg-elev-2);}
+  .ghost:hover,.tab-btn:hover{border-color:var(--gold);color:var(--gold-soft);}
+  .ghost.flag.active{border-color:var(--flag);color:var(--flag);}
+  .badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:100px;font-size:11px;background:rgba(201,161,90,0.18);color:var(--gold-soft);}
+  .controls{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
+  .search,select{background:var(--bg-elev);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13.5px;font-family:inherit;}
+  .search{flex:1;min-width:200px;}
+  .search::placeholder{color:var(--text-faint);}
+  .search:focus,select:focus{outline:none;border-color:var(--gold);}
+  .linha-info{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--text-faint);margin:0 2px 14px;}
+  #msg{color:var(--text-dim);}
+
+  /* feed */
+  #feed{display:flex;flex-direction:column;gap:14px;}
+  .entry{border:1px solid var(--line);border-radius:12px;background:var(--bg-elev);overflow:hidden;animation:fadeIn .3s ease;}
+  .entry.marcada{border-color:var(--flag);box-shadow:0 0 0 1px rgba(217,138,28,0.35);}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+  .meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg-elev-2);font-size:12px;}
+  .who{color:var(--gold-soft);font-weight:600;}
+  .num{color:var(--text-faint);margin-left:6px;}
+  .when{color:var(--text-faint);}
+  .bubbles{padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+  .bubble{max-width:88%;padding:9px 13px;border-radius:10px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;}
+  .bubble.pergunta{align-self:flex-start;background:var(--bg-elev-2);border:1px solid var(--line);border-top-left-radius:3px;}
+  .bubble.resposta{align-self:flex-end;background:linear-gradient(155deg,rgba(201,161,90,0.16),rgba(201,161,90,0.07));border:1px solid rgba(201,161,90,0.35);border-top-right-radius:3px;}
+  .bubble.sistema{align-self:center;max-width:96%;background:transparent;border:1px dashed var(--line);color:var(--text-dim);font-style:italic;font-size:12.5px;}
+  .rot{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:4px;display:block;}
+  .bubble.resposta .rot{color:var(--gold-soft);text-align:right;}
+  .acoes{display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px;flex-wrap:wrap;}
+  .mini{background:transparent;border:1px solid var(--line);color:var(--text-dim);padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;}
+  .mini:hover{border-color:var(--gold);color:var(--gold-soft);}
+  .mini.on{border-color:var(--flag);color:var(--flag);}
+  .vazio{text-align:center;padding:70px 20px;color:var(--text-faint);font-size:14px;}
+  .aviso-lim{color:var(--text-faint);font-size:12.5px;margin:0 0 10px;}
+  footer{text-align:center;margin-top:30px;font-size:11.5px;color:var(--text-faint);}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2b241d;border:1px solid var(--gold);color:var(--gold-soft);padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;}
+  #toast.show{opacity:1;}
+  @media (max-width:560px){.bubble{max-width:96%;} header{align-items:flex-start;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">✚</div>
+      <div>
+        <h1>Conversas do bot</h1>
+        <p>Equipe de criação · somente leitura</p>
+      </div>
+    </div>
+    <div class="lado" id="lado" hidden>
+      <div class="pill"><span class="dot live" id="dot"></span><span id="statusTxt">conectando…</span></div>
+      <div class="pill"><span id="emailTxt"></span></div>
+      <button class="ghost" id="btnSair" type="button">Sair</button>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <section class="login" id="loginBox">
+    <h2>Acesso da equipe de criação</h2>
+    <p>Aqui você acompanha o que os fiéis perguntam e o que o bot respondeu, para conferir se as respostas estão corretas ou se precisam de correção.</p>
+    <div id="googleBtn"></div>
+    <p class="erro" id="loginErro" hidden></p>
+    <p class="aviso">Contém dados pessoais dos fiéis (LGPD). Use só para o trabalho da paróquia e não compartilhe prints.<br>Precisa de permissão de leitura na planilha Pascom_Controle.</p>
+  </section>
+
+  <!-- APP -->
+  <div id="app" hidden>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabConversas" type="button">💬 Conversas</button>
+      <button class="tab-btn" id="tabSem" type="button">❓ Sem resposta <span class="badge" id="badgeSem">0</span></button>
+    </div>
+
+    <div class="controls">
+      <input class="search" id="busca" type="text" placeholder="Filtrar por nome, número ou palavra na conversa…">
+      <select id="periodo">
+        <option value="">Todo o período</option>
+        <option value="hoje">Só hoje</option>
+        <option value="7dias">Últimos 7 dias</option>
+      </select>
+    </div>
+    <div class="controls">
+      <button class="ghost active" id="btnAuto" type="button">⏱ Auto: ligado</button>
+      <button class="ghost" id="btnAtualizar" type="button">↻ Atualizar agora</button>
+      <button class="ghost flag" id="btnSoMarcadas" type="button">🚩 Só marcadas (<span id="qtdMarcadas">0</span>)</button>
+      <button class="ghost" id="btnCopiarMarcadas" type="button">📋 Copiar marcadas</button>
+    </div>
+    <div class="linha-info"><span id="msg"></span><span id="contagem"></span></div>
+
+    <div id="feed"></div>
+  </div>
+
+  <footer>Somente leitura · dados da planilha Log_Conversas / Perguntas_Sem_Resposta · atualiza a cada 60 segundos</footer>
+</div>
+<div id="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  // ================= CONFIGURAÇÃO =================
+  const CONFIG = {
+    CLIENT_ID: '172692599350-9ssc0ir4r4j4rtn3v7ksd5i6un41damc.apps.googleusercontent.com',
+    SHEET_ID: '1-9ZRasNVZK3qX3j51QffsZjOzI59axMkh4pCZxxhFws', // Pascom_Controle
+    LOG_RANGE: 'Log_Conversas!A2:H',                 // Timestamp, Data, Hora, Nome, Numero, Pergunta, Resposta, SessionId
+    SEM_RANGE: 'Perguntas_Sem_Resposta!A2:G',        // Timestamp, Data, Hora, Nome, Numero, Pergunta, SessionId
+    ATUALIZA_MS: 60000,
+    LIMITE: 200,
+    // Somente leitura: esta página nunca altera a planilha.
+    SCOPE: 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/userinfo.email',
+  };
+
+  const $ = (id) => document.getElementById(id);
+  let accessToken = null, tokenClient = null;
+  let conversas = [], semResposta = [];
+  let aba = 'conversas', auto = true, timer = null, soMarcadas = false;
+  let marcadas = new Set();
+  const CHAVE_MARCADAS = 'conversas_marcadas_v1';
+
+  try { marcadas = new Set(JSON.parse(localStorage.getItem(CHAVE_MARCADAS) || '[]')); } catch (e) { marcadas = new Set(); }
+  function salvarMarcadas() { try { localStorage.setItem(CHAVE_MARCADAS, JSON.stringify([...marcadas])); } catch (e) { /* sem armazenamento: só não persiste */ } }
+
+  // ---------- utilidades ----------
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const limparNumero = (n) => String(n || '').replace('@s.whatsapp.net', '').replace(/\D/g, '');
+  const TZ = { timeZone: 'America/Sao_Paulo' };
+  const dataDe = (l) => { const d = new Date(l.timestamp); return isNaN(d) ? null : d; };
+  const idDe = (l) => l.timestamp + '|' + l.numero + '|' + l.pergunta.slice(0, 40);
+
+  function quando(l) {
+    const d = dataDe(l);
+    if (!d) return (l.data + ' ' + l.hora).trim();
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', ...TZ });
+    const ehHoje = d.toLocaleDateString('en-CA', TZ) === new Date().toLocaleDateString('en-CA', TZ);
+    return ehHoje ? 'hoje, ' + hora : d.toLocaleDateString('pt-BR', TZ) + ' às ' + hora;
+  }
+  function noPeriodo(l, p) {
+    if (!p) return true;
+    const d = dataDe(l); if (!d) return true;
+    if (p === 'hoje') return d.toLocaleDateString('en-CA', TZ) === new Date().toLocaleDateString('en-CA', TZ);
+    if (p === '7dias') return Date.now() - d.getTime() <= 7 * 24 * 3600 * 1000;
+    return true;
+  }
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+  async function copiar(texto) {
+    try { await navigator.clipboard.writeText(texto); toast('Copiado!'); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast('Copiado!'); } catch (e2) { toast('Não foi possível copiar'); }
+      ta.remove();
+    }
+  }
+  const textoConversa = (l, ehSem) =>
+    `${l.nome || 'Fiel'} (${l.numero}) — ${quando(l)}\nPergunta: ${l.pergunta}` + (ehSem ? '\n(o bot não soube responder)' : `\nResposta do bot: ${l.resposta}`);
+
+  // ---------- login ----------
+  function erroLogin(msg) { const e = $('loginErro'); e.textContent = msg; e.hidden = false; }
+
+  function iniciarLogin(tent) {
+    tent = tent || 0;
+    if (!window.google || !window.google.accounts) {
+      if (tent < 25) { setTimeout(() => iniciarLogin(tent + 1), 200); return; }
+      erroLogin('Não foi possível carregar o login do Google. Confira a internet e recarregue a página.'); return;
+    }
+    try {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.CLIENT_ID,
+        scope: CONFIG.SCOPE,
+        callback: async (resp) => {
+          if (resp.error) { erroLogin('Não foi possível entrar com essa conta Google (' + resp.error + ').'); return; }
+          accessToken = resp.access_token;
+          entrouNoApp();
+        },
+      });
+      const b = document.createElement('button');
+      b.className = 'btn-google'; b.type = 'button'; b.textContent = 'Entrar com Google';
+      b.onclick = () => { $('loginErro').hidden = true; tokenClient.requestAccessToken(); };
+      $('googleBtn').appendChild(b);
+    } catch (e) { erroLogin('Erro ao iniciar o login: ' + e.message); }
+  }
+
+  async function entrouNoApp() {
+    try {
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } });
+      const p = await r.json();
+      $('emailTxt').textContent = p.email || '';
+    } catch (e) { /* e-mail é só informativo */ }
+    $('loginBox').hidden = true; $('app').hidden = false; $('lado').hidden = false;
+    await carregar();
+    agendar();
+  }
+
+  function sair() {
+    if (accessToken && window.google) google.accounts.oauth2.revoke(accessToken, () => {});
+    accessToken = null; conversas = []; semResposta = [];
+    if (timer) { clearInterval(timer); timer = null; }
+    $('app').hidden = true; $('lado').hidden = true; $('loginBox').hidden = false; $('feed').innerHTML = '';
+  }
+
+  // ---------- dados ----------
+  async function lerAba(range) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}`;
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    return (await r.json()).values || [];
+  }
+  function mensagemErro(e) {
+    const s = e && e.status;
+    if (s === 401) return 'Sessão do Google expirou. Clique em "Sair" e entre de novo.';
+    if (s === 403) return 'Sua conta não tem permissão para ler a planilha Pascom_Controle. Peça para compartilhá-la com você (Leitor).';
+    if (s === 400 || s === 404) return 'Não encontrei a aba Log_Conversas ou Perguntas_Sem_Resposta na planilha.';
+    if (s === 429) return 'O Google está limitando os acessos. Aguarde 1 minuto.';
+    return 'Sem conexão com o Google.';
+  }
+
+  async function carregar(silencioso) {
+    if (!silencioso) $('msg').textContent = 'Carregando…';
+    try {
+      const [log, sem] = await Promise.all([lerAba(CONFIG.LOG_RANGE), lerAba(CONFIG.SEM_RANGE)]);
+      conversas = log.map((r, i) => ({ linha: i + 2, timestamp: r[0] || '', data: r[1] || '', hora: r[2] || '', nome: r[3] || '', numero: limparNumero(r[4]), pergunta: r[5] || '', resposta: r[6] || '' }))
+        .filter(l => l.pergunta || l.resposta);
+      semResposta = sem.map((r, i) => ({ linha: i + 2, timestamp: r[0] || '', data: r[1] || '', hora: r[2] || '', nome: r[3] || '', numero: limparNumero(r[4]), pergunta: r[5] || '' }))
+        .filter(l => l.pergunta);
+      $('badgeSem').textContent = semResposta.length;
+      $('dot').className = 'dot live';
+      $('statusTxt').textContent = 'ao vivo · ' + new Date().toLocaleTimeString('pt-BR', TZ);
+      $('msg').textContent = '';
+      desenhar();
+    } catch (e) {
+      $('dot').className = 'dot off';
+      $('statusTxt').textContent = 'sem conexão';
+      $('msg').textContent = mensagemErro(e);
+      console.error('Erro ao carregar conversas:', e);
+    }
+  }
+
+  function agendar() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    if (!auto) return;
+    timer = setInterval(() => { if (accessToken && !document.hidden) carregar(true); }, CONFIG.ATUALIZA_MS);
+  }
+
+  // ---------- tela ----------
+  function desenhar() {
+    const ehSem = aba === 'sem';
+    const termo = norm($('busca').value.trim());
+    const periodo = $('periodo').value;
+    $('qtdMarcadas').textContent = marcadas.size;
+    $('btnSoMarcadas').classList.toggle('active', soMarcadas);
+
+    let lista = (ehSem ? semResposta : conversas)
+      .filter(l => noPeriodo(l, periodo))
+      .filter(l => !soMarcadas || marcadas.has(idDe(l)))
+      .filter(l => !termo || norm(l.nome + ' ' + l.numero + ' ' + l.pergunta + ' ' + (l.resposta || '')).includes(termo))
+      .sort((a, b) => { const da = dataDe(a), db = dataDe(b); return ((db ? db.getTime() : 0) - (da ? da.getTime() : 0)) || (b.linha - a.linha); });
+
+    $('contagem').textContent = lista.length + (ehSem ? (lista.length === 1 ? ' pergunta' : ' perguntas') : (lista.length === 1 ? ' conversa' : ' conversas'));
+
+    if (lista.length === 0) {
+      $('feed').innerHTML = '<div class="vazio">' + (soMarcadas ? 'Nenhuma conversa marcada com esse filtro.' : (ehSem ? '✅ Nenhuma pergunta sem resposta encontrada.' : 'Nenhuma conversa encontrada.')) + '</div>';
+      return;
+    }
+    const mostradas = lista.slice(0, CONFIG.LIMITE);
+    const aviso = lista.length > mostradas.length ? `<p class="aviso-lim">Mostrando as ${mostradas.length} mais recentes de ${lista.length}. Use a busca ou o período para achar as outras.</p>` : '';
+
+    $('feed').innerHTML = aviso + mostradas.map(l => {
+      const id = idDe(l), on = marcadas.has(id);
+      const sistema = !ehSem && /^\s*\[/.test(l.resposta);
+      const resp = ehSem ? '' : `<div class="bubble ${sistema ? 'sistema' : 'resposta'}"><span class="rot">${sistema ? 'Sistema' : 'Resposta do bot'}</span>${esc(l.resposta)}</div>`;
+      return `<div class="entry${on ? ' marcada' : ''}">
+        <div class="meta"><div><span class="who">${esc(l.nome || 'Fiel')}</span><span class="num">${esc(l.numero)}</span></div><div class="when">${esc(quando(l))}</div></div>
+        <div class="bubbles"><div class="bubble pergunta"><span class="rot">Pergunta</span>${esc(l.pergunta)}</div>${resp}</div>
+        <div class="acoes">
+          <button class="mini" data-acao="copiar" data-id="${esc(id)}" type="button">📋 Copiar</button>
+          <button class="mini${on ? ' on' : ''}" data-acao="marcar" data-id="${esc(id)}" type="button">${on ? '🚩 Marcada para corrigir' : '🚩 Marcar para corrigir'}</button>
+        </div></div>`;
+    }).join('');
+  }
+
+  const achar = (id) => [...conversas, ...semResposta].find(l => idDe(l) === id);
+  const ehDaAbaSem = (id) => semResposta.some(l => idDe(l) === id) && !conversas.some(l => idDe(l) === id);
+
+  // ---------- eventos ----------
+  window.addEventListener('DOMContentLoaded', () => {
+    iniciarLogin();
+    $('btnSair').addEventListener('click', sair);
+    $('tabConversas').addEventListener('click', () => { aba = 'conversas'; $('tabConversas').classList.add('active'); $('tabSem').classList.remove('active'); desenhar(); });
+    $('tabSem').addEventListener('click', () => { aba = 'sem'; $('tabSem').classList.add('active'); $('tabConversas').classList.remove('active'); desenhar(); });
+    $('busca').addEventListener('input', desenhar);
+    $('periodo').addEventListener('change', desenhar);
+    $('btnAtualizar').addEventListener('click', () => carregar());
+    $('btnAuto').addEventListener('click', () => {
+      auto = !auto;
+      $('btnAuto').textContent = auto ? '⏱ Auto: ligado' : '⏱ Auto: pausado';
+      $('btnAuto').classList.toggle('active', auto);
+      agendar();
+    });
+    $('btnSoMarcadas').addEventListener('click', () => { soMarcadas = !soMarcadas; desenhar(); });
+    $('btnCopiarMarcadas').addEventListener('click', () => {
+      const itens = [...marcadas].map(achar).filter(Boolean);
+      if (!itens.length) { toast('Nenhuma conversa marcada'); return; }
+      const bloco = itens.map(l => textoConversa(l, ehDaAbaSem(idDe(l)))).join('\n\n---\n\n');
+      copiar('Conversas para corrigir (' + itens.length + '):\n\n' + bloco);
+    });
+    $('feed').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-acao]'); if (!b) return;
+      const id = b.dataset.id;
+      if (b.dataset.acao === 'marcar') {
+        if (marcadas.has(id)) marcadas.delete(id); else marcadas.add(id);
+        salvarMarcadas(); desenhar();
+      } else if (b.dataset.acao === 'copiar') {
+        const l = achar(id); if (l) copiar(textoConversa(l, ehDaAbaSem(id)));
+      }
+    });
+  });
+</script>
+</body>
+</html>
