@@ -38,6 +38,7 @@
         <button class="aba-btn ativa" id="btnAbaDocumentos" data-aba="documentos">📁 Documentos</button>
         <button class="aba-btn" id="btnAbaRecados" data-aba="recados">📞 Recados / Retorno</button>
         <button class="aba-btn" id="btnAbaReservas" data-aba="reservas">🗓️ Reservas / Salas</button>
+        <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -142,8 +143,61 @@
           <tbody id="tabelaReservasCorpo"></tbody>
         </table>
       </div>
+
+      <!-- ABA: INFORMAÇÕES EXTRAS -->
+      <div id="abaExtras" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaExtras" placeholder="Buscar por assunto ou informação...">
+          <select id="filtroValidade">
+            <option value="">Todos</option>
+            <option value="ativo">Valendo agora</option>
+            <option value="vencido">Vencidos</option>
+          </select>
+          <button id="btnAtualizarExtras" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovaExtra" title="Cadastrar um aviso novo">➕ Novo aviso</button>
+        </div>
+
+        <p id="statusMsgExtras" class="status"></p>
+
+        <table id="tabelaExtras">
+          <thead>
+            <tr>
+              <th>Assunto</th>
+              <th>Informação</th>
+              <th>Válido até</th>
+              <th>Situação</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaExtrasCorpo"></tbody>
+        </table>
+      </div>
     </section>
   </main>
+
+  <div id="modalExtra" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2 id="modalExtraTitulo">Novo aviso</h2>
+        <button id="btnFecharModalExtra" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <form id="formExtra">
+        <label for="extraAssunto">Assunto</label>
+        <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
+
+        <label for="extraInformacao">Informação (como o bot deve responder)</label>
+        <textarea id="extraInformacao" rows="4" required placeholder="Ex: Toda quinta-feira, 19h, no Salão Paroquial."></textarea>
+
+        <label for="extraValidoAte">Válido até (opcional)</label>
+        <input type="date" id="extraValidoAte">
+        <p class="modal-dica">Deixe em branco se a informação não tem data pra acabar.</p>
+
+        <button type="submit" id="btnSalvarExtra">Salvar</button>
+        <p id="modalExtraResultado"></p>
+      </form>
+    </div>
+  </div>
 
   <div id="modalReserva" class="modal-overlay" hidden>
     <div class="modal-caixa">
