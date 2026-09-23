@@ -266,6 +266,8 @@ function renderizarExtras() {
 function abrirModalExtra(linhaNumero) {
   extraEditandoLinha = linhaNumero || null;
   el('formExtra').reset();
+  document.querySelectorAll('#formExtra .ajuda-texto').forEach(d => { d.hidden = true; });
+  document.querySelectorAll('#formExtra .btn-ajuda').forEach(b => b.setAttribute('aria-expanded', 'false'));
   el('modalExtraResultado').textContent = '';
   el('modalExtraResultado').className = '';
 
@@ -713,7 +715,13 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnFecharModalExtra').addEventListener('click', fecharModalExtra);
   el('formExtra').addEventListener('submit', salvarExtra);
   el('modalExtra').addEventListener('click', (e) => {
-    if (e.target === el('modalExtra')) fecharModalExtra();
+    if (e.target === el('modalExtra')) { fecharModalExtra(); return; }
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+    }
   });
 
   el('tabelaExtrasCorpo').addEventListener('click', (e) => {
