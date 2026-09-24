@@ -133,7 +133,7 @@ async function carregarDocumentos() {
         ordem: idx, // posição original na planilha (desempate quando a data é igual)
         data: row[0] || '',
         nome: row[1] || '',
-        numero: row[2] || '',
+        numero: limparNumero(row[2]),
         tipo: row[3] || '',
         arquivo: row[4] || '',
         link: row[5] || '',
@@ -162,7 +162,7 @@ async function carregarRecados() {
         data: row[1] || '',
         hora: row[2] || '',
         nome: row[3] || '',
-        whatsapp: row[4] || '',
+        whatsapp: limparNumero(row[4]),
         assunto: row[5] || '',
         status: row[6] || '',
       }))
@@ -388,7 +388,7 @@ async function carregarReservas() {
         horaFim: row[2] || '',
         sala: row[3] || '',
         nome: row[4] || '',
-        whatsapp: row[5] || '',
+        whatsapp: limparNumero(row[5]),
         atividade: row[6] || '',
         status: row[7] || '',
       }))
@@ -530,9 +530,17 @@ async function marcarResolvidoAutomatico(linhaNumero) {
   }
 }
 
+// Deixa só os dígitos: "5514997222096@s.whatsapp.net" ou "(14) 99722-2096" -> só números.
+// Usado em todas as abas, então a exibição e a busca por número ficam iguais.
+function limparNumero(numero) {
+  return String(numero || '').replace('@s.whatsapp.net', '').replace(/\D/g, '');
+}
+
 function linkWhatsApp(numero) {
-  const digits = String(numero || '').replace(/\D/g, '');
-  return digits ? `https://wa.me/${digits}` : '';
+  const digits = limparNumero(numero);
+  // Número digitado sem o código do país (10 ou 11 dígitos, ex.: 14997222096) -> acrescenta 55 para o link abrir
+  const comPais = (digits.length === 10 || digits.length === 11) ? '55' + digits : digits;
+  return comPais ? `https://wa.me/${comPais}` : '';
 }
 
 // "23/09/2026 18:05" -> número para ordenar. Sem data legível, vai para o fim da lista.
