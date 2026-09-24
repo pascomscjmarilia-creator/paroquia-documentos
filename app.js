@@ -10,6 +10,7 @@ const CONFIG = {
   DOCS_RANGE: 'Índice de Documentos!A2:F',
   RECADOS_RANGE: 'Recados!A2:G',
   RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
+
   RESERVAS_RANGE: 'Reservas_Salas!A2:I',
   RESERVAS_ABA: 'Reservas_Salas',
   WEBHOOK_RESERVA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala',
@@ -128,7 +129,8 @@ async function carregarDocumentos() {
     const valores = await buscarValoresSheet(CONFIG.DOCS_RANGE);
     linhasDocs = valores
       .filter(row => row && row.length > 0)
-      .map(row => ({
+      .map((row, idx) => ({
+        ordem: idx, // posição original na planilha (desempate quando a data é igual)
         data: row[0] || '',
         nome: row[1] || '',
         numero: row[2] || '',
@@ -371,6 +373,7 @@ async function excluirExtra(linhaNumero) {
   }
 }
 
+
 async function carregarReservas() {
   const statusMsg = el('statusMsgReservas');
   statusMsg.textContent = 'Carregando reservas...';
@@ -532,6 +535,13 @@ function linkWhatsApp(numero) {
   return digits ? `https://wa.me/${digits}` : '';
 }
 
+// "23/09/2026 18:05" -> número para ordenar. Sem data legível, vai para o fim da lista.
+function valorDataHora(s) {
+  const m = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\D+(\d{1,2}):(\d{2}))?/);
+  if (!m) return -Infinity;
+  return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0)).getTime();
+}
+
 function renderizarTabela() {
   const termo = el('busca').value.trim().toLowerCase();
   const tipoFiltro = el('filtroTipo').value;
@@ -540,7 +550,7 @@ function renderizarTabela() {
     const bateTexto = !termo || (l.nome + ' ' + l.tipo + ' ' + l.arquivo + ' ' + l.numero).toLowerCase().includes(termo);
     const bateTipo = !tipoFiltro || l.tipo === tipoFiltro;
     return bateTexto && bateTipo;
-  });
+  }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo (só na tela)
 
   const corpo = el('tabelaCorpo');
   corpo.innerHTML = '';
@@ -658,15 +668,18 @@ function escapeAttr(s) {
   return String(s).replace(/"/g, '&quot;');
 }
 
+const ABAS = {
+  documentos: ['abaDocumentos', 'btnAbaDocumentos'],
+  recados: ['abaRecados', 'btnAbaRecados'],
+  reservas: ['abaReservas', 'btnAbaReservas'],
+  extras: ['abaExtras', 'btnAbaExtras'],
+};
+
 function trocarAba(aba) {
-  el('abaDocumentos').hidden = aba !== 'documentos';
-  el('abaRecados').hidden = aba !== 'recados';
-  el('abaReservas').hidden = aba !== 'reservas';
-  el('abaExtras').hidden = aba !== 'extras';
-  el('btnAbaDocumentos').classList.toggle('ativa', aba === 'documentos');
-  el('btnAbaRecados').classList.toggle('ativa', aba === 'recados');
-  el('btnAbaReservas').classList.toggle('ativa', aba === 'reservas');
-  el('btnAbaExtras').classList.toggle('ativa', aba === 'extras');
+  Object.entries(ABAS).forEach(([nome, [divId, btnId]]) => {
+    el(divId).hidden = nome !== aba;
+    el(btnId).classList.toggle('ativa', nome === aba);
+  });
 }
 
 function sair() {
