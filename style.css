@@ -157,6 +157,31 @@ main {
   color: #276e35;
 }
 
+.status-pill.andamento {
+  background: #dbe9fb;
+  color: #1d4f91;
+}
+
+details.detalhes-cat {
+  margin-top: 6px;
+  font-size: 0.85rem;
+}
+
+details.detalhes-cat summary {
+  cursor: pointer;
+  color: var(--vinho);
+  font-weight: 600;
+}
+
+details.detalhes-cat p {
+  margin: 6px 0 0;
+}
+
+details.detalhes-cat ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
 .acoes-recado {
   display: flex;
   gap: 6px;
@@ -301,6 +326,11 @@ td a:hover {
     font-size: 0.9rem;
   }
 
+  /* com número ímpar de abas, a última ocupa a linha inteira */
+  .abas .aba-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
 
   .filtros select {
     flex: 1 1 100%;
@@ -314,6 +344,10 @@ td a:hover {
     justify-content: flex-end;
   }
 
+  td[data-label="Catequizando"],
+  td[data-label="Responsável"],
+  td[data-label="Etapa"],
+  td[data-label="Documentos"],
   td[data-label="Assunto"],
   td[data-label="Informação"],
   td[data-label="Válido até"],
@@ -335,6 +369,10 @@ td a:hover {
     overflow-wrap: anywhere;
   }
 
+  td[data-label="Catequizando"]::before,
+  td[data-label="Responsável"]::before,
+  td[data-label="Etapa"]::before,
+  td[data-label="Documentos"]::before,
   td[data-label="Assunto"]::before,
   td[data-label="Informação"]::before,
   td[data-label="Válido até"]::before,
