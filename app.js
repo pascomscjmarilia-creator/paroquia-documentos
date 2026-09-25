@@ -20,6 +20,10 @@ const CONFIG = {
   EXTRAS_RANGE: 'Informacoes_Extras!A2:C',
   EXTRAS_ABA: 'Informacoes_Extras',
 
+  // Inscrições da catequese (planilha Pascom_Controle) — gravadas pelo formulário catequese.html via n8n
+  CATEQUESE_RANGE: 'Catequese_Inscricoes!A2:L',
+  CATEQUESE_ABA: 'Catequese_Inscricoes',
+
   // E-mails autorizados a usar o app (checagem de UX — a segurança
   // de verdade é a permissão de compartilhamento da planilha no Google)
   ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
@@ -31,6 +35,7 @@ let linhasDocs = [];
 let linhasRecados = [];
 let linhasReservas = [];
 let linhasExtras = [];
+let linhasCatequese = [];
 let extraEditandoLinha = null;
 
 const el = (id) => document.getElementById(id);
@@ -107,6 +112,7 @@ async function handleLoginSucesso() {
     await carregarRecados();
     await carregarReservas();
     await carregarExtras();
+    await carregarCatequese();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -341,11 +347,13 @@ async function salvarExtra(e) {
 }
 
 // Traduz o erro do Google Sheets numa mensagem que diz o que fazer (em vez de um "tente novamente" genérico).
-function mensagemErroGravacao(err) {
+function mensagemErroGravacao(err, aba, planilha) {
+  aba = aba || CONFIG.EXTRAS_ABA;
+  planilha = planilha || 'planilha de dados da paróquia';
   const s = err && err.status;
   if (s === 401) return 'Sua sessão do Google expirou. Clique em "Sair" (canto superior direito), entre de novo e tente outra vez.';
-  if (s === 403) return 'Sua conta Google não tem permissão para EDITAR a planilha de dados da paróquia (só para ver). Peça para compartilhá-la com você como Editor e tente de novo.';
-  if (s === 400 || s === 404) return 'Não encontrei a aba "' + CONFIG.EXTRAS_ABA + '" na planilha de dados da paróquia. Confira se o nome da aba está exatamente assim.';
+  if (s === 403) return 'Sua conta Google não tem permissão para EDITAR a ' + planilha + ' (só para ver). Peça para compartilhá-la com você como Editor e tente de novo.';
+  if (s === 400 || s === 404) return 'Não encontrei a aba "' + aba + '" na ' + planilha + '. Confira se o nome da aba está exatamente assim.';
   if (s === 429) return 'O Google está limitando os acessos neste momento. Aguarde 1 minuto e tente de novo.';
   if (s) return 'O Google recusou a gravação (código ' + s + '). Tente novamente em instantes; se continuar, avise a equipe técnica.';
   return 'Sem conexão com o Google. Confira a internet e tente novamente.';
@@ -665,6 +673,132 @@ function renderizarReservas() {
   });
 }
 
+// ---------- Catequese (inscrições feitas pelo formulário catequese.html) ----------
+// Colunas da aba: A Data/Hora · B Catequizando · C Nascimento · D Responsável · E WhatsApp · F Etapa ·
+// G Batizado · H Paróquia do Batismo · I Observações · J Situação dos Documentos · K Links dos Documentos · L Status
+
+async function carregarCatequese() {
+  const statusMsg = el('statusMsgCatequese');
+  statusMsg.textContent = 'Carregando inscrições...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.CATEQUESE_RANGE);
+    // Guarda a linha real da planilha (o range começa em A2) para gravar o status na célula certa.
+    linhasCatequese = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        ordem: idx,
+        data: row[0] || '',
+        catequizando: row[1] || '',
+        nascimento: row[2] || '',
+        responsavel: row[3] || '',
+        whatsapp: limparNumero(row[4]),
+        etapa: row[5] || '',
+        batizado: row[6] || '',
+        paroquiaBatismo: row[7] || '',
+        observacoes: row[8] || '',
+        situacao: row[9] || '',
+        links: row[10] || '',
+        status: (row[11] || '').trim() || 'Nova',
+      }))
+      .filter(l => l.catequizando || l.responsavel);
+
+    statusMsg.textContent = linhasCatequese.length + ' inscrição(ões) encontrada(s).';
+    renderizarCatequese();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : e.message === 'STATUS_400'
+        ? 'A aba "' + CONFIG.CATEQUESE_ABA + '" ainda não existe na planilha Pascom_Controle. Crie a aba (veja as instruções) e clique em Atualizar.'
+        : 'Erro ao carregar as inscrições.';
+  }
+}
+
+// "Certidão de nascimento: https://..." (uma por linha) -> [{ rotulo, url }]; só aceita links https
+function linksDaCatequese(texto) {
+  return String(texto || '').split('\n').map(t => t.trim()).filter(Boolean).map(t => {
+    const i = t.indexOf(': ');
+    return i > 0 ? { rotulo: t.slice(0, i), url: t.slice(i + 2).trim() } : { rotulo: 'Documento', url: t };
+  }).filter(x => /^https:\/\//i.test(x.url));
+}
+
+function renderizarCatequese() {
+  const termo = norm(el('buscaCatequese').value.trim());
+  const docsFiltro = el('filtroDocsCatequese').value;
+  const statusFiltro = norm(el('filtroStatusCatequese').value);
+
+  const filtradas = linhasCatequese.filter(l => {
+    const completos = norm(l.situacao).startsWith('completo');
+    const bateTexto = !termo || norm(l.catequizando + ' ' + l.responsavel + ' ' + l.whatsapp + ' ' + l.etapa).includes(termo);
+    const bateDocs = !docsFiltro || (docsFiltro === 'completos' ? completos : !completos);
+    const bateStatus = !statusFiltro || norm(l.status) === statusFiltro;
+    return bateTexto && bateDocs && bateStatus;
+  }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novas no topo
+
+  const corpo = el('tabelaCatequeseCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="8">Nenhuma inscrição encontrada.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const completos = norm(l.situacao).startsWith('completo');
+    const concluida = norm(l.status).startsWith('conclu');
+    const emAtendimento = norm(l.status).startsWith('em atend');
+    const statusClasse = concluida ? 'resolvido' : (emAtendimento ? 'andamento' : 'pendente');
+    const wa = linkWhatsApp(l.whatsapp);
+    const links = linksDaCatequese(l.links);
+
+    const detalhes = `
+      <details class="detalhes-cat">
+        <summary>Ver dados e documentos</summary>
+        <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
+        <p><strong>Batizado(a):</strong> ${escapeHtml(l.batizado || '—')}${l.paroquiaBatismo ? ' — ' + escapeHtml(l.paroquiaBatismo) : ''}</p>
+        ${l.observacoes ? `<p><strong>Observações:</strong> ${escapeHtml(l.observacoes)}</p>` : ''}
+        <p><strong>Documentos:</strong></p>
+        ${links.length
+          ? `<ul>${links.map(x => `<li><a href="${escapeAttr(x.url)}" target="_blank" rel="noopener">${escapeHtml(x.rotulo)}</a></li>`).join('')}</ul>`
+          : '<p>Nenhum arquivo encontrado.</p>'}
+      </details>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data">${escapeHtml(l.data)}</td>
+      <td data-label="Catequizando"><strong>${escapeHtml(l.catequizando)}</strong>${detalhes}</td>
+      <td data-label="Responsável">${escapeHtml(l.responsavel)}</td>
+      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
+      <td data-label="Etapa">${escapeHtml(l.etapa)}</td>
+      <td data-label="Documentos"><span class="status-pill ${completos ? 'resolvido' : 'pendente'}">${escapeHtml(l.situacao || 'Sem informação')}</span></td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+        ${!concluida && !emAtendimento ? `<button class="btn-acao btn-editar btn-cat" data-acao="atendimento" data-linha="${l.linha}">▶ Em atendimento</button>` : ''}
+        ${!concluida ? `<button class="btn-acao btn-resolver btn-cat" data-acao="concluir" data-linha="${l.linha}">✅ Concluir</button>` : `<button class="btn-acao btn-editar btn-cat" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+async function atualizarStatusCatequese(linhaNumero, novoStatus) {
+  const range = `${CONFIG.CATEQUESE_ABA}!L${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [[novoStatus]] }),
+    });
+    if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+    await carregarCatequese();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.CATEQUESE_ABA, 'planilha Pascom_Controle'));
+  }
+}
+
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -681,6 +815,7 @@ const ABAS = {
   recados: ['abaRecados', 'btnAbaRecados'],
   reservas: ['abaReservas', 'btnAbaReservas'],
   extras: ['abaExtras', 'btnAbaExtras'],
+  catequese: ['abaCatequese', 'btnAbaCatequese'],
 };
 
 function trocarAba(aba) {
@@ -699,6 +834,7 @@ function sair() {
   linhasRecados = [];
   linhasReservas = [];
   linhasExtras = [];
+  linhasCatequese = [];
   el('userBox').hidden = true;
   el('appScreen').hidden = true;
   el('loginScreen').hidden = false;
@@ -765,10 +901,25 @@ window.addEventListener('DOMContentLoaded', () => {
     if (btnExcluir) excluirExtra(Number(btnExcluir.dataset.linha));
   });
 
+  el('buscaCatequese').addEventListener('input', renderizarCatequese);
+  el('filtroDocsCatequese').addEventListener('change', renderizarCatequese);
+  el('filtroStatusCatequese').addEventListener('change', renderizarCatequese);
+  el('btnAtualizarCatequese').addEventListener('click', carregarCatequese);
+  el('btnImprimirCatequese').addEventListener('click', () => window.print());
+  el('tabelaCatequeseCorpo').addEventListener('click', (e) => {
+    const b = e.target.closest('.btn-cat');
+    if (!b) return;
+    const linha = Number(b.dataset.linha);
+    if (b.dataset.acao === 'atendimento') atualizarStatusCatequese(linha, 'Em atendimento');
+    else if (b.dataset.acao === 'reabrir') atualizarStatusCatequese(linha, 'Nova');
+    else if (b.dataset.acao === 'concluir' && confirm('Confirma que quer marcar esta inscrição como Concluída?')) atualizarStatusCatequese(linha, 'Concluída');
+  });
+
   el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
   el('btnAbaRecados').addEventListener('click', () => trocarAba('recados'));
   el('btnAbaReservas').addEventListener('click', () => trocarAba('reservas'));
   el('btnAbaExtras').addEventListener('click', () => trocarAba('extras'));
+  el('btnAbaCatequese').addEventListener('click', () => trocarAba('catequese'));
 
   el('btnSair').addEventListener('click', sair);
 });
