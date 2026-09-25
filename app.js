@@ -1023,6 +1023,27 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnAtualizarCatequese').addEventListener('click', carregarCatequese);
   el('btnImprimirCatequese').addEventListener('click', () => window.print());
   el('btnFichaBranco').addEventListener('click', () => window.open('Ficha_Inscricao_Catequese.pdf', '_blank'));
+
+  // "?" da aba Catequese (mostra/esconde as instruções) e botão de copiar o link do formulário
+  el('abaCatequese').addEventListener('click', async (e) => {
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+      return;
+    }
+    if (e.target.closest('#btnCopiarLinkCatequese')) {
+      const msg = el('msgCopiarLinkCatequese');
+      try {
+        await navigator.clipboard.writeText(el('linkFormCatequese').textContent.trim());
+        msg.textContent = 'Link copiado!';
+      } catch (err) {
+        msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.';
+      }
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+  });
   el('tabelaCatequeseCorpo').addEventListener('click', (e) => {
     const b = e.target.closest('.btn-cat');
     if (!b) return;
