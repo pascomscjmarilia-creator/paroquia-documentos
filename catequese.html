@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inscrição na Catequese — Paróquia Sagrado Coração de Jesus</title>
+<meta property="og:title" content="Inscrição na Catequese — Paróquia Sagrado Coração de Jesus">
+<meta property="og:description" content="Faça a inscrição na catequese e envie os documentos pelo celular.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="stylesheet" href="style.css?v=20260924a">
+<style>
+  .cat-card { background:#fff; border:1px solid var(--cinza-borda); border-radius:10px; padding:24px 20px; max-width:640px; margin:24px auto 0; }
+  .cat-card h2 { margin:0 0 4px; font-size:1.15rem; color:var(--vinho); }
+  .cat-intro { margin:0 0 18px; color:#555; font-size:0.95rem; }
+  #formCat { display:flex; flex-direction:column; gap:16px; }
+  #formCat label, #formCat .rotulo { display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem; }
+  #formCat input[type="text"], #formCat input[type="tel"], #formCat input[type="date"], #formCat select, #formCat textarea {
+    width:100%; padding:11px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff;
+  }
+  #formCat textarea { resize:vertical; }
+  .cat-secao { font-size:1rem; color:var(--vinho); margin:8px 0 0; padding-top:14px; border-top:1px solid var(--cinza-borda); }
+  .cat-secao small { display:block; font-weight:400; color:#666; font-size:0.85rem; margin-top:2px; }
+  .cat-opcoes { display:flex; gap:20px; }
+  .cat-opcoes label { font-weight:500 !important; display:flex !important; align-items:center; gap:6px; margin:0 !important; font-size:1rem !important; }
+  .cat-doc { border:1px dashed var(--cinza-borda); border-radius:8px; padding:12px; background:#faf7f0; }
+  .cat-doc .dica { color:#666; font-size:0.82rem; margin:0 0 8px; }
+  .cat-doc input[type="file"] { width:100%; font-size:0.95rem; }
+  .cat-doc .escolhido { margin:6px 0 0; font-size:0.85rem; color:#276e35; word-break:break-all; }
+  .cat-doc .obrig { color:#b3261e; font-weight:700; }
+  .cat-consent { display:flex; gap:10px; align-items:flex-start; font-size:0.9rem; }
+  .cat-consent input { margin-top:3px; width:18px; height:18px; flex-shrink:0; }
+  .cat-consent label { font-weight:400 !important; margin:0 !important; font-size:0.9rem !important; }
+  #btnEnviarCat { background:var(--vinho); color:#fff; border:none; padding:14px; border-radius:6px; font-size:1.05rem; font-weight:600; cursor:pointer; }
+  #btnEnviarCat:disabled { opacity:0.6; cursor:default; }
+  #resultadoCat { margin:0; font-weight:600; }
+  #resultadoCat.erro { color:#b3261e; }
+  .cat-sucesso { text-align:center; padding:8px 0; }
+  .cat-sucesso h2 { font-size:1.3rem; }
+  .cat-pill { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:600; font-size:0.9rem; }
+  .cat-pill.ok { background:#d9f0dc; color:#276e35; }
+  .cat-pill.falta { background:#fbe6b8; color:#8a5a00; }
+  .cat-sucesso .btn-wa { display:inline-block; margin-top:14px; background:#25d366; color:#fff; text-decoration:none; padding:12px 18px; border-radius:6px; font-weight:600; }
+  .oculto-bot { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .cat-fechado { text-align:center; color:#555; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Inscrição na Catequese</h1>
+    </div>
+  </header>
+
+  <main>
+    <section class="cat-card" id="cartaoFormulario">
+      <h2>Ficha de inscrição</h2>
+      <p class="cat-intro">Preencha os dados e anexe os documentos pelo celular. A secretaria recebe tudo e entra em contato pelo WhatsApp.</p>
+
+      <form id="formCat" novalidate>
+        <div>
+          <label for="catequizando">Nome completo de quem vai fazer a catequese</label>
+          <input type="text" id="catequizando" autocomplete="off" required>
+        </div>
+
+        <div>
+          <label for="nascimento">Data de nascimento</label>
+          <input type="date" id="nascimento" required>
+        </div>
+
+        <div>
+          <label for="etapa">Etapa / turma desejada</label>
+          <select id="etapa" required></select>
+        </div>
+
+        <div>
+          <span class="rotulo">Já é batizado(a)?</span>
+          <div class="cat-opcoes">
+            <label><input type="radio" name="batizado" value="Sim"> Sim</label>
+            <label><input type="radio" name="batizado" value="Não" checked> Não</label>
+          </div>
+        </div>
+
+        <div id="blocoParoquiaBatismo" hidden>
+          <label for="paroquiaBatismo">Em qual paróquia foi batizado(a)? (opcional)</label>
+          <input type="text" id="paroquiaBatismo" autocomplete="off">
+        </div>
+
+        <h3 class="cat-secao">Responsável</h3>
+
+        <div>
+          <label for="responsavel">Nome do responsável</label>
+          <input type="text" id="responsavel" autocomplete="name" required>
+        </div>
+
+        <div>
+          <label for="whatsapp">WhatsApp do responsável</label>
+          <input type="tel" id="whatsapp" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999" required>
+        </div>
+
+        <h3 class="cat-secao">Documentos
+          <small>Tire uma foto nítida (sem cortar as bordas) ou anexe um PDF. Se algum documento faltar, você pode enviar depois pelo WhatsApp da paróquia.</small>
+        </h3>
+
+        <div id="listaDocumentos" style="display:flex; flex-direction:column; gap:12px;"></div>
+
+        <div>
+          <label for="observacoes">Observações (opcional)</label>
+          <textarea id="observacoes" rows="3" maxlength="500" placeholder="Ex.: melhor horário, alguma necessidade especial…"></textarea>
+        </div>
+
+        <div class="oculto-bot" aria-hidden="true">
+          <label for="site">Não preencha este campo</label>
+          <input type="text" id="site" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="cat-consent">
+          <input type="checkbox" id="consentimento" required>
+          <label for="consentimento">Autorizo a paróquia a usar estes dados e documentos apenas para a inscrição na catequese, conforme a <a href="privacidade.html" target="_blank" rel="noopener">política de privacidade</a>. Declaro ser o responsável pelo(a) catequizando(a).</label>
+        </div>
+
+        <button type="submit" id="btnEnviarCat">Enviar inscrição</button>
+        <p id="resultadoCat" role="status"></p>
+      </form>
+    </section>
+
+    <section class="cat-card cat-fechado" id="cartaoFechado" hidden>
+      <h2>Inscrições</h2>
+      <p id="msgFechado"></p>
+    </section>
+
+    <section class="cat-card cat-sucesso" id="cartaoSucesso" hidden>
+      <h2>✅ Inscrição recebida!</h2>
+      <p id="sucessoNome"></p>
+      <p><span id="sucessoSituacao" class="cat-pill"></span></p>
+      <p id="sucessoFaltam"></p>
+      <p style="color:#555; font-size:0.92rem;">A secretaria vai conferir os dados e entrar em contato pelo WhatsApp informado.</p>
+      <a id="sucessoWhatsapp" class="btn-wa" href="#" target="_blank" rel="noopener" hidden>💬 Enviar documentos que faltam</a>
+    </section>
+  </main>
+
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO — a secretaria/Pascom ajusta aqui
+  // ============================================================
+  const CONFIG = {
+    WEBHOOK_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/catequese-inscricao',
+
+    // Para fechar as inscrições, troque para false (a página passa a mostrar a mensagem abaixo).
+    INSCRICOES_ABERTAS: true,
+    MENSAGEM_FECHADA: 'As inscrições para a catequese não estão abertas no momento. Procure a secretaria da paróquia para mais informações.',
+
+    // WhatsApp da paróquia (só dígitos, com 55) — usado no botão "enviar documentos que faltam"
+    WHATSAPP_PAROQUIA: '5514997919271',
+
+    // Opções do campo "Etapa / turma" — ajustar conforme as turmas da paróquia
+    ETAPAS: [
+      'Catequese infantil',
+      'Crisma (adolescentes)',
+      'Catequese de adultos',
+      'Não sei — preciso de orientação'
+    ],
+
+    // Documentos pedidos. exigido: true = sempre; 'batizado' = só se já for batizado; false = opcional.
+    // (Os documentos "exigidos" definem a situação Completos / Faltam que a secretaria vê no painel.)
+    DOCUMENTOS: [
+      { tipo: 'certidao_nascimento',    rotulo: 'Certidão de nascimento',   exigido: true,       dica: 'Do(a) catequizando(a).' },
+      { tipo: 'certidao_batismo',       rotulo: 'Certidão de batismo',      exigido: 'batizado', dica: 'Só para quem já é batizado(a).' },
+      { tipo: 'comprovante_residencia', rotulo: 'Comprovante de residência', exigido: true,       dica: 'Conta de água, luz ou telefone recente.' },
+      { tipo: 'outro',                  rotulo: 'Outro documento',          exigido: false,      dica: 'Se a secretaria pediu mais algum.' }
+    ],
+
+    MAX_TOTAL_MB: 9,     // soma de todos os arquivos
+    MAX_PDF_MB: 4,       // cada PDF
+    IMG_MAX_PX: 1600,    // fotos são reduzidas para caber no envio
+    IMG_QUALIDADE: 0.8
+  };
+  // ============================================================
+
+  const el = (id) => document.getElementById(id);
+  const form = el('formCat');
+  const resultado = el('resultadoCat');
+  const btn = el('btnEnviarCat');
+
+  function ehBatizado() {
+    return form.querySelector('input[name="batizado"]:checked').value === 'Sim';
+  }
+
+  function docExigido(doc) {
+    return doc.exigido === true || (doc.exigido === 'batizado' && ehBatizado());
+  }
+
+  function montarDocumentos() {
+    const lista = el('listaDocumentos');
+    lista.innerHTML = '';
+    CONFIG.DOCUMENTOS.forEach(doc => {
+      const div = document.createElement('div');
+      div.className = 'cat-doc';
+      div.dataset.tipo = doc.tipo;
+      div.innerHTML =
+        '<span class="rotulo">' + doc.rotulo + ' <span class="obrig" data-obrig></span></span>' +
+        (doc.dica ? '<p class="dica">' + doc.dica + '</p>' : '') +
+        '<input type="file" accept="image/*,application/pdf" data-input>' +
+        '<p class="escolhido" data-escolhido hidden></p>';
+      div.querySelector('[data-input]').addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        const p = div.querySelector('[data-escolhido]');
+        p.hidden = !f;
+        if (f) p.textContent = '✔ ' + f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)';
+      });
+      lista.appendChild(div);
+    });
+    atualizarObrigatorios();
+  }
+
+  function atualizarObrigatorios() {
+    CONFIG.DOCUMENTOS.forEach(doc => {
+      const div = document.querySelector('.cat-doc[data-tipo="' + doc.tipo + '"]');
+      if (!div) return;
+      div.querySelector('[data-obrig]').textContent = docExigido(doc) ? '(necessário)' : '(opcional)';
+      div.querySelector('[data-obrig]').className = docExigido(doc) ? 'obrig' : '';
+    });
+  }
+
+  function formatarDataBR(iso) {
+    const [a, m, d] = iso.split('-');
+    return d + '/' + m + '/' + a;
+  }
+
+  // Foto -> JPEG reduzido (base64). Se o navegador não abrir o formato, avisa.
+  function reduzirImagem(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, CONFIG.IMG_MAX_PX / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * escala);
+        c.height = Math.round(img.height * escala);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        const dataUrl = c.toDataURL('image/jpeg', CONFIG.IMG_QUALIDADE);
+        resolve({ mime: 'image/jpeg', base64: dataUrl.split(',')[1], nome: file.name.replace(/\.[^.]+$/, '') + '.jpg' });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('IMG')); };
+      img.src = url;
+    });
+  }
+
+  function lerPdf(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve({ mime: 'application/pdf', base64: String(r.result).split(',')[1], nome: file.name });
+      r.onerror = () => reject(new Error('PDF'));
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function coletarArquivos() {
+    const arquivos = [];
+    let totalBytes = 0;
+    for (const doc of CONFIG.DOCUMENTOS) {
+      const div = document.querySelector('.cat-doc[data-tipo="' + doc.tipo + '"]');
+      const f = div.querySelector('[data-input]').files[0];
+      if (!f) continue;
+      let dados;
+      if (f.type === 'application/pdf') {
+        if (f.size > CONFIG.MAX_PDF_MB * 1024 * 1024) throw new Error('O PDF "' + doc.rotulo + '" passa de ' + CONFIG.MAX_PDF_MB + ' MB. Envie uma foto ou um PDF menor.');
+        dados = await lerPdf(f);
+      } else if (f.type.startsWith('image/')) {
+        try { dados = await reduzirImagem(f); }
+        catch (e) { throw new Error('Não consegui abrir a imagem de "' + doc.rotulo + '". Tire uma foto de novo ou envie em PDF.'); }
+      } else {
+        throw new Error('O arquivo de "' + doc.rotulo + '" não é foto nem PDF.');
+      }
+      totalBytes += dados.base64.length * 0.75;
+      arquivos.push({ tipo: doc.tipo, rotulo: doc.rotulo, nome: dados.nome, mime: dados.mime, base64: dados.base64 });
+    }
+    if (totalBytes > CONFIG.MAX_TOTAL_MB * 1024 * 1024) {
+      throw new Error('Os arquivos somam mais de ' + CONFIG.MAX_TOTAL_MB + ' MB. Envie menos arquivos agora e o restante depois pelo WhatsApp.');
+    }
+    return arquivos;
+  }
+
+  function mostrarErro(msg) {
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ ' + msg;
+  }
+
+  function mostrarSucesso(dados, nome) {
+    el('cartaoFormulario').hidden = true;
+    el('cartaoSucesso').hidden = false;
+    el('sucessoNome').textContent = 'Inscrição de ' + nome + ' enviada para a secretaria.';
+    const situacao = dados.situacaoDocumentos || '';
+    const completo = situacao === 'Completos';
+    const pill = el('sucessoSituacao');
+    pill.textContent = completo ? 'Documentos completos' : (situacao || 'Documentos recebidos');
+    pill.className = 'cat-pill ' + (completo ? 'ok' : 'falta');
+    const faltam = Array.isArray(dados.faltam) ? dados.faltam : [];
+    el('sucessoFaltam').textContent = faltam.length ? 'Você pode enviar o que falta pelo WhatsApp da paróquia.' : '';
+    const wa = el('sucessoWhatsapp');
+    if (faltam.length && CONFIG.WHATSAPP_PAROQUIA) {
+      wa.href = 'https://wa.me/' + CONFIG.WHATSAPP_PAROQUIA + '?text=' + encodeURIComponent('Olá! Sobre a inscrição de ' + nome + ' na catequese, vou enviar os documentos que faltam.');
+      wa.hidden = false;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    resultado.textContent = '';
+    resultado.className = '';
+
+    const catequizando = el('catequizando').value.trim();
+    const nascimento = el('nascimento').value;
+    const responsavel = el('responsavel').value.trim();
+    const whatsapp = el('whatsapp').value.trim();
+
+    if (!catequizando || !nascimento || !el('etapa').value || !responsavel || !whatsapp) {
+      return mostrarErro('Preencha todos os campos obrigatórios.');
+    }
+    const digitos = whatsapp.replace(/\D/g, '');
+    if (digitos.length < 10 || digitos.length > 13) {
+      return mostrarErro('Confira o WhatsApp: use o DDD, por exemplo (14) 99999-9999.');
+    }
+    if (!el('consentimento').checked) {
+      return mostrarErro('Marque a autorização para concluir a inscrição.');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando… (pode levar alguns segundos)';
+
+    try {
+      const arquivos = await coletarArquivos();
+      if (arquivos.length === 0) {
+        throw new Error('Anexe ao menos um documento. Se não tiver nenhum agora, procure a secretaria.');
+      }
+
+      const payload = {
+        catequizando,
+        nascimento: formatarDataBR(nascimento),
+        etapa: el('etapa').value,
+        batizado: ehBatizado() ? 'Sim' : 'Não',
+        paroquiaBatismo: el('paroquiaBatismo').value.trim(),
+        responsavel,
+        whatsapp,
+        observacoes: el('observacoes').value.trim(),
+        consentimento: true,
+        site: el('site').value,
+        exigidos: CONFIG.DOCUMENTOS.filter(docExigido).map(d => ({ tipo: d.tipo, rotulo: d.rotulo })),
+        arquivos
+      };
+
+      const resp = await fetch(CONFIG.WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const dados = await resp.json();
+
+      if (dados.sucesso) {
+        mostrarSucesso(dados, catequizando);
+      } else {
+        mostrarErro(dados.mensagem || 'Não foi possível concluir a inscrição.');
+      }
+    } catch (err) {
+      const msgConhecida = err && err.message && !/Failed to fetch|NetworkError|JSON|Load failed/i.test(err.message);
+      mostrarErro(msgConhecida ? err.message : 'Não foi possível enviar agora. Confira sua internet e tente novamente em instantes.');
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Enviar inscrição';
+    }
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!CONFIG.INSCRICOES_ABERTAS) {
+      el('cartaoFormulario').hidden = true;
+      el('msgFechado').textContent = CONFIG.MENSAGEM_FECHADA;
+      el('cartaoFechado').hidden = false;
+      return;
+    }
+    const sel = el('etapa');
+    sel.innerHTML = '<option value="">Selecione…</option>' + CONFIG.ETAPAS.map(e => '<option>' + e + '</option>').join('');
+    montarDocumentos();
+    form.querySelectorAll('input[name="batizado"]').forEach(r => r.addEventListener('change', () => {
+      el('blocoParoquiaBatismo').hidden = !ehBatizado();
+      atualizarObrigatorios();
+    }));
+  });
+</script>
+</body>
+</html>
