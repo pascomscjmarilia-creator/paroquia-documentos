@@ -195,7 +195,43 @@
           <button id="btnFichaBranco" title="Abrir a ficha de inscrição em branco (PDF) para imprimir">🖨️ Ficha em branco</button>
         </div>
 
-        <p class="modal-intro" style="margin:0 0 10px;">Inscrições feitas pelo formulário <strong>catequese.html</strong>. Toque em <em>Ver dados e documentos</em> para abrir a ficha e os arquivos, ou em <em>🖨️ Ficha</em> para imprimir a ficha já preenchida.</p>
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaCatequese" aria-expanded="false" aria-label="Como funciona a aba Catequese">?</button>
+          <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como funciona esta aba.</span>
+        </div>
+
+        <div id="ajudaCatequese" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>O que é esta aba:</strong> aqui aparecem, sozinhas, as inscrições de catequese que os fiéis fazem pela internet. Ninguém precisa digitar nada: o responsável preenche o formulário e anexa os documentos, e tudo cai aqui.</p>
+
+          <p><strong>Como o fiel se inscreve:</strong> é só enviar o link do formulário (pelo WhatsApp, por exemplo):</p>
+          <p class="exemplo" id="linkFormCatequese">https://pascomscjmarilia-creator.github.io/paroquia-documentos/catequese.html</p>
+          <p><button type="button" class="btn-acao btn-editar" id="btnCopiarLinkCatequese">📋 Copiar link do formulário</button> <span id="msgCopiarLinkCatequese" style="color:#276e35; font-weight:600;"></span></p>
+
+          <p><strong>O que cada coluna mostra:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Documentos:</strong> <em>Completos</em> quando o fiel mandou tudo que é necessário, ou <em>Faltam: …</em> dizendo o que ainda não chegou.</li>
+            <li><strong>Status:</strong> <em>Nova</em> (ninguém cuidou ainda) · <em>Em atendimento</em> (alguém já está cuidando) · <em>Concluída</em> (inscrição resolvida).</li>
+            <li><strong>Ver dados e documentos:</strong> abre a ficha com os dados e os links dos arquivos enviados.</li>
+          </ul>
+
+          <p><strong>Os botões de cada inscrição:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>💬 WhatsApp:</strong> abre a conversa com o responsável.</li>
+            <li><strong>🖨️ Ficha:</strong> abre a ficha de inscrição <em>já preenchida</em> com o que o fiel informou e a caixa de impressão. A catequista completa à mão o que ficar em branco (endereço, pais, escola, saúde).</li>
+            <li><strong>▶ Em atendimento:</strong> avisa a equipe que você já está cuidando desta inscrição.</li>
+            <li><strong>✅ Concluir:</strong> use quando a inscrição estiver resolvida (documentos conferidos e turma definida). <strong>↩ Reabrir</strong> desfaz.</li>
+          </ul>
+
+          <p><strong>Faltam documentos?</strong> Chame o responsável pelo botão WhatsApp e peça para enviar o que falta por este mesmo WhatsApp da paróquia ou levar na secretaria. Os arquivos enviados pelo WhatsApp aparecem na aba <em>Documentos</em>, com o número do fiel.</p>
+
+          <p><strong>Prefere o papel?</strong> O botão <em>🖨️ Ficha em branco</em> abre o PDF para imprimir. Quem preencher no papel entrega na secretaria com os documentos.</p>
+
+          <p><strong>Cuidados:</strong> são dados e documentos de crianças. Não compartilhe os links dos arquivos, imprima só o necessário, guarde as fichas em local fechado e clique em <em>Sair</em> ao terminar em um computador de uso comum.</p>
+
+          <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. Se a inscrição continuar sem aparecer, ou se o painel avisar que a aba não existe, chame a equipe da Pascom.</p>
+        </div>
+
+        <p class="modal-intro no-print" style="margin:0 0 10px;">Inscrições feitas pelo formulário <strong>catequese.html</strong>. Toque em <em>Ver dados e documentos</em> para abrir a ficha e os arquivos, ou em <em>🖨️ Ficha</em> para imprimir a ficha já preenchida.</p>
 
         <p id="statusMsgCatequese" class="status"></p>
 
@@ -329,6 +365,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260924e"></script>
+  <script src="app.js?v=20260924f"></script>
 </body>
 </html>
