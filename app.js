@@ -774,12 +774,128 @@ function renderizarCatequese() {
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
         ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+        <button class="btn-acao btn-editar btn-cat" data-acao="ficha" data-linha="${l.linha}" title="Imprimir a ficha já preenchida">🖨️ Ficha</button>
         ${!concluida && !emAtendimento ? `<button class="btn-acao btn-editar btn-cat" data-acao="atendimento" data-linha="${l.linha}">▶ Em atendimento</button>` : ''}
         ${!concluida ? `<button class="btn-acao btn-resolver btn-cat" data-acao="concluir" data-linha="${l.linha}">✅ Concluir</button>` : `<button class="btn-acao btn-editar btn-cat" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
       </td>
     `;
     corpo.appendChild(tr);
   });
+}
+
+// Ficha de inscrição já preenchida com o que o fiel informou no formulário (o resto fica em branco para a catequista).
+// Devolve um documento HTML completo, pronto para abrir numa janela e imprimir em A4.
+function htmlFichaCatequese(l, autoImprimir) {
+  const e = escapeHtml;
+  const campo = (rot, val, cls) => `<div class="campo ${cls || ''}"><span class="l">${rot}</span><span class="v">${e(val || '')}</span></div>`;
+  const cx = (marcado, texto) => `<span><i class="cx">${marcado ? '✕' : ''}</i>${texto}</span>`;
+
+  const rotulosDocs = linksDaCatequese(l.links).map(x => norm(x.rotulo));
+  const tem = (parte) => rotulosDocs.some(r => r.includes(parte));
+  const outros = linksDaCatequese(l.links).map(x => x.rotulo)
+    .filter(r => !/nascimento|batismo|resid/.test(norm(r))).join(', ');
+  const batizado = norm(l.batizado) === 'sim';
+  // 5514997222096 -> (14) 99722-2096 (só quando tem o formato de número brasileiro; senão mostra como está)
+  const telBonito = (t) => {
+    const m = String(t || '').match(/^55(\d{2})(9?\d{4})(\d{4})$/);
+    return m ? `(${m[1]}) ${m[2]}-${m[3]}` : (t || '');
+  };
+  const dataInscricao = String(l.data || '').split(' ')[0];
+  const brasao = new URL('brasao.png', location.href).href;
+
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Ficha de inscrição — ${e(l.catequizando)}</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --vinho:#7a1f2b; --vinho-escuro:#591622; --dourado:#c9a24a; --creme:#faf7f0; --texto:#2b2420; --linha:#8f847a; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin:0; width:210mm; height:297mm; overflow:hidden; font-family:"Segoe UI", Arial, sans-serif; font-size:9.5pt; line-height:1.3; color:var(--texto); position:relative; }
+  .topo { background: radial-gradient(circle at 25% 30%, #8a2b32 0%, var(--vinho-escuro) 80%); color:#fff; padding:6mm 14mm; display:flex; align-items:center; gap:6mm; border-bottom:2.2mm solid var(--dourado); }
+  .topo img { height:17mm; }
+  .topo .sup { color:#e3c88a; font-size:8pt; letter-spacing:1.4px; text-transform:uppercase; }
+  .topo .nome { font-family:Georgia, serif; font-size:15pt; font-weight:700; line-height:1.15; margin:0.5mm 0 1mm; color:#f1dfae; }
+  .topo .contato { font-size:8pt; color:#eadfd2; }
+  .conteudo { padding:5mm 14mm 0; }
+  h1 { font-family:Georgia, serif; color:var(--vinho); font-size:16pt; margin:0; line-height:1.15; text-align:center; }
+  .subtitulo { text-align:center; color:#6b6055; font-size:8.5pt; margin:0.5mm 0 2.5mm; }
+  h2 { font-size:9.5pt; color:#fff; background:var(--vinho); margin:3mm 0 0.5mm; padding:1mm 3mm; border-radius:2px; letter-spacing:0.3px; }
+  .linha { display:flex; gap:4mm; }
+  .campo { flex:1; min-height:11.5mm; border-bottom:1px solid var(--linha); padding-top:1mm; }
+  .campo .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
+  .campo .v { display:block; font-size:10.5pt; font-weight:600; color:#1d1a17; margin-top:0.6mm; }
+  .campo.p2 { flex:2; } .campo.p3 { flex:3; }
+  .opcoes { display:flex; flex-wrap:wrap; gap:1.5mm 6mm; align-items:center; padding:1.6mm 0 1mm; font-size:9pt; }
+  .opcoes .rot { font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; margin-right:1mm; }
+  .cx { display:inline-block; width:3.6mm; height:3.6mm; border:1px solid #4a4038; margin-right:1.5mm; vertical-align:-0.7mm; font-style:normal; font-size:9pt; line-height:3.3mm; text-align:center; font-weight:700; }
+  .obs { min-height:18mm; border-bottom:1px solid var(--linha); padding-top:1mm; }
+  .obs .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
+  .obs .v { display:block; font-size:10pt; font-weight:600; margin-top:0.6mm; white-space:pre-line; }
+  .obs + .obs { min-height:8mm; }
+  .autoriza { background:var(--creme); border-left:3px solid var(--dourado); padding:2mm 3mm; margin-top:2.5mm; font-size:8.3pt; line-height:1.35; border-radius:2px; }
+  .assina { display:flex; gap:8mm; margin-top:6mm; }
+  .assina .a { flex:3; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
+  .assina .d { flex:1; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
+  .uso { margin-top:3.5mm; border:1.2px dashed #a89a8a; border-radius:3px; padding:1.5mm 3mm 0; background:#fdfbf6; }
+  .uso .tit { font-size:7.5pt; font-weight:700; color:var(--vinho); text-transform:uppercase; letter-spacing:0.6px; }
+  .uso .campo { min-height:8mm; }
+  .rodape { position:absolute; left:0; right:0; bottom:5mm; text-align:center; font-size:7.5pt; color:#888; }
+</style></head><body>
+<div class="topo"><img src="${brasao}" alt=""><div>
+  <div class="sup">Paróquia</div><div class="nome">Sagrado Coração de Jesus</div>
+  <div class="contato">Diocese de Marília · Rua Etelvina Teixeira da Silva, 17 — Marília/SP · Secretaria: (14) 3425-1732</div>
+</div></div>
+<div class="conteudo">
+  <h1>Ficha de Inscrição na Catequese</h1>
+  <p class="subtitulo">Dados informados pelo responsável na inscrição pela internet. Complete à mão o que estiver em branco.</p>
+
+  <h2>Dados do catequizando</h2>
+  <div class="linha">${campo('Nome completo', l.catequizando, 'p3')}${campo('Data de nascimento', l.nascimento)}</div>
+  <div class="linha">${campo('Endereço (rua, número, bairro)', '', 'p3')}${campo('Cidade', '')}</div>
+  <div class="linha">${campo('Etapa / turma desejada', l.etapa, 'p2')}${campo('Escola e série (opcional)', '', 'p2')}</div>
+  <div class="opcoes"><span class="rot">Sacramentos já recebidos:</span>${cx(batizado, 'Batismo')}${cx(false, '1ª Eucaristia')}${cx(false, 'Crisma')}${cx(!batizado && !!l.batizado, 'Nenhum')}</div>
+  <div class="linha">${campo('Paróquia onde foi batizado(a)', l.paroquiaBatismo, 'p3')}${campo('Cidade', '', 'p2')}${campo('Data do batismo', '')}</div>
+
+  <h2>Filiação</h2>
+  <div class="linha">${campo('Nome da mãe', '')}${campo('Nome do pai', '')}</div>
+
+  <h2>Responsável pela inscrição</h2>
+  <div class="linha">${campo('Nome completo do responsável', l.responsavel, 'p3')}${campo('Parentesco', '')}</div>
+  <div class="linha">${campo('WhatsApp com DDD', telBonito(l.whatsapp))}${campo('Outro telefone para recado', '')}</div>
+
+  <h2>Saúde e observações</h2>
+  <div class="obs"><span class="l">Alergias, necessidades especiais, melhor dia e horário, outras informações</span><span class="v">${e(l.observacoes || '')}</span></div>
+  <div class="obs"></div>
+
+  <h2>Documentos entregues</h2>
+  <div class="opcoes">${cx(tem('nascimento'), 'Certidão de nascimento')}${cx(tem('batismo'), 'Certidão de batismo (se já batizado)')}${cx(tem('resid'), 'Comprovante de residência')}${cx(!!outros, 'Outro: ' + (outros ? e(outros) : '____________________'))}</div>
+
+  <div class="autoriza"><strong>Autorização.</strong> Declaro que sou responsável pelo(a) catequizando(a) e que as informações acima são verdadeiras.
+  Autorizo a paróquia a usar estes dados e documentos <strong>somente</strong> para a inscrição e o acompanhamento na catequese,
+  com sigilo e cuidado, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</div>
+  <div class="assina"><div class="a">Assinatura do responsável</div><div class="d">Data</div></div>
+
+  <div class="uso"><div class="tit">Uso da paróquia</div>
+    <div class="linha">${campo('Recebido por', 'Inscrição pela internet')}${campo('Data', dataInscricao)}${campo('Turma / horário', '')}</div>
+    <div class="linha">${campo('Observações da secretaria / catequista', '', 'p3')}</div>
+  </div>
+</div>
+<div class="rodape">Paróquia Sagrado Coração de Jesus · Marília/SP</div>
+${autoImprimir === false ? '' : '<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });<\/script>'}
+</body></html>`;
+}
+
+function imprimirFichaCatequese(linhaNumero) {
+  const l = linhasCatequese.find(x => x.linha === linhaNumero);
+  if (!l) return;
+  const janela = window.open('', '_blank');
+  if (!janela) {
+    alert('O navegador bloqueou a janela da ficha. Permita pop-ups para este site (ícone na barra de endereço) e tente de novo.');
+    return;
+  }
+  janela.document.open();
+  janela.document.write(htmlFichaCatequese(l));
+  janela.document.close();
 }
 
 async function atualizarStatusCatequese(linhaNumero, novoStatus) {
@@ -906,11 +1022,13 @@ window.addEventListener('DOMContentLoaded', () => {
   el('filtroStatusCatequese').addEventListener('change', renderizarCatequese);
   el('btnAtualizarCatequese').addEventListener('click', carregarCatequese);
   el('btnImprimirCatequese').addEventListener('click', () => window.print());
+  el('btnFichaBranco').addEventListener('click', () => window.open('Ficha_Inscricao_Catequese.pdf', '_blank'));
   el('tabelaCatequeseCorpo').addEventListener('click', (e) => {
     const b = e.target.closest('.btn-cat');
     if (!b) return;
     const linha = Number(b.dataset.linha);
-    if (b.dataset.acao === 'atendimento') atualizarStatusCatequese(linha, 'Em atendimento');
+    if (b.dataset.acao === 'ficha') imprimirFichaCatequese(linha);
+    else if (b.dataset.acao === 'atendimento') atualizarStatusCatequese(linha, 'Em atendimento');
     else if (b.dataset.acao === 'reabrir') atualizarStatusCatequese(linha, 'Nova');
     else if (b.dataset.acao === 'concluir' && confirm('Confirma que quer marcar esta inscrição como Concluída?')) atualizarStatusCatequese(linha, 'Concluída');
   });
