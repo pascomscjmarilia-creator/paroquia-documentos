@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="style.css?v=20260924a">
+<link rel="stylesheet" href="style.css?v=20260924b">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -39,6 +39,7 @@
         <button class="aba-btn" id="btnAbaRecados" data-aba="recados">📞 Recados / Retorno</button>
         <button class="aba-btn" id="btnAbaReservas" data-aba="reservas">🗓️ Reservas / Salas</button>
         <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
+        <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -173,6 +174,46 @@
           <tbody id="tabelaExtrasCorpo"></tbody>
         </table>
       </div>
+
+      <!-- ABA: CATEQUESE -->
+      <div id="abaCatequese" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaCatequese" placeholder="Buscar por catequizando, responsável, WhatsApp ou etapa...">
+          <select id="filtroDocsCatequese">
+            <option value="">Todos os documentos</option>
+            <option value="completos">Documentos completos</option>
+            <option value="faltam">Faltam documentos</option>
+          </select>
+          <select id="filtroStatusCatequese">
+            <option value="">Todos os status</option>
+            <option value="Nova">Nova</option>
+            <option value="Em atendimento">Em atendimento</option>
+            <option value="Concluída">Concluída</option>
+          </select>
+          <button id="btnAtualizarCatequese" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirCatequese" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+        </div>
+
+        <p class="modal-intro" style="margin:0 0 10px;">Inscrições feitas pelo formulário <strong>catequese.html</strong>. Toque em <em>Ver dados e documentos</em> para abrir a ficha e os arquivos.</p>
+
+        <p id="statusMsgCatequese" class="status"></p>
+
+        <table id="tabelaCatequese">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Catequizando</th>
+              <th>Responsável</th>
+              <th>WhatsApp</th>
+              <th>Etapa</th>
+              <th>Documentos</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCatequeseCorpo"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -287,6 +328,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260924b"></script>
+  <script src="app.js?v=20260924c"></script>
 </body>
 </html>
