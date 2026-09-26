@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="style.css?v=20260924b">
+<link rel="stylesheet" href="style.css?v=20260925b">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -40,6 +40,7 @@
         <button class="aba-btn" id="btnAbaReservas" data-aba="reservas">🗓️ Reservas / Salas</button>
         <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
         <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
+        <button class="aba-btn" id="btnAbaLojinha" data-aba="lojinha">🛍️ Lojinha</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -51,6 +52,7 @@
             <option value="PIX Dízimo">PIX Dízimo</option>
             <option value="PIX Doação">PIX Doação</option>
             <option value="PIX Pagamento">PIX Pagamento</option>
+            <option value="Comprovante">Comprovante (a definir)</option>
             <option value="Documentos">Documentos</option>
           </select>
           <button id="btnAtualizar" title="Recarregar dados da planilha">🔄 Atualizar</button>
@@ -251,6 +253,61 @@
           <tbody id="tabelaCatequeseCorpo"></tbody>
         </table>
       </div>
+
+      <!-- ABA: LOJINHA -->
+      <div id="abaLojinha" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaLojinha" placeholder="Buscar por produto, categoria ou descrição...">
+          <select id="filtroCategoriaLoja"><option value="">Todas as categorias</option></select>
+          <select id="filtroDispLoja">
+            <option value="">Toda disponibilidade</option>
+            <option value="Em estoque">Em estoque</option>
+            <option value="Esgotado">Esgotado</option>
+            <option value="Sob encomenda">Sob encomenda</option>
+          </select>
+          <button id="btnAtualizarLojinha" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovoProduto" title="Cadastrar um produto novo">➕ Novo produto</button>
+          <button id="btnAbrirCatalogo" title="Abrir a página pública da lojinha">🔗 Ver catálogo</button>
+        </div>
+
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaLojinha" aria-expanded="false" aria-label="Como funciona a aba Lojinha">?</button>
+          <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como funciona esta aba.</span>
+        </div>
+
+        <div id="ajudaLojinha" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>O que é esta aba:</strong> o cadastro dos produtos da Lojinha Paroquial. Os fiéis só <strong>consultam</strong> (fotos, preço e se tem): não há compra pelo WhatsApp nem pelo site.</p>
+          <p><strong>Onde o fiel vê:</strong> na página do catálogo e pelo WhatsApp: o assistente responde sobre preço e disponibilidade e envia o link do catálogo.</p>
+          <p class="exemplo" id="linkCatalogoLojinha">https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html</p>
+          <p><button type="button" class="btn-acao btn-editar" id="btnCopiarLinkLojinha">📋 Copiar link do catálogo</button> <span id="msgCopiarLinkLojinha" style="color:#276e35; font-weight:600;"></span></p>
+          <p><strong>Para cadastrar:</strong> clique em <em>➕ Novo produto</em>, preencha o nome, a descrição, o preço e a disponibilidade, e escolha a foto do produto (do celular ou do computador). A foto é enviada e reduzida sozinha.</p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Disponibilidade:</strong> <em>Em estoque</em>, <em>Esgotado</em> (aparece, mas avisando que acabou) ou <em>Sob encomenda</em>.</li>
+            <li><strong>Categoria:</strong> agrupa os produtos no catálogo (ex.: Terços, Livros, Camisetas). Use sempre o mesmo nome para a mesma categoria.</li>
+            <li><strong>Tamanhos / variações:</strong> escreva separado por vírgula (ex.: P, M, G).</li>
+          </ul>
+          <p><strong>Produto acabou?</strong> Edite e mude para <em>Esgotado</em>. <strong>Não vai mais vender?</strong> Use <em>Ocultar</em>: ele some do catálogo e do WhatsApp, mas continua guardado aqui. <em>Excluir</em> apaga de vez.</p>
+          <p><strong>Boas fotos:</strong> fundo claro, produto centralizado e bem iluminado. Uma foto por produto.</p>
+          <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. O catálogo público pode levar cerca de 1 minuto para mostrar uma mudança. Se continuar, chame a equipe da Pascom.</p>
+        </div>
+
+        <p id="statusMsgLojinha" class="status"></p>
+
+        <table id="tabelaLojinha">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Preço</th>
+              <th>Disponibilidade</th>
+              <th>No catálogo</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaLojinhaCorpo"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -317,6 +374,70 @@
     </div>
   </div>
 
+  <div id="modalProduto" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2 id="modalProdutoTitulo">Novo produto</h2>
+        <button id="btnFecharModalProduto" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <form id="formProduto">
+        <div class="campo">
+          <label for="prodNome">Produto</label>
+          <input type="text" id="prodNome" required placeholder="Ex.: Terço de madeira">
+        </div>
+
+        <div class="campo">
+          <label for="prodCategoria">Categoria</label>
+          <input type="text" id="prodCategoria" list="listaCategoriasLoja" placeholder="Ex.: Terços">
+          <datalist id="listaCategoriasLoja"></datalist>
+        </div>
+
+        <div class="campo">
+          <label for="prodDescricao">Descrição</label>
+          <textarea id="prodDescricao" rows="3" placeholder="Ex.: Terço de madeira com crucifixo, 55 cm."></textarea>
+        </div>
+
+        <div class="modal-linha-dupla">
+          <div>
+            <label for="prodPreco">Preço (R$)</label>
+            <input type="text" id="prodPreco" inputmode="decimal" placeholder="Ex.: 25,00">
+          </div>
+          <div>
+            <label for="prodDisp">Disponibilidade</label>
+            <select id="prodDisp">
+              <option value="Em estoque">Em estoque</option>
+              <option value="Esgotado">Esgotado</option>
+              <option value="Sob encomenda">Sob encomenda</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="prodVariacoes">Tamanhos ou variações (opcional)</label>
+          <input type="text" id="prodVariacoes" placeholder="Ex.: P, M, G">
+        </div>
+
+        <div class="campo">
+          <label for="prodFoto">Foto do produto</label>
+          <input type="file" id="prodFoto" accept="image/*">
+          <div id="prodFotoBloco" hidden style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+            <img id="prodFotoPreview" alt="Foto do produto" style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--cinza-borda);">
+            <button type="button" class="btn-acao btn-excluir" id="btnRemoverFotoProduto">Remover foto</button>
+          </div>
+        </div>
+
+        <div class="campo" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="prodExibir" checked style="width:18px; height:18px;">
+          <label for="prodExibir" style="margin:0;">Mostrar este produto no catálogo</label>
+        </div>
+
+        <button type="submit" id="btnSalvarProduto">Salvar</button>
+        <p id="modalProdutoResultado"></p>
+      </form>
+    </div>
+  </div>
+
   <div id="modalReserva" class="modal-overlay" hidden>
     <div class="modal-caixa">
       <div class="modal-topo">
@@ -365,6 +486,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260924f"></script>
+  <script src="app.js?v=20260925b"></script>
 </body>
 </html>
