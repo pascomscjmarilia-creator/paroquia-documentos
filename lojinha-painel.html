@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Cadastro da Lojinha — Paróquia Sagrado Coração de Jesus</title>
+<link rel="stylesheet" href="style.css?v=20260925b">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  main.lp { max-width: 1000px; }
+  .lp-barra { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .lp-barra input, .lp-barra select { padding:10px; border:1px solid var(--cinza-borda); border-radius:8px; font-size:0.95rem; background:#fff; }
+  .lp-barra input { flex:1; min-width:180px; }
+  .lp-barra button { background:var(--vinho); color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-size:0.92rem; font-weight:600; }
+  .lp-barra button:hover { background:var(--vinho-escuro); }
+  .lp-barra button.novo { background:#276e35; }
+  .lp-grade { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:14px; }
+  .pcard { background:#fff; border:1px solid var(--cinza-borda); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .pcard.oculto { opacity:0.65; }
+  .pcard .foto { aspect-ratio:1/1; background:#f0ece4; display:flex; align-items:center; justify-content:center; }
+  .pcard .foto img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pcard .foto .sem { color:#999; font-size:0.85rem; }
+  .pcard .info { padding:10px 12px; display:flex; flex-direction:column; gap:4px; flex:1; }
+  .pcard .cat { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#8a7f73; }
+  .pcard .nome { font-weight:700; line-height:1.25; }
+  .pcard .preco { color:var(--vinho); font-weight:800; font-size:1.05rem; }
+  .pcard .desc { font-size:0.85rem; color:#555; line-height:1.35; }
+  .pcard .pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+  .pcard .acoes { display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 12px; }
+  .lp-vazio { text-align:center; color:#666; margin:30px 0; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Cadastro da Lojinha</h1>
+    </div>
+    <div id="userBox" class="user-box" hidden>
+      <span id="userEmail"></span>
+      <button id="btnSair">Sair</button>
+    </div>
+  </header>
+
+  <main class="lp">
+    <section id="loginScreen" class="login-screen">
+      <p>Entre com a conta Google autorizada para cadastrar e atualizar os produtos da Lojinha Paroquial.</p>
+      <div id="googleBtn"></div>
+      <p id="loginErro" class="erro" hidden></p>
+    </section>
+
+    <section id="appScreen" hidden>
+      <div class="lp-barra">
+        <input type="text" id="busca" placeholder="Buscar produto…">
+        <select id="filtroCategoria"><option value="">Todas as categorias</option></select>
+        <select id="filtroDisp">
+          <option value="">Toda disponibilidade</option>
+          <option value="Em estoque">Em estoque</option>
+          <option value="Esgotado">Esgotado</option>
+          <option value="Sob encomenda">Sob encomenda</option>
+        </select>
+      </div>
+      <div class="lp-barra">
+        <button id="btnNovo" class="novo">➕ Novo produto</button>
+        <button id="btnAtualizar">🔄 Atualizar</button>
+        <button id="btnCatalogo">🔗 Ver catálogo</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+        <button type="button" class="btn-ajuda" id="btnAjuda" aria-expanded="false" aria-label="Como usar">?</button>
+        <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como usar esta página.</span>
+      </div>
+      <div id="ajuda" class="ajuda-texto" hidden style="margin-bottom:12px;">
+        <p><strong>Para que serve:</strong> aqui você cadastra e atualiza os produtos da Lojinha Paroquial. Os fiéis veem no catálogo e pelo WhatsApp (fotos, preço e se tem). Não há compra pelo WhatsApp nem pelo site: é só consulta.</p>
+        <p><strong>Cadastrar:</strong> toque em <em>➕ Novo produto</em>, preencha o nome, a descrição, o preço e a disponibilidade e escolha a foto (do celular ou do computador). A foto é reduzida e enviada sozinha.</p>
+        <ul style="margin:0 0 6px; padding-left:18px;">
+          <li><strong>Em estoque:</strong> tem para retirar. <strong>Esgotado:</strong> aparece avisando que acabou. <strong>Sob encomenda:</strong> precisa encomendar.</li>
+          <li><strong>Categoria:</strong> agrupa os produtos (ex.: Terços, Livros). Use sempre o mesmo nome para a mesma categoria.</li>
+          <li><strong>Tamanhos / variações:</strong> separe por vírgula (ex.: P, M, G).</li>
+        </ul>
+        <p><strong>Acabou?</strong> Toque em <em>Editar</em> e mude para <em>Esgotado</em>. <strong>Não vai mais vender?</strong> Use <em>Ocultar</em>: some do catálogo e do WhatsApp, mas continua guardado. <em>Excluir</em> apaga de vez.</p>
+        <p><strong>Boas fotos:</strong> fundo claro, produto centralizado e bem iluminado. Uma foto por produto.</p>
+        <p><strong>Demora para aparecer?</strong> O catálogo pode levar cerca de 1 minuto para mostrar uma mudança. Se pedir para entrar de novo, é normal: a sessão dura cerca de 1 hora. Se algo não funcionar, chame a equipe da Pascom.</p>
+      </div>
+
+      <p id="status" class="status"></p>
+      <div id="grade" class="lp-grade"></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2 id="modalTitulo">Novo produto</h2>
+        <button id="btnFecharModal" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+      <form id="formProduto">
+        <div class="campo"><label for="prodNome">Produto</label><input type="text" id="prodNome" required placeholder="Ex.: Terço de madeira"></div>
+        <div class="campo"><label for="prodCategoria">Categoria</label><input type="text" id="prodCategoria" list="listaCategorias" placeholder="Ex.: Terços"><datalist id="listaCategorias"></datalist></div>
+        <div class="campo"><label for="prodDescricao">Descrição</label><textarea id="prodDescricao" rows="3" placeholder="Ex.: Terço de madeira com crucifixo, 55 cm."></textarea></div>
+        <div class="modal-linha-dupla">
+          <div><label for="prodPreco">Preço (R$)</label><input type="text" id="prodPreco" inputmode="decimal" placeholder="Ex.: 25,00"></div>
+          <div><label for="prodDisp">Disponibilidade</label>
+            <select id="prodDisp"><option value="Em estoque">Em estoque</option><option value="Esgotado">Esgotado</option><option value="Sob encomenda">Sob encomenda</option></select></div>
+        </div>
+        <div class="campo"><label for="prodVariacoes">Tamanhos ou variações (opcional)</label><input type="text" id="prodVariacoes" placeholder="Ex.: P, M, G"></div>
+        <div class="campo">
+          <label for="prodFoto">Foto do produto</label>
+          <input type="file" id="prodFoto" accept="image/*">
+          <div id="fotoBloco" hidden style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+            <img id="fotoPreview" alt="Foto do produto" style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--cinza-borda);">
+            <button type="button" class="btn-acao btn-excluir" id="btnRemoverFoto">Remover foto</button>
+          </div>
+        </div>
+        <div class="campo" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="prodExibir" checked style="width:18px; height:18px;">
+          <label for="prodExibir" style="margin:0;">Mostrar este produto no catálogo</label>
+        </div>
+        <button type="submit" id="btnSalvar">Salvar</button>
+        <p id="modalResultado"></p>
+      </form>
+    </div>
+  </div>
+
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO
+  // ============================================================
+  const CONFIG = {
+    CLIENT_ID: '172692599350-9ssc0ir4r4j4rtn3v7ksd5i6un41damc.apps.googleusercontent.com',
+
+    // Planilha onde está a aba "Lojinha". Hoje: a planilha de dados da paróquia.
+    // (Se a Lojinha passar para uma planilha só dela, troque este ID — veja as instruções.)
+    SHEET_ID: '1ac6la9wQEMkt_Q4MuazNeLNEAchLlOL9zwKGUuhdMFQ',
+    ABA: 'Lojinha',
+    RANGE: 'Lojinha!A2:H',
+
+    WEBHOOK_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
+    URL_CATALOGO: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
+
+    // E-mails que podem usar esta página (a segurança de verdade é o acesso à planilha no Google
+    // e a lista PERMITIDOS do fluxo "Lojinha - Upload de Foto" no n8n: mantenha as duas iguais).
+    ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
+  };
+  // ============================================================
+
+  const el = (id) => document.getElementById(id);
+  let accessToken = null;
+  let linhas = [];
+  let editandoLinha = null;
+  let fotoAtual = '';
+
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
+  const fotoSegura = (u) => (/^https:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '');
+  const precoTexto = (p) => { const t = String(p || '').trim(); return !t ? 'Sem preço' : (/^r\$/i.test(t) ? t : 'R$ ' + t); };
+
+  function normalizarPreco(txt) {
+    const t = String(txt || '').replace(/^R\$\s*/i, '').trim();
+    if (!t) return '';
+    if (!/^\d{1,6}([.,]\d{1,2})?$/.test(t)) return null;
+    return Number(t.replace(',', '.')).toFixed(2).replace('.', ',');
+  }
+
+  function mensagemErro(err) {
+    const s = err && err.status;
+    if (s === 401) return 'Sua sessão do Google expirou. Clique em "Sair", entre de novo e tente outra vez.';
+    if (s === 403) return 'Sua conta Google não tem permissão para EDITAR a planilha da Lojinha. Peça à equipe da Pascom para compartilhá-la com você como Editor.';
+    if (s === 400 || s === 404) return 'Não encontrei a aba "' + CONFIG.ABA + '" na planilha. Peça ajuda à equipe da Pascom.';
+    if (s === 429) return 'O Google está limitando os acessos agora. Aguarde 1 minuto e tente de novo.';
+    if (s) return 'O Google recusou a gravação (código ' + s + '). Tente de novo; se continuar, avise a equipe da Pascom.';
+    return 'Sem conexão com o Google. Confira a internet e tente de novo.';
+  }
+
+  // ---------- Login ----------
+  function erroLogin(msg) { el('loginErro').textContent = msg; el('loginErro').hidden = false; }
+
+  function iniciarLogin(tentativas) {
+    tentativas = tentativas || 0;
+    if (!window.google || !window.google.accounts) {
+      if (tentativas < 20) { setTimeout(() => iniciarLogin(tentativas + 1), 200); return; }
+      return erroLogin('Não foi possível carregar o login do Google. Confira a internet e recarregue a página.');
+    }
+    try {
+      const cliente = google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
+        callback: async (resp) => {
+          if (resp.error) return erroLogin('Não foi possível entrar com essa conta Google (' + resp.error + ').');
+          accessToken = resp.access_token;
+          await aposLogin();
+        },
+      });
+      const b = document.createElement('button');
+      b.textContent = 'Entrar com Google';
+      b.style.cssText = 'background:#fff;border:1px solid #ccc;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;';
+      b.onclick = () => { el('loginErro').hidden = true; cliente.requestAccessToken(); };
+      el('googleBtn').appendChild(b);
+    } catch (e) { erroLogin('Erro ao iniciar o login do Google: ' + e.message); }
+  }
+
+  async function aposLogin() {
+    try {
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + accessToken } });
+      const email = String((await r.json()).email || '').toLowerCase();
+      if (!CONFIG.ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+        erroLogin('A conta "' + email + '" não está autorizada. Peça à equipe da Pascom para liberar seu e-mail.');
+        accessToken = null;
+        return;
+      }
+      el('userEmail').textContent = email;
+      el('userBox').hidden = false;
+      el('loginScreen').hidden = true;
+      el('appScreen').hidden = false;
+      await carregar();
+    } catch (e) { erroLogin('Erro ao verificar sua conta. Tente novamente.'); }
+  }
+
+  function sair() {
+    if (accessToken && window.google) google.accounts.oauth2.revoke(accessToken, () => {});
+    accessToken = null; linhas = [];
+    el('userBox').hidden = true; el('appScreen').hidden = true; el('loginScreen').hidden = false;
+  }
+
+  // ---------- Planilha ----------
+  async function buscarValores() {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(CONFIG.RANGE)}`;
+    const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    return (await resp.json()).values || [];
+  }
+
+  async function gravar(range, valores) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+    const resp = await fetch(url, { method: 'PUT', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: valores }) });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+  }
+
+  async function carregar() {
+    el('status').textContent = 'Carregando produtos…';
+    try {
+      const valores = await buscarValores();
+      linhas = valores.map((r, idx) => ({
+        linha: idx + 2, produto: r[0] || '', categoria: r[1] || '', descricao: r[2] || '', preco: r[3] || '', variacoes: r[4] || '',
+        disp: (r[5] || '').trim() || 'Em estoque', foto: r[6] || '', exibir: norm(r[7] || 'Sim') !== 'nao',
+      })).filter(l => l.produto);
+      el('status').textContent = linhas.length + ' produto(s) cadastrado(s).';
+      atualizarCategorias();
+      desenhar();
+    } catch (e) {
+      el('status').textContent = e.status ? mensagemErro(e) : 'Erro ao carregar os produtos.';
+    }
+  }
+
+  function atualizarCategorias() {
+    const cats = [...new Set(linhas.map(l => l.categoria.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const sel = el('filtroCategoria'); const atual = sel.value;
+    sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${escapeHtml(c)}</option>`).join('');
+    if (cats.includes(atual)) sel.value = atual;
+    el('listaCategorias').innerHTML = cats.map(c => `<option value="${escapeAttr(c)}"></option>`).join('');
+  }
+
+  function desenhar() {
+    const termo = norm(el('busca').value.trim());
+    const cat = el('filtroCategoria').value; const disp = el('filtroDisp').value;
+    const lista = linhas.filter(l =>
+      (!termo || norm(l.produto + ' ' + l.categoria + ' ' + l.descricao + ' ' + l.variacoes).includes(termo)) &&
+      (!cat || l.categoria === cat) && (!disp || l.disp === disp));
+
+    const grade = el('grade');
+    grade.innerHTML = '';
+    if (lista.length === 0) { grade.innerHTML = '<p class="lp-vazio">Nenhum produto encontrado. Toque em <strong>➕ Novo produto</strong> para cadastrar.</p>'; return; }
+
+    lista.forEach(l => {
+      const foto = fotoSegura(l.foto);
+      const dispClasse = l.disp === 'Esgotado' ? 'pendente' : (l.disp === 'Sob encomenda' ? 'andamento' : 'resolvido');
+      const card = document.createElement('article');
+      card.className = 'pcard' + (l.exibir ? '' : ' oculto');
+      card.innerHTML = `
+        <div class="foto">${foto ? `<img src="${escapeAttr(foto)}" alt="" loading="lazy">` : '<span class="sem">sem foto</span>'}</div>
+        <div class="info">
+          ${l.categoria ? `<div class="cat">${escapeHtml(l.categoria)}</div>` : ''}
+          <div class="nome">${escapeHtml(l.produto)}</div>
+          <div class="preco">${escapeHtml(precoTexto(l.preco))}</div>
+          ${l.descricao ? `<div class="desc">${escapeHtml(l.descricao)}</div>` : ''}
+          ${l.variacoes ? `<div class="desc"><strong>Variações:</strong> ${escapeHtml(l.variacoes)}</div>` : ''}
+          <div class="pills">
+            <span class="status-pill ${dispClasse}">${escapeHtml(l.disp)}</span>
+            <span class="status-pill ${l.exibir ? 'resolvido' : 'pendente'}">${l.exibir ? 'Visível' : 'Oculto'}</span>
+          </div>
+        </div>
+        <div class="acoes">
+          <button class="btn-acao btn-editar" data-acao="editar" data-linha="${l.linha}">✏️ Editar</button>
+          <button class="btn-acao btn-editar" data-acao="exibir" data-linha="${l.linha}">${l.exibir ? '🙈 Ocultar' : '👁️ Mostrar'}</button>
+          <button class="btn-acao btn-excluir" data-acao="excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+        </div>`;
+      grade.appendChild(card);
+    });
+  }
+
+  // ---------- Cadastro ----------
+  function mostrarFoto(url) { const u = fotoSegura(url); el('fotoBloco').hidden = !u; if (u) el('fotoPreview').src = u; }
+
+  function abrirModal(linhaNumero) {
+    editandoLinha = linhaNumero || null;
+    el('formProduto').reset();
+    el('modalResultado').textContent = ''; el('modalResultado').className = '';
+    fotoAtual = ''; el('prodExibir').checked = true;
+    if (editandoLinha) {
+      const l = linhas.find(x => x.linha === editandoLinha);
+      if (l) {
+        el('prodNome').value = l.produto; el('prodCategoria').value = l.categoria; el('prodDescricao').value = l.descricao;
+        el('prodPreco').value = String(l.preco || '').replace(/^R\$\s*/i, ''); el('prodVariacoes').value = l.variacoes;
+        el('prodDisp').value = l.disp; el('prodExibir').checked = l.exibir; fotoAtual = fotoSegura(l.foto);
+      }
+      el('modalTitulo').textContent = 'Editar produto';
+    } else { el('modalTitulo').textContent = 'Novo produto'; }
+    mostrarFoto(fotoAtual);
+    el('modal').hidden = false;
+  }
+  function fecharModal() { el('modal').hidden = true; editandoLinha = null; }
+
+  function reduzirImagem(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file); const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, 1200 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * escala); c.height = Math.round(img.height * escala);
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não consegui abrir essa imagem. Tente outra foto (JPG ou PNG).')); };
+      img.src = url;
+    });
+  }
+
+  async function enviarFoto(file, nomeProduto) {
+    const base64 = await reduzirImagem(file);
+    let resp;
+    try {
+      resp = await fetch(CONFIG.WEBHOOK_FOTO, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: accessToken, nome: nomeProduto, mime: 'image/jpeg', base64 }) });
+    } catch (e) { throw new Error('Não foi possível enviar a foto agora. Confira a internet e tente de novo.'); }
+    let dados = {}; try { dados = await resp.json(); } catch (e) { /* sem JSON */ }
+    if (!dados.sucesso || !dados.url) throw new Error(dados.mensagem || 'Não foi possível enviar a foto agora. Tente de novo em instantes.');
+    return dados.url;
+  }
+
+  async function salvar(e) {
+    e.preventDefault();
+    const res = el('modalResultado'); const btn = el('btnSalvar');
+    res.textContent = ''; res.className = '';
+    const nome = el('prodNome').value.trim();
+    const preco = normalizarPreco(el('prodPreco').value);
+    if (!nome) { res.className = 'erro'; res.textContent = '⚠️ Escreva o nome do produto.'; return; }
+    if (preco === null) { res.className = 'erro'; res.textContent = '⚠️ Preço inválido. Use só números, por exemplo 25,00.'; return; }
+
+    btn.disabled = true; btn.textContent = 'Salvando...';
+    try {
+      let fotoUrl = fotoAtual;
+      const arquivo = el('prodFoto').files[0];
+      if (arquivo) { res.textContent = 'Enviando a foto…'; fotoUrl = await enviarFoto(arquivo, nome); res.textContent = ''; }
+
+      const valores = [[nome, el('prodCategoria').value.trim(), el('prodDescricao').value.trim(), preco, el('prodVariacoes').value.trim(), el('prodDisp').value, fotoUrl, el('prodExibir').checked ? 'Sim' : 'Não']];
+      const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/`;
+      const cab = { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
+      let resp;
+      if (editandoLinha) {
+        resp = await fetch(base + encodeURIComponent(`${CONFIG.ABA}!A${editandoLinha}:H${editandoLinha}`) + '?valueInputOption=RAW', { method: 'PUT', headers: cab, body: JSON.stringify({ values: valores }) });
+      } else {
+        resp = await fetch(base + encodeURIComponent(`${CONFIG.ABA}!A:H`) + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', { method: 'POST', headers: cab, body: JSON.stringify({ values: valores }) });
+      }
+      if (!resp.ok) { const er = new Error('status ' + resp.status); er.status = resp.status; throw er; }
+      res.className = 'sucesso'; res.textContent = '✅ Produto salvo.';
+      await carregar();
+      setTimeout(fecharModal, 900);
+    } catch (err) {
+      console.error(err);
+      res.className = 'erro'; res.textContent = '⚠️ ' + (err.status ? mensagemErro(err) : err.message);
+    } finally { btn.disabled = false; btn.textContent = 'Salvar'; }
+  }
+
+  async function alternarExibir(linhaNumero) {
+    const l = linhas.find(x => x.linha === linhaNumero); if (!l) return;
+    try { await gravar(`${CONFIG.ABA}!H${linhaNumero}`, [[l.exibir ? 'Não' : 'Sim']]); await carregar(); }
+    catch (e) { alert(mensagemErro(e)); }
+  }
+
+  async function excluir(linhaNumero) {
+    const l = linhas.find(x => x.linha === linhaNumero);
+    if (!confirm('Confirma que quer excluir o produto' + (l ? ' "' + l.produto + '"' : '') + '? Essa ação não pode ser desfeita. (Para só tirar do catálogo, use Ocultar.)')) return;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(`${CONFIG.ABA}!A${linhaNumero}:H${linhaNumero}`)}:clear`;
+    try {
+      const resp = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: '{}' });
+      if (!resp.ok) { const er = new Error('status ' + resp.status); er.status = resp.status; throw er; }
+      await carregar();
+    } catch (e) { alert(mensagemErro(e)); }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    iniciarLogin();
+    el('btnSair').addEventListener('click', sair);
+    el('busca').addEventListener('input', desenhar);
+    el('filtroCategoria').addEventListener('change', desenhar);
+    el('filtroDisp').addEventListener('change', desenhar);
+    el('btnAtualizar').addEventListener('click', carregar);
+    el('btnNovo').addEventListener('click', () => abrirModal(null));
+    el('btnCatalogo').addEventListener('click', () => window.open(CONFIG.URL_CATALOGO, '_blank'));
+    el('btnAjuda').addEventListener('click', () => { const c = el('ajuda'); c.hidden = !c.hidden; el('btnAjuda').setAttribute('aria-expanded', String(!c.hidden)); });
+    el('btnFecharModal').addEventListener('click', fecharModal);
+    el('modal').addEventListener('click', (e) => { if (e.target === el('modal')) fecharModal(); });
+    el('formProduto').addEventListener('submit', salvar);
+    el('prodFoto').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) { el('fotoPreview').src = URL.createObjectURL(f); el('fotoBloco').hidden = false; } else mostrarFoto(fotoAtual); });
+    el('btnRemoverFoto').addEventListener('click', () => { fotoAtual = ''; el('prodFoto').value = ''; el('fotoBloco').hidden = true; });
+    el('grade').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-acao]'); if (!b) return;
+      const linha = Number(b.dataset.linha);
+      if (b.dataset.acao === 'editar') abrirModal(linha);
+      else if (b.dataset.acao === 'exibir') alternarExibir(linha);
+      else if (b.dataset.acao === 'excluir') excluir(linha);
+    });
+  });
+</script>
+</body>
+</html>
