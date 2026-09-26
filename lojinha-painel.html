@@ -28,6 +28,12 @@
   .pcard .desc { font-size:0.85rem; color:#555; line-height:1.35; }
   .pcard .pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
   .pcard .acoes { display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 12px; }
+  .catalogo-tela { position:fixed; inset:0; z-index:1000; background:#fff; display:flex; flex-direction:column; }
+  .catalogo-tela[hidden] { display:none; }
+  .catalogo-barra { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--vinho); color:#fff; flex-shrink:0; }
+  .catalogo-barra button { background:#fff; color:var(--vinho); border:none; padding:9px 14px; border-radius:8px; font-weight:700; font-size:0.95rem; cursor:pointer; }
+  .catalogo-barra span { font-size:0.85rem; opacity:0.9; }
+  .catalogo-tela iframe { flex:1; width:100%; border:0; }
   .lp-vazio { text-align:center; color:#666; margin:30px 0; }
 </style>
 </head>
@@ -89,6 +95,14 @@
       <div id="grade" class="lp-grade"></div>
     </section>
   </main>
+
+  <div id="catalogoTela" class="catalogo-tela" hidden>
+    <div class="catalogo-barra">
+      <button type="button" id="btnVoltarCatalogo">← Voltar ao cadastro</button>
+      <span>Assim os fiéis veem o catálogo</span>
+    </div>
+    <iframe id="catalogoFrame" title="Catálogo da Lojinha" src="about:blank"></iframe>
+  </div>
 
   <div id="modal" class="modal-overlay" hidden>
     <div class="modal-caixa">
@@ -301,6 +315,18 @@
     });
   }
 
+  // ---------- Catálogo dentro da própria página (mantém o login) ----------
+  function abrirCatalogo() {
+    el('catalogoFrame').src = CONFIG.URL_CATALOGO + '?v=' + Date.now();
+    el('catalogoTela').hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharCatalogo() {
+    el('catalogoTela').hidden = true;
+    el('catalogoFrame').src = 'about:blank';
+    document.body.style.overflow = '';
+  }
+
   // ---------- Cadastro ----------
   function mostrarFoto(url) { const u = fotoSegura(url); el('fotoBloco').hidden = !u; if (u) el('fotoPreview').src = u; }
 
@@ -407,7 +433,9 @@
     el('filtroDisp').addEventListener('change', desenhar);
     el('btnAtualizar').addEventListener('click', carregar);
     el('btnNovo').addEventListener('click', () => abrirModal(null));
-    el('btnCatalogo').addEventListener('click', () => window.open(CONFIG.URL_CATALOGO, '_blank'));
+    el('btnCatalogo').addEventListener('click', abrirCatalogo);
+    el('btnVoltarCatalogo').addEventListener('click', fecharCatalogo);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !el('catalogoTela').hidden) fecharCatalogo(); });
     el('btnAjuda').addEventListener('click', () => { const c = el('ajuda'); c.hidden = !c.hidden; el('btnAjuda').setAttribute('aria-expanded', String(!c.hidden)); });
     el('btnFecharModal').addEventListener('click', fecharModal);
     el('modal').addEventListener('click', (e) => { if (e.target === el('modal')) fecharModal(); });
