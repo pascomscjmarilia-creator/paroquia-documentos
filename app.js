@@ -1176,6 +1176,40 @@ async function gravarCelulasLojinha(range, valores) {
   if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
 }
 
+// Abre o catálogo público por cima do painel (sem sair da página, mantendo o login).
+function abrirCatalogoLojinha() {
+  let tela = document.getElementById('catalogoLojinhaTela');
+  if (!tela) {
+    tela = document.createElement('div');
+    tela.id = 'catalogoLojinhaTela';
+    tela.style.cssText = 'position:fixed;inset:0;z-index:1000;background:#fff;display:flex;flex-direction:column;';
+    const barra = document.createElement('div');
+    barra.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:#7a1f2b;color:#fff;flex-shrink:0;';
+    const voltar = document.createElement('button');
+    voltar.type = 'button';
+    voltar.textContent = '← Voltar ao painel';
+    voltar.style.cssText = 'background:#fff;color:#7a1f2b;border:none;padding:9px 14px;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;';
+    const aviso = document.createElement('span');
+    aviso.textContent = 'Assim os fiéis veem o catálogo';
+    aviso.style.cssText = 'font-size:0.85rem;opacity:0.9;';
+    barra.appendChild(voltar);
+    barra.appendChild(aviso);
+    const frame = document.createElement('iframe');
+    frame.title = 'Catálogo da Lojinha';
+    frame.style.cssText = 'flex:1;width:100%;border:0;';
+    tela.appendChild(barra);
+    tela.appendChild(frame);
+    document.body.appendChild(tela);
+    const fechar = () => { tela.hidden = true; tela.style.display = 'none'; frame.src = 'about:blank'; document.body.style.overflow = ''; };
+    voltar.addEventListener('click', fechar);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !tela.hidden) fechar(); });
+  }
+  tela.hidden = false;
+  tela.style.display = 'flex';
+  tela.querySelector('iframe').src = CONFIG.URL_LOJINHA + '?v=' + Date.now();
+  document.body.style.overflow = 'hidden';
+}
+
 async function alternarExibirProduto(linhaNumero) {
   const l = linhasLojinha.find(x => x.linha === linhaNumero);
   if (!l) return;
@@ -1350,7 +1384,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('filtroDispLoja').addEventListener('change', renderizarLojinha);
   el('btnAtualizarLojinha').addEventListener('click', carregarLojinha);
   el('btnNovoProduto').addEventListener('click', () => abrirModalProduto(null));
-  el('btnAbrirCatalogo').addEventListener('click', () => window.open(CONFIG.URL_LOJINHA, '_blank'));
+  el('btnAbrirCatalogo').addEventListener('click', abrirCatalogoLojinha);
   el('btnFecharModalProduto').addEventListener('click', fecharModalProduto);
   el('formProduto').addEventListener('submit', salvarProduto);
   el('modalProduto').addEventListener('click', (e) => { if (e.target === el('modalProduto')) fecharModalProduto(); });
