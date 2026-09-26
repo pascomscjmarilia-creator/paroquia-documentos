@@ -182,10 +182,14 @@ details.detalhes-cat ul {
   padding-left: 18px;
 }
 
-.acoes-recado {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+/* Coluna "Ação": continua sendo célula de tabela (a linha divisória fica no limite da linha
+   e os botões ficam centralizados na vertical). Os botões quebram de linha com margem. */
+td.acoes-recado {
+  vertical-align: middle;
+}
+
+td.acoes-recado > .btn-acao {
+  margin: 3px 6px 3px 0;
 }
 
 .btn-acao {
@@ -340,8 +344,15 @@ td a:hover {
     flex: 1;
   }
 
-  .acoes-recado {
+  td.acoes-recado {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  td.acoes-recado > .btn-acao {
+    margin: 0;
   }
 
   td[data-label="Catequizando"],
