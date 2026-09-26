@@ -24,6 +24,12 @@ const CONFIG = {
   CATEQUESE_RANGE: 'Catequese_Inscricoes!A2:L',
   CATEQUESE_ABA: 'Catequese_Inscricoes',
 
+  // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
+  LOJINHA_RANGE: 'Lojinha!A2:H',
+  LOJINHA_ABA: 'Lojinha',
+  WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
+  URL_LOJINHA: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
+
   // E-mails autorizados a usar o app (checagem de UX — a segurança
   // de verdade é a permissão de compartilhamento da planilha no Google)
   ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
@@ -36,6 +42,9 @@ let linhasRecados = [];
 let linhasReservas = [];
 let linhasExtras = [];
 let linhasCatequese = [];
+let linhasLojinha = [];
+let produtoEditandoLinha = null;
+let fotoAtualProduto = '';
 let extraEditandoLinha = null;
 
 const el = (id) => document.getElementById(id);
@@ -113,6 +122,7 @@ async function handleLoginSucesso() {
     await carregarReservas();
     await carregarExtras();
     await carregarCatequese();
+    await carregarLojinha();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -915,6 +925,284 @@ async function atualizarStatusCatequese(linhaNumero, novoStatus) {
   }
 }
 
+// ---------- Lojinha Paroquial (produtos com foto; os fiéis só consultam) ----------
+// Colunas da aba (planilha de dados da paróquia): A Produto · B Categoria · C Descrição · D Preço ·
+// E Variações · F Disponibilidade · G Foto (link) · H Exibir (Sim/Não)
+
+function precoLojinha(p) {
+  const t = String(p || '').trim();
+  if (!t) return '—';
+  return /^r\$/i.test(t) ? t : 'R$ ' + t;
+}
+
+// "25", "25.5", "R$ 25,50" -> "25,50". Devolve null se não for um valor válido e '' se estiver vazio.
+function normalizarPreco(txt) {
+  const t = String(txt || '').replace(/^R\$\s*/i, '').trim();
+  if (!t) return '';
+  if (!/^\d{1,6}([.,]\d{1,2})?$/.test(t)) return null;
+  return Number(t.replace(',', '.')).toFixed(2).replace('.', ',');
+}
+
+// Só aceita foto por link https (evita javascript: e coisas parecidas em src)
+function fotoSegura(url) {
+  return /^https:\/\//i.test(String(url || '').trim()) ? String(url).trim() : '';
+}
+
+async function carregarLojinha() {
+  const statusMsg = el('statusMsgLojinha');
+  statusMsg.textContent = 'Carregando produtos...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.LOJINHA_RANGE, CONFIG.SHEET_ID_DADOS);
+    // O range começa em A2: guarda a linha real para editar/ocultar/excluir a célula certa.
+    linhasLojinha = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        produto: row[0] || '',
+        categoria: row[1] || '',
+        descricao: row[2] || '',
+        preco: row[3] || '',
+        variacoes: row[4] || '',
+        disp: (row[5] || '').trim() || 'Em estoque',
+        foto: row[6] || '',
+        exibir: norm(row[7] || 'Sim') !== 'nao',
+      }))
+      .filter(l => l.produto);
+
+    statusMsg.textContent = linhasLojinha.length + ' produto(s) cadastrado(s).';
+    atualizarCategoriasLoja();
+    renderizarLojinha();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso à planilha de dados da paróquia. Peça para compartilhá-la com você (como editor).'
+      : e.message === 'STATUS_400'
+        ? 'A aba "' + CONFIG.LOJINHA_ABA + '" ainda não existe na planilha de dados da paróquia. Crie a aba (veja as instruções) e clique em Atualizar.'
+        : 'Erro ao carregar os produtos.';
+  }
+}
+
+// Lista de categorias existentes: alimenta o filtro e a sugestão do campo Categoria
+function atualizarCategoriasLoja() {
+  const cats = [...new Set(linhasLojinha.map(l => l.categoria.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const sel = el('filtroCategoriaLoja');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${escapeHtml(c)}</option>`).join('');
+  if (cats.includes(atual)) sel.value = atual;
+  el('listaCategoriasLoja').innerHTML = cats.map(c => `<option value="${escapeAttr(c)}"></option>`).join('');
+}
+
+function renderizarLojinha() {
+  const termo = norm(el('buscaLojinha').value.trim());
+  const catFiltro = el('filtroCategoriaLoja').value;
+  const dispFiltro = el('filtroDispLoja').value;
+
+  const filtradas = linhasLojinha.filter(l => {
+    const bateTexto = !termo || norm(l.produto + ' ' + l.categoria + ' ' + l.descricao + ' ' + l.variacoes).includes(termo);
+    return bateTexto && (!catFiltro || l.categoria === catFiltro) && (!dispFiltro || l.disp === dispFiltro);
+  });
+
+  const corpo = el('tabelaLojinhaCorpo');
+  corpo.innerHTML = '';
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="7">Nenhum produto encontrado.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const foto = fotoSegura(l.foto);
+    const dispClasse = l.disp === 'Esgotado' ? 'pendente' : (l.disp === 'Sob encomenda' ? 'andamento' : 'resolvido');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Foto">${foto ? `<img class="thumb-produto" src="${escapeAttr(foto)}" alt="" loading="lazy">` : '<span class="thumb-produto thumb-vazio">sem foto</span>'}</td>
+      <td data-label="Produto"><strong>${escapeHtml(l.produto)}</strong>${l.descricao ? `<div class="desc-produto">${escapeHtml(l.descricao)}</div>` : ''}${l.variacoes ? `<div class="desc-produto">Variações: ${escapeHtml(l.variacoes)}</div>` : ''}</td>
+      <td data-label="Categoria">${escapeHtml(l.categoria || '—')}</td>
+      <td data-label="Preço">${escapeHtml(precoLojinha(l.preco))}</td>
+      <td data-label="Disponibilidade"><span class="status-pill ${dispClasse}">${escapeHtml(l.disp)}</span></td>
+      <td data-label="No catálogo"><span class="status-pill ${l.exibir ? 'resolvido' : 'pendente'}">${l.exibir ? 'Visível' : 'Oculto'}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        <button class="btn-acao btn-editar btn-loja" data-acao="editar" data-linha="${l.linha}">✏️ Editar</button>
+        <button class="btn-acao btn-editar btn-loja" data-acao="exibir" data-linha="${l.linha}">${l.exibir ? '🙈 Ocultar' : '👁️ Mostrar'}</button>
+        <button class="btn-acao btn-excluir btn-loja" data-acao="excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+function mostrarFotoProduto(url) {
+  const ok = fotoSegura(url);
+  el('prodFotoBloco').hidden = !ok;
+  if (ok) el('prodFotoPreview').src = ok;
+}
+
+function abrirModalProduto(linhaNumero) {
+  produtoEditandoLinha = linhaNumero || null;
+  el('formProduto').reset();
+  el('modalProdutoResultado').textContent = '';
+  el('modalProdutoResultado').className = '';
+  fotoAtualProduto = '';
+  el('prodExibir').checked = true;
+
+  if (produtoEditandoLinha) {
+    const l = linhasLojinha.find(x => x.linha === produtoEditandoLinha);
+    if (l) {
+      el('prodNome').value = l.produto;
+      el('prodCategoria').value = l.categoria;
+      el('prodDescricao').value = l.descricao;
+      el('prodPreco').value = String(l.preco || '').replace(/^R\$\s*/i, '');
+      el('prodVariacoes').value = l.variacoes;
+      el('prodDisp').value = l.disp;
+      el('prodExibir').checked = l.exibir;
+      fotoAtualProduto = fotoSegura(l.foto);
+    }
+    el('modalProdutoTitulo').textContent = 'Editar produto';
+  } else {
+    el('modalProdutoTitulo').textContent = 'Novo produto';
+  }
+  mostrarFotoProduto(fotoAtualProduto);
+  el('modalProduto').hidden = false;
+}
+
+function fecharModalProduto() {
+  el('modalProduto').hidden = true;
+  produtoEditandoLinha = null;
+}
+
+// Foto -> JPEG reduzido (máx. 1200 px). Devolve só o base64.
+function reduzirImagemProduto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, 1200 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * escala);
+      c.height = Math.round(img.height * escala);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não consegui abrir essa imagem. Tente outra foto (JPG ou PNG).')); };
+    img.src = url;
+  });
+}
+
+// Envia a foto ao n8n, que guarda no Drive e devolve o link público. Só quem está logado no painel consegue enviar.
+async function enviarFotoProduto(file, nomeProduto) {
+  const base64 = await reduzirImagemProduto(file);
+  let resp;
+  try {
+    resp = await fetch(CONFIG.WEBHOOK_LOJINHA_FOTO, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: accessToken, nome: nomeProduto, mime: 'image/jpeg', base64 }),
+    });
+  } catch (e) {
+    throw new Error('Não foi possível enviar a foto agora. Confira a internet e tente de novo.');
+  }
+  let dados = {};
+  try { dados = await resp.json(); } catch (e) { /* resposta sem JSON */ }
+  if (!dados.sucesso || !dados.url) throw new Error(dados.mensagem || 'Não foi possível enviar a foto agora. Tente de novo em instantes.');
+  return dados.url;
+}
+
+async function salvarProduto(e) {
+  e.preventDefault();
+  const resultado = el('modalProdutoResultado');
+  const btn = el('btnSalvarProduto');
+  resultado.textContent = '';
+  resultado.className = '';
+
+  const nome = el('prodNome').value.trim();
+  const preco = normalizarPreco(el('prodPreco').value);
+  if (!nome) { resultado.className = 'erro'; resultado.textContent = '⚠️ Escreva o nome do produto.'; return; }
+  if (preco === null) { resultado.className = 'erro'; resultado.textContent = '⚠️ Preço inválido. Use só números, por exemplo 25,00.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    let fotoUrl = fotoAtualProduto;
+    const arquivo = el('prodFoto').files[0];
+    if (arquivo) {
+      resultado.textContent = 'Enviando a foto…';
+      fotoUrl = await enviarFotoProduto(arquivo, nome);
+      resultado.textContent = '';
+    }
+
+    const valores = [[
+      nome,
+      el('prodCategoria').value.trim(),
+      el('prodDescricao').value.trim(),
+      preco,
+      el('prodVariacoes').value.trim(),
+      el('prodDisp').value,
+      fotoUrl,
+      el('prodExibir').checked ? 'Sim' : 'Não',
+    ]];
+
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/`;
+    const cabecalhos = { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
+    let resp;
+    if (produtoEditandoLinha) {
+      const range = `${CONFIG.LOJINHA_ABA}!A${produtoEditandoLinha}:H${produtoEditandoLinha}`;
+      resp = await fetch(base + encodeURIComponent(range) + '?valueInputOption=RAW', { method: 'PUT', headers: cabecalhos, body: JSON.stringify({ values: valores }) });
+    } else {
+      const range = `${CONFIG.LOJINHA_ABA}!A:H`;
+      resp = await fetch(base + encodeURIComponent(range) + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', { method: 'POST', headers: cabecalhos, body: JSON.stringify({ values: valores }) });
+    }
+    if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+
+    resultado.className = 'sucesso';
+    resultado.textContent = '✅ Produto salvo.';
+    await carregarLojinha();
+    setTimeout(fecharModalProduto, 900);
+  } catch (err) {
+    console.error('Erro ao salvar produto:', err);
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ ' + (err.status ? mensagemErroGravacao(err, CONFIG.LOJINHA_ABA) : err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+async function gravarCelulasLojinha(range, valores) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+  const resp = await fetch(url, { method: 'PUT', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: valores }) });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+}
+
+async function alternarExibirProduto(linhaNumero) {
+  const l = linhasLojinha.find(x => x.linha === linhaNumero);
+  if (!l) return;
+  try {
+    await gravarCelulasLojinha(`${CONFIG.LOJINHA_ABA}!H${linhaNumero}`, [[l.exibir ? 'Não' : 'Sim']]);
+    await carregarLojinha();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.LOJINHA_ABA));
+  }
+}
+
+async function excluirProduto(linhaNumero) {
+  const l = linhasLojinha.find(x => x.linha === linhaNumero);
+  const nome = l ? ' "' + l.produto + '"' : '';
+  if (!confirm('Confirma que quer excluir o produto' + nome + '? Essa ação não pode ser desfeita. (Para só tirar do catálogo, use Ocultar.)')) return;
+
+  const range = `${CONFIG.LOJINHA_ABA}!A${linhaNumero}:H${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/${encodeURIComponent(range)}:clear`;
+  try {
+    const resp = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: '{}' });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    await carregarLojinha();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.LOJINHA_ABA));
+  }
+}
+
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -932,6 +1220,7 @@ const ABAS = {
   reservas: ['abaReservas', 'btnAbaReservas'],
   extras: ['abaExtras', 'btnAbaExtras'],
   catequese: ['abaCatequese', 'btnAbaCatequese'],
+  lojinha: ['abaLojinha', 'btnAbaLojinha'],
 };
 
 function trocarAba(aba) {
@@ -951,6 +1240,7 @@ function sair() {
   linhasReservas = [];
   linhasExtras = [];
   linhasCatequese = [];
+  linhasLojinha = [];
   el('userBox').hidden = true;
   el('appScreen').hidden = true;
   el('loginScreen').hidden = false;
@@ -1053,6 +1343,51 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (b.dataset.acao === 'reabrir') atualizarStatusCatequese(linha, 'Nova');
     else if (b.dataset.acao === 'concluir' && confirm('Confirma que quer marcar esta inscrição como Concluída?')) atualizarStatusCatequese(linha, 'Concluída');
   });
+
+  // Lojinha
+  el('buscaLojinha').addEventListener('input', renderizarLojinha);
+  el('filtroCategoriaLoja').addEventListener('change', renderizarLojinha);
+  el('filtroDispLoja').addEventListener('change', renderizarLojinha);
+  el('btnAtualizarLojinha').addEventListener('click', carregarLojinha);
+  el('btnNovoProduto').addEventListener('click', () => abrirModalProduto(null));
+  el('btnAbrirCatalogo').addEventListener('click', () => window.open(CONFIG.URL_LOJINHA, '_blank'));
+  el('btnFecharModalProduto').addEventListener('click', fecharModalProduto);
+  el('formProduto').addEventListener('submit', salvarProduto);
+  el('modalProduto').addEventListener('click', (e) => { if (e.target === el('modalProduto')) fecharModalProduto(); });
+  el('prodFoto').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) { el('prodFotoPreview').src = URL.createObjectURL(f); el('prodFotoBloco').hidden = false; }
+    else mostrarFotoProduto(fotoAtualProduto);
+  });
+  el('btnRemoverFotoProduto').addEventListener('click', () => {
+    fotoAtualProduto = '';
+    el('prodFoto').value = '';
+    el('prodFotoBloco').hidden = true;
+  });
+  el('tabelaLojinhaCorpo').addEventListener('click', (e) => {
+    const b = e.target.closest('.btn-loja');
+    if (!b) return;
+    const linha = Number(b.dataset.linha);
+    if (b.dataset.acao === 'editar') abrirModalProduto(linha);
+    else if (b.dataset.acao === 'exibir') alternarExibirProduto(linha);
+    else if (b.dataset.acao === 'excluir') excluirProduto(linha);
+  });
+  el('abaLojinha').addEventListener('click', async (e) => {
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+      return;
+    }
+    if (e.target.closest('#btnCopiarLinkLojinha')) {
+      const msg = el('msgCopiarLinkLojinha');
+      try { await navigator.clipboard.writeText(el('linkCatalogoLojinha').textContent.trim()); msg.textContent = 'Link copiado!'; }
+      catch (err) { msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.'; }
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+  });
+  el('btnAbaLojinha').addEventListener('click', () => trocarAba('lojinha'));
 
   el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
   el('btnAbaRecados').addEventListener('click', () => trocarAba('recados'));
