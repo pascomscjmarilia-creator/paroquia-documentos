@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lojinha Paroquial — Paróquia Sagrado Coração de Jesus</title>
+<meta name="description" content="Conheça os produtos da Lojinha Paroquial: fotos, preços e disponibilidade.">
+<meta property="og:title" content="Lojinha Paroquial — Paróquia Sagrado Coração de Jesus">
+<meta property="og:description" content="Conheça os produtos da nossa lojinha: fotos, preços e disponibilidade.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="stylesheet" href="style.css?v=20260925b">
+<style>
+  .loj-intro { text-align:center; color:#555; max-width:640px; margin:18px auto 14px; padding:0 4px; }
+  .loj-barra { max-width:1000px; margin:0 auto 14px; display:flex; flex-direction:column; gap:10px; }
+  .loj-busca { width:100%; padding:11px 12px; border:1px solid var(--cinza-borda); border-radius:8px; font-size:1rem; background:#fff; }
+  .loj-cats { display:flex; flex-wrap:wrap; gap:8px; }
+  .loj-chip { border:1px solid var(--cinza-borda); background:#fff; color:var(--texto); padding:7px 14px; border-radius:999px; font-size:0.9rem; cursor:pointer; }
+  .loj-chip.ativo { background:var(--vinho); border-color:var(--vinho); color:#fff; font-weight:600; }
+  .loj-grade { max-width:1000px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:14px; }
+  .loj-card { background:#fff; border:1px solid var(--cinza-borda); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+  .loj-card:hover { box-shadow:0 3px 10px rgba(0,0,0,0.12); }
+  .loj-foto { position:relative; aspect-ratio:1/1; background:#f0ece4; display:flex; align-items:center; justify-content:center; }
+  .loj-foto img { width:100%; height:100%; object-fit:cover; display:block; }
+  .loj-foto .sem-foto { width:40%; opacity:0.35; height:auto; object-fit:contain; }
+  .loj-card.esgotado .loj-foto img { filter:grayscale(1); opacity:0.6; }
+  .loj-selo { position:absolute; top:8px; left:8px; padding:3px 10px; border-radius:999px; font-size:0.75rem; font-weight:700; }
+  .loj-selo.esgotado { background:#b3261e; color:#fff; }
+  .loj-selo.encomenda { background:#1d4f91; color:#fff; }
+  .loj-info { padding:10px 12px 12px; display:flex; flex-direction:column; gap:4px; flex:1; }
+  .loj-cat { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#8a7f73; }
+  .loj-nome { font-weight:700; font-size:0.98rem; line-height:1.25; }
+  .loj-preco { color:var(--vinho); font-weight:800; font-size:1.1rem; margin-top:auto; padding-top:4px; }
+  .loj-vazio, .loj-carregando { text-align:center; color:#666; max-width:600px; margin:30px auto; }
+  .loj-rodape { max-width:760px; margin:26px auto 10px; text-align:center; color:#6b6055; font-size:0.88rem; }
+  .loj-rodape strong { color:var(--vinho); }
+
+  .loj-modal { position:fixed; inset:0; background:rgba(20,17,15,0.7); display:flex; align-items:center; justify-content:center; padding:14px; z-index:100; }
+  .loj-modal[hidden] { display:none; }
+  .loj-caixa { background:#fff; border-radius:14px; width:100%; max-width:520px; max-height:92vh; overflow-y:auto; position:relative; }
+  .loj-fechar { position:absolute; top:8px; right:10px; background:rgba(255,255,255,0.9); border:none; width:34px; height:34px; border-radius:50%; font-size:1.4rem; line-height:1; cursor:pointer; }
+  .loj-caixa img.grande { width:100%; max-height:60vh; object-fit:contain; background:#f0ece4; display:block; border-radius:14px 14px 0 0; }
+  .loj-detalhe { padding:14px 18px 20px; display:flex; flex-direction:column; gap:8px; }
+  .loj-detalhe h2 { margin:0; font-size:1.2rem; color:var(--vinho); }
+  .loj-detalhe p { margin:0; line-height:1.45; white-space:pre-line; }
+  .loj-detalhe .linha { font-size:0.9rem; color:#555; }
+  .loj-detalhe .preco { font-size:1.4rem; font-weight:800; color:var(--vinho); }
+  .loj-detalhe .aviso { font-size:0.85rem; color:#6b6055; background:#faf7f0; border-left:3px solid var(--dourado); padding:8px 10px; border-radius:4px; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Lojinha Paroquial</h1>
+    </div>
+  </header>
+
+  <main>
+    <p class="loj-intro" id="intro"></p>
+
+    <div class="loj-barra">
+      <input type="search" id="busca" class="loj-busca" placeholder="Buscar produto…" aria-label="Buscar produto">
+      <div class="loj-cats" id="categorias"></div>
+    </div>
+
+    <p class="loj-carregando" id="carregando">Carregando os produtos…</p>
+    <div class="loj-grade" id="grade" hidden></div>
+    <p class="loj-vazio" id="vazio" hidden></p>
+
+    <p class="loj-rodape" id="rodape"></p>
+  </main>
+
+  <div class="loj-modal" id="modal" hidden>
+    <div class="loj-caixa">
+      <button class="loj-fechar" id="fechar" aria-label="Fechar">&times;</button>
+      <div id="modalConteudo"></div>
+    </div>
+  </div>
+
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO
+  // ============================================================
+  const CONFIG = {
+    LISTA_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-produtos',
+    INTRO: 'Conheça os produtos da nossa lojinha. Aqui você só consulta: fotos, preços e se o produto está disponível.',
+    // Texto do aviso no rodapé e no detalhe de cada produto (a secretaria/Pascom pode ajustar)
+    AVISO: 'Para adquirir um produto, procure a secretaria da paróquia. Valores e disponibilidade podem mudar.',
+  };
+  // ============================================================
+
+  const el = (id) => document.getElementById(id);
+  let produtos = [];
+  let categoriaAtiva = '';
+
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const fotoSegura = (u) => (/^https:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '');
+  const preco = (p) => { const t = String(p || '').trim(); return !t ? 'Consulte o valor' : (/^r\$/i.test(t) ? t : 'R$ ' + t); };
+  const criar = (tag, classe, texto) => { const n = document.createElement(tag); if (classe) n.className = classe; if (texto != null) n.textContent = texto; return n; };
+
+  function classeDisp(d) {
+    const n = norm(d);
+    return n.includes('esgot') ? 'esgotado' : (n.includes('encomenda') ? 'encomenda' : '');
+  }
+
+  function imagem(p, classe) {
+    const url = fotoSegura(p.foto);
+    if (!url) return null;
+    const img = criar('img', classe);
+    img.src = url; img.alt = p.nome; img.loading = 'lazy';
+    img.onerror = () => { img.style.display = 'none'; };
+    return img;
+  }
+
+  function montarCategorias() {
+    const cats = [...new Set(produtos.map(p => (p.categoria || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const box = el('categorias');
+    box.innerHTML = '';
+    if (cats.length < 2) return; // com uma categoria só, os botões não ajudam
+    ['', ...cats].forEach(c => {
+      const b = criar('button', 'loj-chip' + (c === categoriaAtiva ? ' ativo' : ''), c || 'Todos');
+      b.type = 'button';
+      b.onclick = () => { categoriaAtiva = c; montarCategorias(); desenhar(); };
+      box.appendChild(b);
+    });
+  }
+
+  function abrirDetalhe(p) {
+    const c = el('modalConteudo');
+    c.innerHTML = '';
+    const img = imagem(p, 'grande');
+    if (img) c.appendChild(img);
+    const d = criar('div', 'loj-detalhe');
+    d.appendChild(criar('h2', '', p.nome));
+    d.appendChild(criar('div', 'preco', preco(p.preco)));
+    const disp = p.disponibilidade || 'Em estoque';
+    d.appendChild(criar('div', 'linha', 'Disponibilidade: ' + disp));
+    if (p.categoria) d.appendChild(criar('div', 'linha', 'Categoria: ' + p.categoria));
+    if (p.variacoes) d.appendChild(criar('div', 'linha', 'Tamanhos / variações: ' + p.variacoes));
+    if (p.descricao) d.appendChild(criar('p', '', p.descricao));
+    d.appendChild(criar('div', 'aviso', CONFIG.AVISO));
+    c.appendChild(d);
+    el('modal').hidden = false;
+  }
+
+  function desenhar() {
+    const termo = norm(el('busca').value.trim());
+    const lista = produtos.filter(p =>
+      (!categoriaAtiva || (p.categoria || '').trim() === categoriaAtiva) &&
+      (!termo || norm(p.nome + ' ' + p.categoria + ' ' + p.descricao + ' ' + p.variacoes).includes(termo)));
+
+    const grade = el('grade');
+    grade.innerHTML = '';
+    el('vazio').hidden = lista.length > 0;
+    if (lista.length === 0) el('vazio').textContent = produtos.length === 0 ? 'A lojinha ainda não tem produtos cadastrados. Volte em breve!' : 'Nenhum produto encontrado para essa busca.';
+    grade.hidden = lista.length === 0;
+
+    lista.forEach(p => {
+      const cd = classeDisp(p.disponibilidade);
+      const card = criar('div', 'loj-card' + (cd === 'esgotado' ? ' esgotado' : ''));
+      card.tabIndex = 0;
+      card.onclick = () => abrirDetalhe(p);
+      card.onkeydown = (e) => { if (e.key === 'Enter') abrirDetalhe(p); };
+
+      const foto = criar('div', 'loj-foto');
+      const img = imagem(p, '');
+      if (img) foto.appendChild(img);
+      else { const ph = criar('img', 'sem-foto'); ph.src = 'brasao.png'; ph.alt = ''; foto.appendChild(ph); }
+      if (cd === 'esgotado') foto.appendChild(criar('span', 'loj-selo esgotado', 'Esgotado'));
+      else if (cd === 'encomenda') foto.appendChild(criar('span', 'loj-selo encomenda', 'Sob encomenda'));
+      card.appendChild(foto);
+
+      const info = criar('div', 'loj-info');
+      if (p.categoria) info.appendChild(criar('div', 'loj-cat', p.categoria));
+      info.appendChild(criar('div', 'loj-nome', p.nome));
+      info.appendChild(criar('div', 'loj-preco', preco(p.preco)));
+      card.appendChild(info);
+      grade.appendChild(card);
+    });
+  }
+
+  async function carregar() {
+    el('carregando').hidden = false;
+    el('carregando').textContent = 'Carregando os produtos…';
+    try {
+      const resp = await fetch(CONFIG.LISTA_URL, { cache: 'no-store' });
+      const dados = await resp.json();
+      if (!Array.isArray(dados.produtos)) throw new Error('resposta inesperada');
+      produtos = dados.produtos.filter(p => p && p.nome);
+      el('carregando').hidden = true;
+      montarCategorias();
+      desenhar();
+    } catch (e) {
+      console.error(e);
+      el('carregando').innerHTML = 'Não foi possível carregar a lojinha agora. <button type="button" id="tentar" class="loj-chip">Tentar de novo</button>';
+      el('tentar').onclick = carregar;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    el('intro').textContent = CONFIG.INTRO;
+    const forte = document.createElement('strong');
+    forte.textContent = 'Somente consulta. ';
+    el('rodape').appendChild(forte);
+    el('rodape').appendChild(document.createTextNode(CONFIG.AVISO));
+    el('busca').addEventListener('input', desenhar);
+    el('fechar').onclick = () => { el('modal').hidden = true; };
+    el('modal').onclick = (e) => { if (e.target === el('modal')) el('modal').hidden = true; };
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') el('modal').hidden = true; });
+    carregar();
+  });
+</script>
+</body>
+</html>
