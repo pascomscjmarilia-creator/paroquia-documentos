@@ -19,6 +19,7 @@ const CONFIG = {
   SHEET_ID_DADOS: '1ac6la9wQEMkt_Q4MuazNeLNEAchLlOL9zwKGUuhdMFQ',
   EXTRAS_RANGE: 'Informacoes_Extras!A2:C',
   EXTRAS_ABA: 'Informacoes_Extras',
+  EXTRAS_GID: 1895112022, // id numérico da aba (para apagar a linha inteira, não só o conteúdo)
 
   // Inscrições da catequese (planilha Pascom_Controle) — gravadas pelo formulário catequese.html via n8n
   CATEQUESE_RANGE: 'Catequese_Inscricoes!A2:L',
@@ -374,14 +375,22 @@ async function excluirExtra(linhaNumero) {
   const nome = l ? ' "' + l.assunto + '"' : '';
   if (!confirm('Confirma que quer excluir o aviso' + nome + '? Essa ação não pode ser desfeita.')) return;
 
-  const range = `${CONFIG.EXTRAS_ABA}!A${linhaNumero}:C${linhaNumero}`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/${encodeURIComponent(range)}:clear`;
+  // Apaga a LINHA inteira da planilha (desloca as linhas de baixo pra cima), em vez de só limpar
+  // o conteúdo das células — assim não fica um "buraco" em branco no meio da aba.
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}:batchUpdate`;
+  const corpo = {
+    requests: [{
+      deleteDimension: {
+        range: { sheetId: CONFIG.EXTRAS_GID, dimension: 'ROWS', startIndex: linhaNumero - 1, endIndex: linhaNumero },
+      },
+    }],
+  };
 
   try {
     const resp = await fetch(url, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify(corpo),
     });
     if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
     await carregarExtras();
