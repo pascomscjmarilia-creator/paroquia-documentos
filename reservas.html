@@ -83,6 +83,30 @@
 <script>
   const WEBHOOK_URL = 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala';
 
+  // A lista de salas vem da aba "Salas" da planilha (via n8n). Se não carregar, ficam as opções que já estão no HTML.
+  const SALAS_URL = 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/salas-lista';
+  (async function carregarSalas() {
+    try {
+      const resp = await fetch(SALAS_URL, { cache: 'no-store' });
+      const dados = await resp.json();
+      if (!dados.sucesso || !Array.isArray(dados.salas) || dados.salas.length === 0) return;
+      const select = document.getElementById('sala');
+      const atual = select.value;
+      select.replaceChildren();
+      const vazia = document.createElement('option');
+      vazia.value = '';
+      vazia.textContent = 'Selecione...';
+      select.appendChild(vazia);
+      dados.salas.forEach(s => {
+        const op = document.createElement('option');
+        op.value = s.nome;
+        op.textContent = s.nome + (s.descricao ? ' (' + s.descricao + ')' : '');
+        select.appendChild(op);
+      });
+      if (dados.salas.some(s => s.nome === atual)) select.value = atual;
+    } catch (e) { /* mantém as opções do HTML */ }
+  })();
+
   const form = document.getElementById('formReserva');
   const resultado = document.getElementById('resultado');
   const btnEnviar = document.getElementById('btnEnviar');
