@@ -28,6 +28,9 @@ const CONFIG = {
   // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
   LOJINHA_RANGE: 'Lojinha!A2:H',
   LOJINHA_ABA: 'Lojinha',
+
+  // Salas da paróquia (planilha de dados da paróquia, aba "Salas"): A Sala · B Também chamada de · C Descrição · D Ativa
+  SALAS_RANGE: 'Salas!A2:D',
   WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
   URL_LOJINHA: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
 
@@ -120,6 +123,7 @@ async function handleLoginSucesso() {
 
     await carregarDocumentos();
     await carregarRecados();
+    await carregarSalas();
     await carregarReservas();
     await carregarExtras();
     await carregarCatequese();
@@ -401,6 +405,45 @@ async function excluirExtra(linhaNumero) {
 }
 
 
+// ---------- Salas (aba "Salas": o menu de salas e os apelidos vêm da planilha) ----------
+let aliasSalas = {};
+
+function montarSalas(valores) {
+  return valores
+    .map(row => ({
+      nome: String(row[0] || '').trim(),
+      apelidos: String(row[1] || '').split(/[;,]/).map(a => norm(a)).filter(Boolean),
+      descricao: String(row[2] || '').trim(),
+      ativa: norm(row[3] || 'Sim') !== 'nao',
+    }))
+    .filter(s => s.nome && s.ativa);
+}
+
+// "sala com TV" e "Sala 05" são a mesma sala: compara sempre pelo nome oficial
+function canonSala(s) {
+  const n = norm(s);
+  return aliasSalas[n] || n;
+}
+
+function preencherSelectSalas(select, primeiraOpcao, salas) {
+  const atual = select.value;
+  select.innerHTML = `<option value="">${escapeHtml(primeiraOpcao)}</option>` +
+    salas.map(s => `<option value="${escapeAttr(s.nome)}">${escapeHtml(s.nome + (s.descricao ? ' (' + s.descricao + ')' : ''))}</option>`).join('');
+  if (salas.some(s => s.nome === atual)) select.value = atual;
+}
+
+// Se a aba não existir ou estiver vazia, ficam as opções que já vêm no HTML.
+async function carregarSalas() {
+  try {
+    const salas = montarSalas(await buscarValoresSheet(CONFIG.SALAS_RANGE, CONFIG.SHEET_ID_DADOS));
+    if (salas.length === 0) return;
+    aliasSalas = {};
+    salas.forEach(s => s.apelidos.forEach(a => { aliasSalas[a] = norm(s.nome); }));
+    preencherSelectSalas(el('filtroSala'), 'Todas as salas', salas);
+    preencherSelectSalas(el('modalSala'), 'Selecione...', salas);
+  } catch (e) { /* mantém as opções do HTML */ }
+}
+
 async function carregarReservas() {
   const statusMsg = el('statusMsgReservas');
   statusMsg.textContent = 'Carregando reservas...';
@@ -657,7 +700,7 @@ function renderizarReservas() {
 
   const filtradas = linhasReservas.filter(l => {
     const bateTexto = !termo || (l.sala + ' ' + l.nome + ' ' + l.atividade).toLowerCase().includes(termo);
-    const bateSala = !salaFiltro || l.sala === salaFiltro;
+    const bateSala = !salaFiltro || canonSala(l.sala) === canonSala(salaFiltro);
     const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
     return bateTexto && bateSala && bateStatus;
   });
