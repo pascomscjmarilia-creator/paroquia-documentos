@@ -100,7 +100,9 @@
   function validarDia() {
     const campo = document.getElementById('data');
     let msg = '';
-    if (campo.value) {
+    if (campo.value && campo.min && campo.value < campo.min) {
+      msg = 'Essa data já passou. Escolha uma data a partir de hoje.';
+    } else if (campo.value) {
       const [a, m, d] = campo.value.split('-').map(Number);
       const idx = new Date(a, m - 1, d).getDay();
       const emDia = ['aos domingos', 'nas segundas-feiras', 'nas terças-feiras', 'nas quartas-feiras', 'nas quintas-feiras', 'nas sextas-feiras', 'aos sábados'][idx];
@@ -112,6 +114,11 @@
     return msg;
   }
   document.getElementById('data').addEventListener('change', validarDia);
+  // Não deixa escolher data que já passou (o calendário já desabilita os dias anteriores a hoje)
+  (function () {
+    const h = new Date();
+    document.getElementById('data').min = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+  })();
 
   // A lista de salas vem da aba "Salas" da planilha (via n8n). Se não carregar, ficam as opções que já estão no HTML.
   const SALAS_URL = 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/salas-lista';
