@@ -794,8 +794,8 @@ function renderizarReservas() {
       <td data-label="Atividade">${escapeHtml(l.atividade)}</td>
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Confirmado')}</span></td>
       <td data-label="Ação" class="no-print">
-        ${cancelado ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✖ Cancelar</button>`}
-        ${reservaJaPassou(l.data) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para datas que já passaram)">🗑 Excluir</button>` : ''}
+        ${cancelado ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}" style="margin:3px 14px 3px 0;">✖ Cancelar</button>`}
+        ${reservaJaPassou(l.data) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="background:#b3261e;color:#fff;margin:3px 0;" title="Apagar esta linha da planilha (só aparece para datas que já passaram)">🗑 Excluir</button>` : ''}
       </td>
     `;
     corpo.appendChild(tr);
