@@ -23,7 +23,8 @@
 
   <main>
     <section class="login-screen" style="max-width:520px;">
-      <p style="margin-bottom:20px;">Preencha os dados abaixo para reservar uma sala. Você recebe a confirmação na hora.</p>
+      <p style="margin-bottom:12px;">Preencha os dados abaixo para reservar uma sala. Você recebe a confirmação na hora.</p>
+      <p id="avisoDias" style="margin-bottom:20px; padding:10px 12px; background:#fff4e5; border-left:4px solid #e0a030; border-radius:4px; font-size:0.9rem; text-align:left;">📅 Reservas de salas somente às terças-feiras, quintas-feiras, sextas-feiras e sábados. Às segundas, quartas e domingos não é possível reservar.</p>
 
       <form id="formReserva" style="display:flex; flex-direction:column; gap:14px; text-align:left;">
         <div>
@@ -83,12 +84,46 @@
 <script>
   const WEBHOOK_URL = 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala';
 
+  // Dias da semana (0 = domingo ... 6 = sábado) em que dá para reservar
+  const NOMES_DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+  let diasLiberados = [2, 4, 5, 6];
+  function listaDias(dias) {
+    const n = dias.map(i => NOMES_DIAS[i]);
+    return n.length > 1 ? n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1] : (n[0] || '');
+  }
+  function atualizarAvisoDias() {
+    const bloqueados = [0, 1, 2, 3, 4, 5, 6].filter(i => !diasLiberados.includes(i));
+    document.getElementById('avisoDias').textContent = '📅 Reservas de salas somente: ' + listaDias(diasLiberados) + '.' +
+      (bloqueados.length ? ' Nos outros dias (' + listaDias(bloqueados) + ') não é possível reservar.' : '');
+  }
+  // Devolve o texto do aviso se a data escolhida cai num dia bloqueado (e trava o envio); vazio se está tudo certo
+  function validarDia() {
+    const campo = document.getElementById('data');
+    let msg = '';
+    if (campo.value) {
+      const [a, m, d] = campo.value.split('-').map(Number);
+      const idx = new Date(a, m - 1, d).getDay();
+      if (!diasLiberados.includes(idx)) msg = 'Não aceitamos reservas de salas em ' + (idx === 0 || idx === 6 ? 'todo ' : 'toda ') + NOMES_DIAS[idx] + '. Dias disponíveis: ' + listaDias(diasLiberados) + '.';
+    }
+    campo.setCustomValidity(msg);
+    document.getElementById('resultado').style.color = msg ? '#b3261e' : '';
+    document.getElementById('resultado').textContent = msg ? '⚠️ ' + msg : '';
+    return msg;
+  }
+  document.getElementById('data').addEventListener('change', validarDia);
+
   // A lista de salas vem da aba "Salas" da planilha (via n8n). Se não carregar, ficam as opções que já estão no HTML.
   const SALAS_URL = 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/salas-lista';
   (async function carregarSalas() {
     try {
       const resp = await fetch(SALAS_URL, { cache: 'no-store' });
       const dados = await resp.json();
+      // Dias liberados vêm da aba "Dias de Reserva"; se faltar, vale o padrão (terça, quinta, sexta e sábado).
+      if (dados.sucesso && Array.isArray(dados.diasLiberados) && dados.diasLiberados.length > 0) {
+        diasLiberados = dados.diasLiberados;
+        atualizarAvisoDias();
+        validarDia();
+      }
       if (!dados.sucesso || !Array.isArray(dados.salas) || dados.salas.length === 0) return;
       const select = document.getElementById('sala');
       const atual = select.value;
@@ -132,6 +167,7 @@ function mascararTelefone(valor) {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (validarDia()) return;
     resultado.textContent = '';
     resultado.style.color = '';
     btnEnviar.disabled = true;
