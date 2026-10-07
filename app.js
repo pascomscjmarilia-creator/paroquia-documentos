@@ -473,6 +473,9 @@ function listaDiasTexto(dias) {
 }
 
 function mensagemDiaBloqueado(isoDate) {
+  const h = new Date();
+  const hojeISO = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+  if (isoDate < hojeISO) return 'Essa data já passou. Escolha uma data a partir de hoje.';
   const [ano, mes, dia] = isoDate.split('-').map(Number);
   const idx = new Date(ano, mes - 1, dia).getDay();
   if (diasLiberados.includes(idx)) return '';
@@ -551,6 +554,8 @@ async function cancelarReserva(linhaNumero) {
 function abrirModalReserva() {
   el('formNovaReserva').reset();
   el('modalData').setCustomValidity('');
+  const hj = new Date();
+  el('modalData').min = hj.getFullYear() + '-' + String(hj.getMonth() + 1).padStart(2, '0') + '-' + String(hj.getDate()).padStart(2, '0');
   el('modalResultado').textContent = '';
   el('modalResultado').className = '';
   el('modalReserva').hidden = false;
