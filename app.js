@@ -476,7 +476,8 @@ function mensagemDiaBloqueado(isoDate) {
   const [ano, mes, dia] = isoDate.split('-').map(Number);
   const idx = new Date(ano, mes - 1, dia).getDay();
   if (diasLiberados.includes(idx)) return '';
-  return 'Não aceitamos reservas de salas em ' + (idx === 0 || idx === 6 ? 'todo ' : 'toda ') + NOMES_DIAS[idx] + '. Dias disponíveis: ' + listaDiasTexto(diasLiberados) + '.';
+  const emDia = ['aos domingos', 'nas segundas-feiras', 'nas terças-feiras', 'nas quartas-feiras', 'nas quintas-feiras', 'nas sextas-feiras', 'aos sábados'][idx];
+  return 'As salas não estão disponíveis ' + emDia + '. Dias disponíveis: ' + listaDiasTexto(diasLiberados) + '.';
 }
 
 async function carregarDiasReserva() {
