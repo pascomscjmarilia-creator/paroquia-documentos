@@ -31,6 +31,8 @@ const CONFIG = {
 
   // Salas da paróquia (planilha de dados da paróquia, aba "Salas"): A Sala · B Também chamada de · C Descrição · D Ativa
   SALAS_RANGE: 'Salas!A2:D',
+  // Dias da semana em que dá para reservar sala (aba "Dias de Reserva": A Dia · B Reserva liberada Sim/Não)
+  DIAS_RESERVA_RANGE: "'Dias de Reserva'!A2:B",
   WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
   URL_LOJINHA: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
 
@@ -124,6 +126,7 @@ async function handleLoginSucesso() {
     await carregarDocumentos();
     await carregarRecados();
     await carregarSalas();
+    await carregarDiasReserva();
     await carregarReservas();
     await carregarExtras();
     await carregarCatequese();
@@ -444,6 +447,54 @@ async function carregarSalas() {
   } catch (e) { /* mantém as opções do HTML */ }
 }
 
+// ---------- Dias liberados para reserva (aba "Dias de Reserva") ----------
+const NOMES_DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+let diasLiberados = [2, 4, 5, 6]; // padrão se a aba não carregar: terça, quinta, sexta e sábado
+
+function idxDiaSemana(texto) {
+  const d = norm(texto);
+  const nomes = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+  return nomes.findIndex(n => d.includes(n));
+}
+
+function montarDiasLiberados(valores) {
+  const mapa = {};
+  valores.forEach(row => {
+    const i = idxDiaSemana(row[0]);
+    if (i >= 0) mapa[i] = norm(row[1]) === 'sim';
+  });
+  if (Object.keys(mapa).length === 0) return null;
+  return [0, 1, 2, 3, 4, 5, 6].filter(i => mapa[i]);
+}
+
+function listaDiasTexto(dias) {
+  const nomes = dias.map(i => NOMES_DIAS[i]);
+  return nomes.length > 1 ? nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1] : (nomes[0] || '');
+}
+
+function mensagemDiaBloqueado(isoDate) {
+  const [ano, mes, dia] = isoDate.split('-').map(Number);
+  const idx = new Date(ano, mes - 1, dia).getDay();
+  if (diasLiberados.includes(idx)) return '';
+  return 'Não aceitamos reservas de salas em ' + (idx === 0 || idx === 6 ? 'todo ' : 'toda ') + NOMES_DIAS[idx] + '. Dias disponíveis: ' + listaDiasTexto(diasLiberados) + '.';
+}
+
+async function carregarDiasReserva() {
+  try {
+    const dias = montarDiasLiberados(await buscarValoresSheet(CONFIG.DIAS_RESERVA_RANGE, CONFIG.SHEET_ID_DADOS));
+    if (dias && dias.length > 0) diasLiberados = dias;
+  } catch (e) { /* mantém o padrão */ }
+}
+
+function avisarDiaBloqueado() {
+  const msg = el('modalData').value ? mensagemDiaBloqueado(el('modalData').value) : '';
+  el('modalData').setCustomValidity(msg);
+  const resultado = el('modalResultado');
+  resultado.className = msg ? 'erro' : '';
+  resultado.textContent = msg ? '⚠️ ' + msg : '';
+  return msg;
+}
+
 async function carregarReservas() {
   const statusMsg = el('statusMsgReservas');
   statusMsg.textContent = 'Carregando reservas...';
@@ -498,6 +549,7 @@ async function cancelarReserva(linhaNumero) {
 
 function abrirModalReserva() {
   el('formNovaReserva').reset();
+  el('modalData').setCustomValidity('');
   el('modalResultado').textContent = '';
   el('modalResultado').className = '';
   el('modalReserva').hidden = false;
@@ -514,6 +566,7 @@ function formatarDataBR(isoDate) {
 
 async function enviarNovaReserva(e) {
   e.preventDefault();
+  if (avisarDiaBloqueado()) return;
   const resultado = el('modalResultado');
   const btn = el('btnConfirmarReserva');
   resultado.textContent = '';
@@ -1372,6 +1425,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnAtualizarReservas').addEventListener('click', carregarReservas);
   el('btnNovaReserva').addEventListener('click', abrirModalReserva);
   el('modalWhatsapp').addEventListener('input', e => { e.target.value = mascararTelefone(e.target.value); });
+  el('modalData').addEventListener('change', avisarDiaBloqueado);
   el('btnFecharModal').addEventListener('click', fecharModalReserva);
   el('formNovaReserva').addEventListener('submit', enviarNovaReserva);
   el('modalReserva').addEventListener('click', (e) => {
