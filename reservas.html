@@ -103,7 +103,8 @@
     if (campo.value) {
       const [a, m, d] = campo.value.split('-').map(Number);
       const idx = new Date(a, m - 1, d).getDay();
-      if (!diasLiberados.includes(idx)) msg = 'Não aceitamos reservas de salas em ' + (idx === 0 || idx === 6 ? 'todo ' : 'toda ') + NOMES_DIAS[idx] + '. Dias disponíveis: ' + listaDias(diasLiberados) + '.';
+      const emDia = ['aos domingos', 'nas segundas-feiras', 'nas terças-feiras', 'nas quartas-feiras', 'nas quintas-feiras', 'nas sextas-feiras', 'aos sábados'][idx];
+      if (!diasLiberados.includes(idx)) msg = 'As salas não estão disponíveis ' + emDia + '. Dias disponíveis: ' + listaDias(diasLiberados) + '.';
     }
     campo.setCustomValidity(msg);
     document.getElementById('resultado').style.color = msg ? '#b3261e' : '';
