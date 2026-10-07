@@ -795,10 +795,69 @@ function renderizarReservas() {
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Confirmado')}</span></td>
       <td data-label="Ação" class="no-print">
         ${cancelado ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✖ Cancelar</button>`}
+        ${reservaJaPassou(l.data) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para datas que já passaram)">🗑 Excluir</button>` : ''}
       </td>
     `;
     corpo.appendChild(tr);
   });
+}
+
+// ---------- Excluir reservas de datas passadas ----------
+// O botão só existe para linhas cuja data é ANTERIOR a hoje (o dia de hoje e o futuro nunca aparecem com ele).
+function reservaJaPassou(dataBR) {
+  const d = parseDataBR(dataBR);
+  if (!d) return false; // data ilegível: nunca oferece exclusão
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return d.getTime() < hoje.getTime();
+}
+
+let sheetIdAbaReservas = null;
+async function obterSheetIdAbaReservas() {
+  if (sheetIdAbaReservas !== null) return sheetIdAbaReservas;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?fields=sheets.properties(sheetId,title)`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+  const dados = await resp.json();
+  const aba = (dados.sheets || []).find(s => s.properties.title === CONFIG.RESERVAS_ABA);
+  if (!aba) { const e = new Error('aba não encontrada'); e.status = 404; throw e; }
+  sheetIdAbaReservas = aba.properties.sheetId;
+  return sheetIdAbaReservas;
+}
+
+async function excluirReservaPassada(linhaNumero) {
+  const l = linhasReservas.find(x => x.linha === linhaNumero);
+  if (!l || linhaNumero < 2 || !reservaJaPassou(l.data)) {
+    alert('Só é possível excluir reservas de datas que já passaram.');
+    return;
+  }
+  const resumo = `${l.data} · ${l.horaInicio}–${l.horaFim} · ${l.sala} · ${l.nome}`;
+  if (!confirm(`Excluir DEFINITIVAMENTE esta reserva passada da planilha?\n\n${resumo}\n\nNão dá para desfazer.`)) return;
+
+  try {
+    // Confere a linha na planilha agora: se alguém mexeu nas reservas desde que a tela carregou, as linhas mudam de lugar
+    const atual = await buscarValoresSheet(`${CONFIG.RESERVAS_ABA}!A${linhaNumero}:I${linhaNumero}`);
+    const row = atual[0] || [];
+    const igual = (row[0] || '') === l.data && (row[1] || '') === l.horaInicio && (row[2] || '') === l.horaFim &&
+      (row[3] || '') === l.sala && (row[4] || '') === l.nome;
+    if (!igual || !reservaJaPassou(row[0])) {
+      alert('A planilha mudou desde que esta tela foi carregada. Nada foi excluído. Vou atualizar a lista; confira e tente de novo.');
+      await carregarReservas();
+      return;
+    }
+
+    const sheetId = await obterSheetIdAbaReservas();
+    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: linhaNumero - 1, endIndex: linhaNumero } } }] }),
+    });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    await carregarReservas();
+  } catch (e) {
+    console.error('Erro ao excluir reserva:', e);
+    alert(mensagemErroGravacao(e, CONFIG.RESERVAS_ABA, 'planilha de reservas'));
+  }
 }
 
 // ---------- Catequese (inscrições feitas pelo formulário catequese.html) ----------
@@ -1434,6 +1493,8 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   el('tabelaReservasCorpo').addEventListener('click', (e) => {
+    const btnExcluir = e.target.closest('.btn-excluir-reserva');
+    if (btnExcluir) { excluirReservaPassada(Number(btnExcluir.dataset.linha)); return; }
     const btnCancelar = e.target.closest('.btn-resolver');
     if (btnCancelar) cancelarReserva(Number(btnCancelar.dataset.linha));
   });
