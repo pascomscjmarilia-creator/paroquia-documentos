@@ -807,7 +807,8 @@ function renderizarReservas() {
 
   filtradas.forEach(l => {
     const cancelado = norm(l.status).includes('cancelado');
-    const statusClasse = cancelado ? 'pendente' : 'resolvido';
+    // Cancelado = amarelo, Realizado (data passada) = azul, Confirmado = verde
+    const statusClasse = cancelado ? 'pendente' : (statusReservaExibido(l) === 'Realizado' ? 'andamento' : 'resolvido');
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
