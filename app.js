@@ -529,6 +529,11 @@ async function carregarReservas() {
 }
 
 async function cancelarReserva(linhaNumero) {
+  const reserva = linhasReservas.find(x => x.linha === linhaNumero);
+  if (reserva && reservaJaPassou(reserva.data)) {
+    alert('Esta reserva é de uma data que já passou e não pode mais ser cancelada. Use "Excluir" para apagá-la da lista.');
+    return;
+  }
   const confirmado = confirm('Confirma que quer cancelar essa reserva?');
   if (!confirmado) return;
 
@@ -810,8 +815,8 @@ function renderizarReservas() {
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Confirmado')}</span></td>
       <td data-label="Ação" class="no-print" style="vertical-align:middle;">
         <div style="display:flex;flex-direction:column;gap:6px;width:112px;">
-          ${cancelado ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;">✖ Cancelar</button>`}
-          ${reservaJaPassou(l.data) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para datas que já passaram)">🗑 Excluir</button>` : ''}
+          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;">✖ Cancelar</button>`}
+          ${podeExcluirReserva(l) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para reservas canceladas ou de datas que já passaram)">🗑 Excluir</button>` : ''}
         </div>
       </td>
     `;
@@ -819,14 +824,22 @@ function renderizarReservas() {
   });
 }
 
-// ---------- Excluir reservas de datas passadas ----------
-// O botão só existe para linhas cuja data é ANTERIOR a hoje (o dia de hoje e o futuro nunca aparecem com ele).
+// ---------- Excluir reservas canceladas ou de datas passadas ----------
+// O botão só existe para linhas CANCELADAS ou cuja data é ANTERIOR a hoje. Uma reserva ativa de hoje ou do futuro nunca tem o botão.
 function reservaJaPassou(dataBR) {
   const d = parseDataBR(dataBR);
   if (!d) return false; // data ilegível: nunca oferece exclusão
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   return d.getTime() < hoje.getTime();
+}
+
+function reservaCancelada(status) {
+  return norm(status).includes('cancelado');
+}
+
+function podeExcluirReserva(l) {
+  return reservaCancelada(l.status) || reservaJaPassou(l.data);
 }
 
 let sheetIdAbaReservas = null;
@@ -844,12 +857,13 @@ async function obterSheetIdAbaReservas() {
 
 async function excluirReservaPassada(linhaNumero) {
   const l = linhasReservas.find(x => x.linha === linhaNumero);
-  if (!l || linhaNumero < 2 || !reservaJaPassou(l.data)) {
-    alert('Só é possível excluir reservas de datas que já passaram.');
+  if (!l || linhaNumero < 2 || !podeExcluirReserva(l)) {
+    alert('Só é possível excluir reservas canceladas ou de datas que já passaram.');
     return;
   }
   const resumo = `${l.data} · ${l.horaInicio}–${l.horaFim} · ${l.sala} · ${l.nome}`;
-  if (!confirm(`Excluir DEFINITIVAMENTE esta reserva passada da planilha?\n\n${resumo}\n\nNão dá para desfazer.`)) return;
+  const tipo = reservaCancelada(l.status) ? 'cancelada' : 'passada';
+  if (!confirm(`Excluir DEFINITIVAMENTE esta reserva ${tipo} da planilha?\n\n${resumo}\n\nNão dá para desfazer.`)) return;
 
   try {
     // Confere a linha na planilha agora: se alguém mexeu nas reservas desde que a tela carregou, as linhas mudam de lugar
@@ -857,7 +871,7 @@ async function excluirReservaPassada(linhaNumero) {
     const row = atual[0] || [];
     const igual = (row[0] || '') === l.data && (row[1] || '') === l.horaInicio && (row[2] || '') === l.horaFim &&
       (row[3] || '') === l.sala && (row[4] || '') === l.nome;
-    if (!igual || !reservaJaPassou(row[0])) {
+    if (!igual || !(reservaCancelada(row[7]) || reservaJaPassou(row[0]))) {
       alert('A planilha mudou desde que esta tela foi carregada. Nada foi excluído. Vou atualizar a lista; confira e tente de novo.');
       await carregarReservas();
       return;
