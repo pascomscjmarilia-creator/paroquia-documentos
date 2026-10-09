@@ -691,6 +691,16 @@ function valorDataHora(s) {
   return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0)).getTime();
 }
 
+// Recado: data (dd/mm/aaaa ou aaaa-mm-dd) + hora (hh:mm) -> número para ordenar. Sem data legível, vai para o fim.
+function valorDataHoraRecado(l) {
+  const v = valorDataHora(String(l.data || '') + ' ' + String(l.hora || ''));
+  if (v !== -Infinity) return v;
+  const iso = String(l.data || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!iso) return -Infinity;
+  const hm = String(l.hora || '').match(/(\d{1,2}):(\d{2})/);
+  return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), hm ? Number(hm[1]) : 0, hm ? Number(hm[2]) : 0).getTime();
+}
+
 function renderizarTabela() {
   const termo = el('busca').value.trim().toLowerCase();
   const tipoFiltro = el('filtroTipo').value;
@@ -731,7 +741,7 @@ function renderizarRecados() {
     const bateTexto = !termo || (l.nome + ' ' + l.whatsapp + ' ' + l.assunto).toLowerCase().includes(termo);
     const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
     return bateTexto && bateStatus;
-  });
+  }).sort((a, b) => (valorDataHoraRecado(b) - valorDataHoraRecado(a)) || (b.linha - a.linha)); // mais recentes no topo (só na tela; a planilha não muda)
 
   const corpo = el('tabelaRecadosCorpo');
   corpo.innerHTML = '';
