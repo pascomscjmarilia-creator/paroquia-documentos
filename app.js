@@ -793,7 +793,7 @@ function renderizarReservas() {
   const filtradas = linhasReservas.filter(l => {
     const bateTexto = !termo || (l.sala + ' ' + l.nome + ' ' + l.atividade).toLowerCase().includes(termo);
     const bateSala = !salaFiltro || canonSala(l.sala) === canonSala(salaFiltro);
-    const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
+    const bateStatus = !statusFiltro || norm(statusReservaExibido(l)) === norm(statusFiltro);
     return bateTexto && bateSala && bateStatus;
   }).sort((a, b) => (valorReservaCronologico(a) - valorReservaCronologico(b)) || (a.linha - b.linha)); // em ordem de data: passadas no alto, depois as mais próximas e, embaixo, as mais distantes (só na tela)
 
@@ -818,7 +818,7 @@ function renderizarReservas() {
       <td data-label="Nome">${escapeHtml(l.nome)}</td>
       <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
       <td data-label="Atividade">${escapeHtml(l.atividade)}</td>
-      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Confirmado')}</span></td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(statusReservaExibido(l))}</span></td>
       <td data-label="Ação" class="no-print" style="vertical-align:middle;">
         <div style="display:flex;flex-direction:column;gap:6px;width:112px;">
           ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;">✖ Cancelar</button>`}
@@ -842,6 +842,13 @@ function reservaJaPassou(dataBR) {
 
 function reservaCancelada(status) {
   return norm(status).includes('cancelado');
+}
+
+// Status mostrado na tela (a planilha não muda): reserva não cancelada cuja data já passou aparece como "Realizado".
+function statusReservaExibido(l) {
+  if (reservaCancelada(l.status)) return l.status;
+  if (reservaJaPassou(l.data)) return 'Realizado';
+  return l.status || 'Confirmado';
 }
 
 function podeExcluirReserva(l) {
