@@ -779,6 +779,12 @@ function renderizarRecados() {
   });
 }
 
+// Reserva: data + hora de início -> número para ordenar (menor = mais antigo). Sem data legível, vai para o fim da lista.
+function valorReservaCronologico(l) {
+  const v = valorDataHora(String(l.data || '') + ' ' + String(l.horaInicio || ''));
+  return v === -Infinity ? Infinity : v;
+}
+
 function renderizarReservas() {
   const termo = el('buscaReservas').value.trim().toLowerCase();
   const salaFiltro = el('filtroSala').value;
@@ -789,7 +795,7 @@ function renderizarReservas() {
     const bateSala = !salaFiltro || canonSala(l.sala) === canonSala(salaFiltro);
     const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
     return bateTexto && bateSala && bateStatus;
-  });
+  }).sort((a, b) => (valorReservaCronologico(a) - valorReservaCronologico(b)) || (a.linha - b.linha)); // em ordem de data: passadas no alto, depois as mais próximas e, embaixo, as mais distantes (só na tela)
 
   const corpo = el('tabelaReservasCorpo');
   corpo.innerHTML = '';
