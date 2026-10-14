@@ -679,10 +679,25 @@ function mascararTelefone(valor) {
 // Deixa só os dígitos: "5514997222096@s.whatsapp.net" ou "(14) 99722-2096" -> só números.
 // Usado em todas as abas, então a exibição e a busca por número ficam iguais.
 function limparNumero(numero) {
+  // Instagram/Facebook não têm telefone: a conversa é identificada por "ig_NN" / "fb_NN" (ou "Instagram (ig_NN)") — mantém esse código inteiro.
+  const social = String(numero || '').toLowerCase().match(/\b(ig|fb)_\d+\b/);
+  if (social) return social[0];
   return String(numero || '').replace('@s.whatsapp.net', '').replace(/\D/g, '');
 }
 
+const CHATWOOT_CONVERSAS = 'https://paroquia-scjm-chatwoot.ndjgby.easypanel.host/app/accounts/1/conversations/';
+function ehContatoSocial(numero) { return /^(ig|fb)_\d+$/.test(String(numero || '')); }
+// "ig_77" -> "Instagram #77"; telefone continua como está
+function rotuloContato(numero) {
+  const m = String(numero || '').match(/^(ig|fb)_(\d+)$/);
+  return m ? (m[1] === 'ig' ? 'Instagram #' : 'Facebook #') + m[2] : numero;
+}
+function rotuloBotaoContato(numero) { return ehContatoSocial(numero) ? '💬 Abrir no Chatwoot' : '💬 WhatsApp'; }
+
 function linkWhatsApp(numero) {
+  // Instagram/Facebook: o link abre a conversa no Chatwoot, onde a secretaria responde
+  const social = String(numero || '').match(/^(ig|fb)_(\d+)$/);
+  if (social) return CHATWOOT_CONVERSAS + social[2];
   const digits = limparNumero(numero);
   // Número digitado sem o código do país (10 ou 11 dígitos, ex.: 14997222096) -> acrescenta 55 para o link abrir
   const comPais = (digits.length === 10 || digits.length === 11) ? '55' + digits : digits;
@@ -729,7 +744,7 @@ function renderizarTabela() {
     tr.innerHTML = `
       <td data-label="Data/Hora">${escapeHtml(l.data)}</td>
       <td data-label="Contato">${escapeHtml(l.nome)}</td>
-      <td data-label="Número">${escapeHtml(l.numero)}</td>
+      <td data-label="Número">${escapeHtml(rotuloContato(l.numero))}</td>
       <td data-label="Tipo">${escapeHtml(l.tipo)}</td>
       <td data-label="Arquivo">${escapeHtml(l.arquivo)}</td>
       <td data-label="Ação" class="no-print">${l.link ? `<a href="${escapeAttr(l.link)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td>
@@ -767,11 +782,11 @@ function renderizarRecados() {
       <td data-label="Data">${escapeHtml(l.data)}</td>
       <td data-label="Hora">${escapeHtml(l.hora)}</td>
       <td data-label="Nome">${escapeHtml(l.nome)}</td>
-      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
+      <td data-label="WhatsApp">${escapeHtml(rotuloContato(l.whatsapp))}</td>
       <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Pendente')}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
-        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao${jaResolvido ? '' : ' btn-whatsapp-auto'}" data-linha="${l.linha}">💬 WhatsApp</a>` : ''}
+        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao${jaResolvido ? '' : ' btn-whatsapp-auto'}" data-linha="${l.linha}">${rotuloBotaoContato(l.whatsapp)}</a>` : ''}
         ${jaResolvido ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✅ Marcar Resolvido</button>`}
       </td>
     `;
