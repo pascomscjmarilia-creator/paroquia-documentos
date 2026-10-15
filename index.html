@@ -41,6 +41,7 @@
         <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
         <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
         <button class="aba-btn" id="btnAbaLojinha" data-aba="lojinha">🛍️ Lojinha</button>
+        <button class="aba-btn" id="btnAbaDisparos" data-aba="disparos">📣 Disparos</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -315,6 +316,64 @@
           <tbody id="tabelaLojinhaCorpo"></tbody>
         </table>
       </div>
+
+      <!-- ABA: DISPAROS (WhatsApp) -->
+      <div id="abaDisparos" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaDisparos" placeholder="Buscar no texto da mensagem ou no código (ex.: DISP005)...">
+          <select id="filtroStatusDisparos">
+            <option value="">Todas as situações</option>
+            <option value="rascunho">Rascunho</option>
+            <option value="habilitado">Enviando</option>
+            <option value="pausado">Pausado</option>
+            <option value="enviado">Concluído</option>
+          </select>
+          <button id="btnAtualizarDisparos" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovoDisparo" title="Criar uma nova mensagem de disparo">➕ Nova mensagem</button>
+        </div>
+
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaDisparos" aria-expanded="false" aria-label="Como funciona a aba Disparos">?</button>
+          <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como funciona esta aba.</span>
+        </div>
+
+        <div id="ajudaDisparos" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>O que é esta aba:</strong> as mensagens de <strong>disparo em massa pelo WhatsApp</strong> (avisos, convites, programação). Aqui você só <strong>cadastra e controla</strong> as mensagens; quem envia é o <em>Disparador</em> automático. Instagram e Facebook não têm disparo em massa (a Meta não permite).</p>
+          <p><strong>Quem recebe:</strong> os <em>contatos ativos</em> da lista de leads, ou seja, os fiéis que já conversaram com o assistente da paróquia.</p>
+          <p><strong>Passo a passo:</strong></p>
+          <ol style="margin:0 0 6px; padding-left:20px;">
+            <li>Clique em <em>➕ Nova mensagem</em>, escreva o texto (e, se quiser, escolha uma foto ou cole o link de um vídeo) e salve. Ela fica como <em>Rascunho</em>: <strong>nada é enviado ainda</strong>.</li>
+            <li>Confira o texto. Clique em <em>▶️ Ativar envio</em> e confirme. A situação passa para <em>Enviando</em>.</li>
+            <li>O Disparador envia <strong>uma mensagem de cada vez</strong>, cerca de 90 por dia, entre 7h e 22h, com pausas para não bloquear o número. Cada pessoa recebe uma saudação com o próprio nome antes do texto.</li>
+            <li>Quando todos receberem, a situação muda sozinha para <em>Concluído</em>.</li>
+          </ol>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Só um disparo por vez.</strong> Para ativar outro, pause o que está enviando ou espere terminar.</li>
+            <li><strong>Pausar</strong> interrompe o envio: quem já recebeu não é afetado, e o restante fica esperando. Para <em>editar</em> uma mensagem em envio, pause primeiro.</li>
+            <li><strong>Duplicar</strong> cria uma cópia em rascunho (é assim que se reenvia uma mensagem já concluída).</li>
+            <li><strong>Excluir</strong> só é possível para rascunho ou pausado que ainda não enviou nada.</li>
+            <li><strong>Foto:</strong> aparece junto com o texto como legenda (até 850 letras: a saudação e o aviso de SAIR ocupam o restante). <strong>Vídeo:</strong> cole o link direto de um arquivo .mp4 (https://…).</li>
+          </ul>
+          <p><strong>Cuidados:</strong> use poucos disparos por semana e textos curtos e úteis; muitas mensagens em massa aumentam o risco de o WhatsApp bloquear o número. Se o Disparador estiver desligado no n8n, a mensagem fica na fila e não sai: chame a equipe da Pascom.</p>
+        </div>
+
+        <p id="resumoDisparos" class="modal-intro" style="margin:0 0 6px;"></p>
+        <p id="statusMsgDisparos" class="status"></p>
+
+        <table id="tabelaDisparos">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Mensagem</th>
+              <th>Mídia</th>
+              <th>Situação</th>
+              <th>Enviados</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaDisparosCorpo"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -445,6 +504,48 @@
     </div>
   </div>
 
+  <div id="modalDisparo" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2 id="modalDisparoTitulo">Nova mensagem de disparo</h2>
+        <button id="btnFecharModalDisparo" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <p class="modal-intro">A mensagem é salva como <strong>rascunho</strong>: nada é enviado até você clicar em <em>▶️ Ativar envio</em>.</p>
+
+      <form id="formDisparo">
+        <div class="campo">
+          <label for="dispTexto">Texto da mensagem</label>
+          <textarea id="dispTexto" rows="7" placeholder="Ex.: Aviso: neste domingo, 18/10, teremos a Missa da Saúde às 8h na Comunidade Nossa Senhora Aparecida."></textarea>
+          <small id="dispContador" style="color:var(--cinza-texto, #6b6055);"></small>
+        </div>
+
+        <div class="campo">
+          <label for="dispFoto">Foto (opcional)</label>
+          <input type="file" id="dispFoto" accept="image/*">
+          <div id="dispFotoBloco" hidden style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+            <img id="dispFotoPreview" alt="Foto do disparo" style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--cinza-borda);">
+            <button type="button" class="btn-acao btn-excluir" id="btnRemoverFotoDisparo">Remover foto</button>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="dispVideo">Link do vídeo (opcional)</label>
+          <input type="text" id="dispVideo" placeholder="https://… (link direto de um arquivo .mp4)">
+        </div>
+
+        <div class="campo">
+          <label>Como vai chegar</label>
+          <div id="dispPrevia" style="white-space:pre-wrap; background:#f8f4ec; border:1px solid var(--cinza-borda); border-radius:10px; padding:10px 12px; font-size:0.92rem; max-height:220px; overflow:auto;"></div>
+          <small style="color:var(--cinza-texto, #6b6055);">A saudação (com o nome da pessoa) é gerada na hora do envio. Aqui é só um exemplo.</small>
+        </div>
+
+        <button type="submit" id="btnSalvarDisparo">Salvar rascunho</button>
+        <p id="modalDisparoResultado"></p>
+      </form>
+    </div>
+  </div>
+
   <div id="modalReserva" class="modal-overlay" hidden>
     <div class="modal-caixa">
       <div class="modal-topo">
@@ -496,6 +597,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261014a"></script>
+  <script src="app.js?v=20261015a"></script>
 </body>
 </html>
