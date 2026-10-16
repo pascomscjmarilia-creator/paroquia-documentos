@@ -98,6 +98,7 @@ function iniciarBotaoGoogle(tentativas) {
       el('loginErro').hidden = true;
       tokenClient.requestAccessToken();
     };
+    el('googleBtn').innerHTML = ''; // nunca deixa dois botões, mesmo que esta função rode duas vezes
     el('googleBtn').appendChild(btn);
   } catch (e) {
     mostrarErroLogin('Erro ao iniciar o login do Google: ' + e.message);
