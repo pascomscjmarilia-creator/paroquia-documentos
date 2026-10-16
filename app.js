@@ -36,14 +36,6 @@ const CONFIG = {
   WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
   URL_LOJINHA: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
 
-  // Disparos de WhatsApp — planilha "Disparador_Paroquia_SCJ" (abas Disparos, Controle_Disparos e Leads); o fluxo Disparador do n8n lê a aba Disparos
-  DISPARO_SHEET_ID: '1K_k02jCM9GAZOM0v4Jrsk-weB14AFq_F_pwEokLMugI',
-  DISPARO_ABA: 'Disparos',
-  DISPARO_GID: 1753605438, // id numérico da aba Disparos (para apagar a linha inteira)
-  DISPARO_RANGE: 'Disparos!A2:E',
-  DISPARO_CONTROLE_RANGE: 'Controle_Disparos!A2:D',
-  DISPARO_LEADS_RANGE: 'Leads!A2:G',
-
   // E-mails autorizados a usar o app (checagem de UX — a segurança
   // de verdade é a permissão de compartilhamento da planilha no Google)
   ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
@@ -139,7 +131,6 @@ async function handleLoginSucesso() {
     await carregarExtras();
     await carregarCatequese();
     await carregarLojinha();
-    await carregarDisparos();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -1483,289 +1474,6 @@ async function excluirProduto(linhaNumero) {
   }
 }
 
-// ============================================================
-// DISPAROS (WhatsApp) — abastece a aba "Disparos" da planilha Disparador_Paroquia_SCJ.
-// O fluxo "Disparador Anti-Bloqueio" (n8n) lê o primeiro disparo com status "habilitado" e envia uma mensagem por vez
-// (uma execução a cada 10 min, das 7h às 22h) aos leads ativos que ainda não receberam; ao terminar marca o disparo como "enviado".
-// Situações na coluna status: vazio = rascunho · habilitado = enviando · pausado = pausado · enviado = concluído.
-// ============================================================
-let linhasDisparos = [];
-let controleContagem = {};
-let totalLeadsAtivos = 0;
-let disparoEditandoLinha = null;
-let fotoAtualDisparo = '';
-const DISPARO_ENVIOS_POR_DIA = 90;
-
-function situacaoDisparo(l) {
-  if (l.status === 'habilitado') return { chave: 'habilitado', texto: 'Enviando', classe: 'andamento' };
-  if (l.status === 'enviado') return { chave: 'enviado', texto: 'Concluído', classe: 'resolvido' };
-  if (l.status === 'pausado') return { chave: 'pausado', texto: 'Pausado', classe: 'pendente' };
-  return { chave: 'rascunho', texto: 'Rascunho', classe: 'pendente' };
-}
-
-function proximoCodigoDisparo() {
-  // considera também os códigos do controle de envio: um código excluído nunca é reutilizado
-  const ids = linhasDisparos.map(l => l.id).concat(Object.keys(controleContagem));
-  const maior = ids.reduce((m, id) => {
-    const n = parseInt((String(id).match(/(\d+)/) || [0, 0])[1], 10);
-    return Number.isFinite(n) && n > m ? n : m;
-  }, 0);
-  return 'DISP' + String(maior + 1).padStart(3, '0');
-}
-
-async function carregarDisparos() {
-  const statusMsg = el('statusMsgDisparos');
-  statusMsg.textContent = 'Carregando disparos...';
-  try {
-    const [disp, ctrl, leads] = await Promise.all([
-      buscarValoresSheet(CONFIG.DISPARO_RANGE, CONFIG.DISPARO_SHEET_ID),
-      buscarValoresSheet(CONFIG.DISPARO_CONTROLE_RANGE, CONFIG.DISPARO_SHEET_ID),
-      buscarValoresSheet(CONFIG.DISPARO_LEADS_RANGE, CONFIG.DISPARO_SHEET_ID),
-    ]);
-    // O range começa em A2: guarda a linha real para editar/pausar/excluir a linha certa.
-    linhasDisparos = disp
-      .map((row, idx) => ({
-        linha: idx + 2,
-        id: String(row[0] || '').trim(),
-        mensagem: row[1] || '',
-        imagem: row[2] || '',
-        video: row[3] || '',
-        statusBruto: row[4] || '',
-        status: norm(row[4] || '').trim(),
-      }))
-      .filter(l => l.id);
-    controleContagem = {};
-    ctrl.forEach(r => { const id = String(r[1] || '').trim(); if (id) controleContagem[id] = (controleContagem[id] || 0) + 1; });
-    totalLeadsAtivos = leads.filter(r => String(r[1] || '').replace(/\D/g, '') && norm(r[2] || '').trim() === 'ativo').length;
-
-    statusMsg.textContent = linhasDisparos.length + ' mensagem(ns) de disparo cadastrada(s).';
-    renderizarDisparos();
-  } catch (e) {
-    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
-      ? 'Sua conta Google não tem permissão de acesso à planilha do Disparador (Disparador_Paroquia_SCJ). Peça para compartilhá-la com você (como editor).'
-      : e.message === 'STATUS_400'
-        ? 'Não encontrei as abas Disparos, Controle_Disparos e Leads na planilha do Disparador. Confira os nomes das abas e clique em Atualizar.'
-        : 'Erro ao carregar os disparos.';
-  }
-}
-
-function renderizarDisparos() {
-  const termo = norm(el('buscaDisparos').value.trim());
-  const filtro = el('filtroStatusDisparos').value;
-
-  const ativo = linhasDisparos.find(l => l.status === 'habilitado');
-  el('resumoDisparos').textContent = 'Contatos ativos na lista: ' + totalLeadsAtivos +
-    (ativo ? ' · Enviando agora: ' + ativo.id + ' (' + (controleContagem[ativo.id] || 0) + ' de ' + totalLeadsAtivos + ')' : ' · Nenhum disparo em envio no momento');
-
-  const filtradas = linhasDisparos
-    .filter(l => (!termo || norm(l.id + ' ' + l.mensagem).includes(termo)) && (!filtro || situacaoDisparo(l).chave === filtro))
-    .slice()
-    .sort((a, b) => b.linha - a.linha); // mais recentes no topo
-
-  const corpo = el('tabelaDisparosCorpo');
-  corpo.innerHTML = '';
-  if (filtradas.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="6">Nenhuma mensagem encontrada.</td></tr>';
-    return;
-  }
-
-  filtradas.forEach(l => {
-    const sit = situacaoDisparo(l);
-    const enviados = controleContagem[l.id] || 0;
-    const editavel = sit.chave === 'rascunho' || sit.chave === 'pausado';
-    const resumo = String(l.mensagem || '').trim();
-    const previa = resumo.length > 220 ? resumo.slice(0, 220) + '…' : resumo;
-    const midia = [l.imagem ? '🖼️ Foto' : '', l.video ? '🎥 Vídeo' : ''].filter(Boolean).join(' + ') || 'Só texto';
-    const progresso = sit.chave === 'enviado' ? enviados + ' enviados' : (enviados > 0 || sit.chave === 'habilitado' ? enviados + ' de ' + totalLeadsAtivos : '—');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td data-label="Código"><strong>${escapeHtml(l.id)}</strong></td>
-      <td data-label="Mensagem"><div style="white-space:pre-wrap;">${previa ? escapeHtml(previa) : '<em>(sem texto)</em>'}</div></td>
-      <td data-label="Mídia">${escapeHtml(midia)}</td>
-      <td data-label="Situação"><span class="status-pill ${sit.classe}">${sit.texto}</span></td>
-      <td data-label="Enviados">${escapeHtml(progresso)}</td>
-      <td data-label="Ação" class="no-print acoes-recado">
-        ${editavel ? `<button class="btn-acao btn-editar btn-disp" data-acao="editar" data-linha="${l.linha}">✏️ Editar</button>` : ''}
-        ${editavel ? `<button class="btn-acao btn-resolver btn-disp" data-acao="ativar" data-linha="${l.linha}">▶️ Ativar envio</button>` : ''}
-        ${sit.chave === 'habilitado' ? `<button class="btn-acao btn-editar btn-disp" data-acao="pausar" data-linha="${l.linha}">⏸️ Pausar</button>` : ''}
-        <button class="btn-acao btn-editar btn-disp" data-acao="duplicar" data-linha="${l.linha}">📄 Duplicar</button>
-        ${editavel ? `<button class="btn-acao btn-excluir btn-disp" data-acao="excluir" data-linha="${l.linha}">🗑️ Excluir</button>` : ''}
-      </td>
-    `;
-    corpo.appendChild(tr);
-  });
-}
-
-function atualizarPreviaDisparo() {
-  const texto = el('dispTexto').value;
-  const temMidia = !!(fotoAtualDisparo || el('dispFoto').files[0] || el('dispVideo').value.trim());
-  const limite = temMidia ? 850 : 3800;
-  const c = el('dispContador');
-  c.textContent = texto.length + ' de ' + limite + ' letras' + (temMidia ? ' (com foto ou vídeo o limite é menor)' : '');
-  c.style.color = texto.length > limite ? '#b3261e' : '';
-  el('dispPrevia').textContent = 'Bom dia, Maria! Que Deus te abençoe 🙏\n\n' + (texto.trim() || '(escreva o texto da mensagem)');
-}
-
-function mostrarFotoDisparo(url) {
-  const bloco = el('dispFotoBloco');
-  if (url) { el('dispFotoPreview').src = url; bloco.hidden = false; } else { el('dispFotoPreview').removeAttribute('src'); bloco.hidden = true; }
-}
-
-function abrirModalDisparo(linhaNumero) {
-  disparoEditandoLinha = linhaNumero || null;
-  el('formDisparo').reset();
-  el('modalDisparoResultado').textContent = '';
-  el('modalDisparoResultado').className = '';
-  fotoAtualDisparo = '';
-  if (disparoEditandoLinha) {
-    const l = linhasDisparos.find(x => x.linha === disparoEditandoLinha);
-    if (l) {
-      el('dispTexto').value = l.mensagem;
-      el('dispVideo').value = l.video;
-      fotoAtualDisparo = fotoSegura(l.imagem);
-    }
-    el('modalDisparoTitulo').textContent = 'Editar mensagem ' + (l ? l.id : '');
-  } else {
-    el('modalDisparoTitulo').textContent = 'Nova mensagem de disparo';
-  }
-  mostrarFotoDisparo(fotoAtualDisparo);
-  atualizarPreviaDisparo();
-  el('modalDisparo').hidden = false;
-}
-
-function fecharModalDisparo() {
-  el('modalDisparo').hidden = true;
-  disparoEditandoLinha = null;
-}
-
-async function gravarValoresDisparo(range, valores, metodo) {
-  const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.DISPARO_SHEET_ID}/values/${encodeURIComponent(range)}`;
-  const cab = { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
-  const resp = metodo === 'append'
-    ? await fetch(base + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', { method: 'POST', headers: cab, body: JSON.stringify({ values: valores }) })
-    : await fetch(base + '?valueInputOption=RAW', { method: 'PUT', headers: cab, body: JSON.stringify({ values: valores }) });
-  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
-}
-
-const MSG_PLANILHA_DISPARADOR = 'planilha do Disparador (Disparador_Paroquia_SCJ)';
-
-async function salvarDisparo(e) {
-  e.preventDefault();
-  const resultado = el('modalDisparoResultado');
-  const btn = el('btnSalvarDisparo');
-  resultado.textContent = '';
-  resultado.className = '';
-
-  const texto = el('dispTexto').value.trim();
-  const video = el('dispVideo').value.trim();
-  const arquivo = el('dispFoto').files[0];
-  const temFoto = !!(arquivo || fotoAtualDisparo);
-  const erro = (m) => { resultado.className = 'erro'; resultado.textContent = '⚠️ ' + m; };
-
-  if (!texto && !temFoto && !video) return erro('Escreva o texto da mensagem ou escolha uma foto ou vídeo.');
-  if (video && !/^https:\/\/\S+$/i.test(video)) return erro('O link do vídeo precisa começar com https:// e não ter espaços.');
-  const limite = (temFoto || video) ? 850 : 3800;
-  if (texto.length > limite) return erro('Texto muito longo (' + texto.length + ' letras). O limite é ' + limite + (limite === 850 ? ' quando há foto ou vídeo.' : '.'));
-
-  btn.disabled = true;
-  btn.textContent = 'Salvando...';
-  try {
-    const atual = disparoEditandoLinha ? linhasDisparos.find(x => x.linha === disparoEditandoLinha) : null;
-    const id = atual ? atual.id : proximoCodigoDisparo();
-    let fotoUrl = fotoAtualDisparo;
-    if (arquivo) {
-      resultado.textContent = 'Enviando a foto…';
-      fotoUrl = await enviarFotoProduto(arquivo, 'disparo ' + id);
-      resultado.textContent = '';
-    }
-    if (atual) {
-      await gravarValoresDisparo(`${CONFIG.DISPARO_ABA}!A${atual.linha}:E${atual.linha}`, [[id, texto, fotoUrl, video, atual.statusBruto]], 'put');
-    } else {
-      await gravarValoresDisparo(`${CONFIG.DISPARO_ABA}!A:E`, [[id, texto, fotoUrl, video, '']], 'append');
-    }
-    resultado.className = 'sucesso';
-    resultado.textContent = '✅ Rascunho salvo' + (atual ? '' : ' como ' + id) + '. Nada foi enviado ainda.';
-    await carregarDisparos();
-    setTimeout(fecharModalDisparo, 1100);
-  } catch (err) {
-    console.error('Erro ao salvar disparo:', err);
-    resultado.className = 'erro';
-    resultado.textContent = '⚠️ ' + (err.status ? mensagemErroGravacao(err, CONFIG.DISPARO_ABA, MSG_PLANILHA_DISPARADOR) : err.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Salvar rascunho';
-  }
-}
-
-async function ativarDisparo(linhaNumero) {
-  const l = linhasDisparos.find(x => x.linha === linhaNumero);
-  if (!l) return;
-  if (!l.mensagem.trim() && !l.imagem && !l.video) { alert('Esta mensagem está vazia. Clique em Editar e escreva o texto antes de ativar.'); return; }
-  const outra = linhasDisparos.find(x => x.status === 'habilitado' && x.linha !== linhaNumero);
-  if (outra) { alert('Já existe um disparo em andamento (' + outra.id + '). Só um por vez: pause-o ou espere terminar para ativar este.'); return; }
-  const enviados = controleContagem[l.id] || 0;
-  const pendentes = Math.max(0, totalLeadsAtivos - enviados);
-  if (pendentes === 0) { alert('Todos os contatos ativos já receberam a ' + l.id + '. Para enviar de novo, use Duplicar e ative a cópia.'); return; }
-  const dias = Math.max(1, Math.ceil(pendentes / DISPARO_ENVIOS_POR_DIA));
-  const previa = l.mensagem.trim().slice(0, 200) + (l.mensagem.trim().length > 200 ? '…' : '');
-  const ok = confirm(
-    'Ativar o envio de ' + l.id + '?\n\n"' + (previa || '(só foto/vídeo)') + '"\n\n' +
-    'Será enviada a ' + pendentes + ' pessoa(s), uma de cada vez (cerca de ' + DISPARO_ENVIOS_POR_DIA + ' por dia, das 7h às 22h): aproximadamente ' + dias + ' dia(s).\n\n' +
-    'Quem já recebeu não pode ser desfeito; dá para pausar o que falta. O Disparador precisa estar ligado no n8n.'
-  );
-  if (!ok) return;
-  await mudarStatusDisparo(l, 'habilitado');
-}
-
-async function mudarStatusDisparo(l, novoStatus) {
-  try {
-    await gravarValoresDisparo(`${CONFIG.DISPARO_ABA}!E${l.linha}`, [[novoStatus]], 'put');
-    await carregarDisparos();
-  } catch (e) {
-    alert(mensagemErroGravacao(e, CONFIG.DISPARO_ABA, MSG_PLANILHA_DISPARADOR));
-  }
-}
-
-async function pausarDisparo(linhaNumero) {
-  const l = linhasDisparos.find(x => x.linha === linhaNumero);
-  if (!l) return;
-  if (!confirm('Pausar o envio de ' + l.id + '? Quem já recebeu não é afetado; o restante fica esperando até você ativar de novo.')) return;
-  await mudarStatusDisparo(l, 'pausado');
-}
-
-async function duplicarDisparo(linhaNumero) {
-  const l = linhasDisparos.find(x => x.linha === linhaNumero);
-  if (!l) return;
-  const novo = proximoCodigoDisparo();
-  try {
-    await gravarValoresDisparo(`${CONFIG.DISPARO_ABA}!A:E`, [[novo, l.mensagem, l.imagem, l.video, '']], 'append');
-    await carregarDisparos();
-    alert('Criei a cópia ' + novo + ' como rascunho. Edite se precisar e clique em Ativar envio quando quiser enviar.');
-  } catch (e) {
-    alert(mensagemErroGravacao(e, CONFIG.DISPARO_ABA, MSG_PLANILHA_DISPARADOR));
-  }
-}
-
-async function excluirDisparo(linhaNumero) {
-  const l = linhasDisparos.find(x => x.linha === linhaNumero);
-  if (!l) return;
-  if (l.status === 'habilitado') { alert('Esta mensagem está sendo enviada. Pause primeiro e depois exclua.'); return; }
-  const enviados = controleContagem[l.id] || 0;
-  const aviso = enviados > 0 ? '\n\nEla já foi enviada a ' + enviados + ' pessoa(s). O histórico de envio continua guardado na planilha, mas a mensagem some desta lista.' : '';
-  if (!confirm('Confirma que quer excluir a mensagem ' + l.id + '?' + aviso + '\n\nEssa ação não pode ser desfeita.')) return;
-  try {
-    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.DISPARO_SHEET_ID}:batchUpdate`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: CONFIG.DISPARO_GID, dimension: 'ROWS', startIndex: l.linha - 1, endIndex: l.linha } } }] }),
-    });
-    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
-    await carregarDisparos();
-  } catch (e) {
-    alert(mensagemErroGravacao(e, CONFIG.DISPARO_ABA, MSG_PLANILHA_DISPARADOR));
-  }
-}
-
 function norm(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
@@ -1784,7 +1492,6 @@ const ABAS = {
   extras: ['abaExtras', 'btnAbaExtras'],
   catequese: ['abaCatequese', 'btnAbaCatequese'],
   lojinha: ['abaLojinha', 'btnAbaLojinha'],
-  disparos: ['abaDisparos', 'btnAbaDisparos'],
 };
 
 function trocarAba(aba) {
@@ -1805,7 +1512,6 @@ function sair() {
   linhasExtras = [];
   linhasCatequese = [];
   linhasLojinha = [];
-  linhasDisparos = [];
   el('userBox').hidden = true;
   el('appScreen').hidden = true;
   el('loginScreen').hidden = false;
@@ -1957,46 +1663,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
   el('btnAbaLojinha').addEventListener('click', () => trocarAba('lojinha'));
-
-  // ── Disparos ──
-  el('btnAbaDisparos').addEventListener('click', () => trocarAba('disparos'));
-  el('btnAtualizarDisparos').addEventListener('click', carregarDisparos);
-  el('btnNovoDisparo').addEventListener('click', () => abrirModalDisparo());
-  el('buscaDisparos').addEventListener('input', renderizarDisparos);
-  el('filtroStatusDisparos').addEventListener('change', renderizarDisparos);
-  el('btnFecharModalDisparo').addEventListener('click', fecharModalDisparo);
-  el('modalDisparo').addEventListener('click', (e) => { if (e.target === el('modalDisparo')) fecharModalDisparo(); });
-  el('formDisparo').addEventListener('submit', salvarDisparo);
-  el('dispTexto').addEventListener('input', atualizarPreviaDisparo);
-  el('dispVideo').addEventListener('input', atualizarPreviaDisparo);
-  el('dispFoto').addEventListener('change', () => {
-    const f = el('dispFoto').files[0];
-    if (f) { mostrarFotoDisparo(URL.createObjectURL(f)); } else { mostrarFotoDisparo(fotoAtualDisparo); }
-    atualizarPreviaDisparo();
-  });
-  el('btnRemoverFotoDisparo').addEventListener('click', () => {
-    fotoAtualDisparo = '';
-    el('dispFoto').value = '';
-    mostrarFotoDisparo('');
-    atualizarPreviaDisparo();
-  });
-  el('tabelaDisparosCorpo').addEventListener('click', (e) => {
-    const b = e.target.closest('.btn-disp');
-    if (!b) return;
-    const linha = Number(b.dataset.linha);
-    if (b.dataset.acao === 'editar') abrirModalDisparo(linha);
-    else if (b.dataset.acao === 'ativar') ativarDisparo(linha);
-    else if (b.dataset.acao === 'pausar') pausarDisparo(linha);
-    else if (b.dataset.acao === 'duplicar') duplicarDisparo(linha);
-    else if (b.dataset.acao === 'excluir') excluirDisparo(linha);
-  });
-  el('abaDisparos').addEventListener('click', (e) => {
-    const btnAjuda = e.target.closest('.btn-ajuda');
-    if (!btnAjuda) return;
-    const caixa = el(btnAjuda.dataset.ajuda);
-    caixa.hidden = !caixa.hidden;
-    btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
-  });
 
   el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
   el('btnAbaRecados').addEventListener('click', () => trocarAba('recados'));
