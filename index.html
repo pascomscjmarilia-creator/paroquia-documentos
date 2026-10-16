@@ -9,7 +9,508 @@
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630"><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentos — Paróquia Sagrado Coração de Jesus</title>
+<meta property="og:title" content="Documentos — Paróquia Sagrado Coração de Jesus">
+<meta property="og:description" content="Painel interno de documentos e recados da secretaria.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
+<meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<link rel="stylesheet" href="style.css?v=20260926a">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Paróquia — Documentos e Recados</h1>
+    </div>
+    <div id="userBox" class="user-box" hidden>
+      <span id="userEmail"></span>
+      <button id="btnSair">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="loginScreen" class="login-screen">
+      <p>Faça login com a conta Google autorizada da secretaria para acessar os dados.</p>
+      <div id="googleBtn"></div>
+      <p id="loginErro" class="erro" hidden></p>
+    </section>
+
+    <section id="appScreen" class="app-screen" hidden>
+      <div class="abas no-print">
+        <button class="aba-btn ativa" id="btnAbaDocumentos" data-aba="documentos">📁 Documentos</button>
+        <button class="aba-btn" id="btnAbaRecados" data-aba="recados">📞 Recados / Retorno</button>
+        <button class="aba-btn" id="btnAbaReservas" data-aba="reservas">🗓️ Reservas / Salas</button>
+        <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
+        <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
+        <button class="aba-btn" id="btnAbaLojinha" data-aba="lojinha">🛍️ Lojinha</button>
+      </div>
+
+      <!-- ABA: DOCUMENTOS -->
+      <div id="abaDocumentos" class="conteudo-aba">
+        <div class="filtros">
+          <input type="text" id="busca" placeholder="Buscar por nome, tipo ou arquivo...">
+          <select id="filtroTipo">
+            <option value="">Todos os tipos</option>
+            <option value="PIX Dízimo">PIX Dízimo</option>
+            <option value="PIX Doação">PIX Doação</option>
+            <option value="PIX Pagamento">PIX Pagamento</option>
+            <option value="Comprovante">Comprovante (a definir)</option>
+            <option value="Documentos">Documentos</option>
+            <option value="Nota Fiscal/Despesa">Nota Fiscal/Despesa</option>
+            <option value="Foto de Pessoa">Foto de Pessoa</option>
+            <option value="Documento de Missa">Documento de Missa</option>
+          </select>
+          <button id="btnAtualizar" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirLista" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+        </div>
+
+        <p id="statusMsg" class="status"></p>
+
+        <table id="tabela">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Contato</th>
+              <th>Número</th>
+              <th>Tipo</th>
+              <th>Arquivo</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: RECADOS -->
+      <div id="abaRecados" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaRecados" placeholder="Buscar por nome, WhatsApp ou assunto...">
+          <select id="filtroStatus">
+            <option value="">Todos os status</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Resolvido">Resolvido</option>
+          </select>
+          <button id="btnAtualizarRecados" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirRecados" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+        </div>
+
+        <p id="statusMsgRecados" class="status"></p>
+
+        <table id="tabelaRecados">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Nome</th>
+              <th>WhatsApp</th>
+              <th>Assunto</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaRecadosCorpo"></tbody>
+        </table>
+      </div>
+      <!-- ABA: RESERVAS -->
+      <div id="abaReservas" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaReservas" placeholder="Buscar por sala, nome ou atividade...">
+          <select id="filtroSala">
+            <option value="">Todas as salas</option>
+            <option value="Salão principal">Salão principal</option>
+            <option value="Sala 01">Sala 01 (ar-condicionado)</option>
+            <option value="Sala 02">Sala 02</option>
+            <option value="Sala 03">Sala 03</option>
+            <option value="Sala 04">Sala 04</option>
+            <option value="Sala 05">Sala 05 (com TV)</option>
+            <option value="Sala 06">Sala 06</option>
+            <option value="Sala 07">Sala 07</option>
+            <option value="Capela">Capela</option>
+          </select>
+          <select id="filtroStatusReserva">
+            <option value="">Todos os status</option>
+            <option value="Confirmado">Confirmado</option>
+            <option value="Realizado">Realizado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+          <button id="btnAtualizarReservas" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovaReserva" title="Reservar uma sala">➕ Nova Reserva</button>
+        </div>
+
+        <p id="statusMsgReservas" class="status"></p>
+
+        <table id="tabelaReservas">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora Início</th>
+              <th>Hora Fim</th>
+              <th>Sala</th>
+              <th>Nome</th>
+              <th>WhatsApp</th>
+              <th>Atividade</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaReservasCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: INFORMAÇÕES EXTRAS -->
+      <div id="abaExtras" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaExtras" placeholder="Buscar por assunto ou informação...">
+          <select id="filtroValidade">
+            <option value="">Todos</option>
+            <option value="ativo">Valendo agora</option>
+            <option value="vencido">Vencidos</option>
+          </select>
+          <button id="btnAtualizarExtras" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovaExtra" title="Cadastrar um aviso novo">➕ Novo aviso</button>
+        </div>
+
+        <p id="statusMsgExtras" class="status"></p>
+
+        <table id="tabelaExtras">
+          <thead>
+            <tr>
+              <th>Assunto</th>
+              <th>Informação</th>
+              <th>Válido até</th>
+              <th>Situação</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaExtrasCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: CATEQUESE -->
+      <div id="abaCatequese" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaCatequese" placeholder="Buscar por catequizando, responsável, WhatsApp ou etapa...">
+          <select id="filtroDocsCatequese">
+            <option value="">Todos os documentos</option>
+            <option value="completos">Documentos completos</option>
+            <option value="faltam">Faltam documentos</option>
+          </select>
+          <select id="filtroStatusCatequese">
+            <option value="">Todos os status</option>
+            <option value="Nova">Nova</option>
+            <option value="Em atendimento">Em atendimento</option>
+            <option value="Concluída">Concluída</option>
+          </select>
+          <button id="btnAtualizarCatequese" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirCatequese" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+          <button id="btnFichaBranco" title="Abrir a ficha de inscrição em branco (PDF) para imprimir">🖨️ Ficha em branco</button>
+        </div>
+
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaCatequese" aria-expanded="false" aria-label="Como funciona a aba Catequese">?</button>
+          <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como funciona esta aba.</span>
+        </div>
+
+        <div id="ajudaCatequese" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>O que é esta aba:</strong> aqui aparecem, sozinhas, as inscrições de catequese que os fiéis fazem pela internet. Ninguém precisa digitar nada: o responsável preenche o formulário e anexa os documentos, e tudo cai aqui.</p>
+
+          <p><strong>Como o fiel se inscreve:</strong> é só enviar o link do formulário (pelo WhatsApp, por exemplo):</p>
+          <p class="exemplo" id="linkFormCatequese">https://pascomscjmarilia-creator.github.io/paroquia-documentos/catequese.html</p>
+          <p><button type="button" class="btn-acao btn-editar" id="btnCopiarLinkCatequese">📋 Copiar link do formulário</button> <span id="msgCopiarLinkCatequese" style="color:#276e35; font-weight:600;"></span></p>
+
+          <p><strong>O que cada coluna mostra:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Documentos:</strong> <em>Completos</em> quando o fiel mandou tudo que é necessário, ou <em>Faltam: …</em> dizendo o que ainda não chegou.</li>
+            <li><strong>Status:</strong> <em>Nova</em> (ninguém cuidou ainda) · <em>Em atendimento</em> (alguém já está cuidando) · <em>Concluída</em> (inscrição resolvida).</li>
+            <li><strong>Ver dados e documentos:</strong> abre a ficha com os dados e os links dos arquivos enviados.</li>
+          </ul>
+
+          <p><strong>Os botões de cada inscrição:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>💬 WhatsApp:</strong> abre a conversa com o responsável.</li>
+            <li><strong>🖨️ Ficha:</strong> abre a ficha de inscrição <em>já preenchida</em> com o que o fiel informou e a caixa de impressão. A catequista completa à mão o que ficar em branco (endereço, pais, escola, saúde).</li>
+            <li><strong>▶ Em atendimento:</strong> avisa a equipe que você já está cuidando desta inscrição.</li>
+            <li><strong>✅ Concluir:</strong> use quando a inscrição estiver resolvida (documentos conferidos e turma definida). <strong>↩ Reabrir</strong> desfaz.</li>
+          </ul>
+
+          <p><strong>Faltam documentos?</strong> Chame o responsável pelo botão WhatsApp e peça para enviar o que falta por este mesmo WhatsApp da paróquia ou levar na secretaria. Os arquivos enviados pelo WhatsApp aparecem na aba <em>Documentos</em>, com o número do fiel.</p>
+
+          <p><strong>Prefere o papel?</strong> O botão <em>🖨️ Ficha em branco</em> abre o PDF para imprimir. Quem preencher no papel entrega na secretaria com os documentos.</p>
+
+          <p><strong>Cuidados:</strong> são dados e documentos de crianças. Não compartilhe os links dos arquivos, imprima só o necessário, guarde as fichas em local fechado e clique em <em>Sair</em> ao terminar em um computador de uso comum.</p>
+
+          <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. Se a inscrição continuar sem aparecer, ou se o painel avisar que a aba não existe, chame a equipe da Pascom.</p>
+        </div>
+
+        <p class="modal-intro no-print" style="margin:0 0 10px;">Inscrições feitas pelo formulário <strong>catequese.html</strong>. Toque em <em>Ver dados e documentos</em> para abrir a ficha e os arquivos, ou em <em>🖨️ Ficha</em> para imprimir a ficha já preenchida.</p>
+
+        <p id="statusMsgCatequese" class="status"></p>
+
+        <table id="tabelaCatequese">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Catequizando</th>
+              <th>Responsável</th>
+              <th>WhatsApp</th>
+              <th>Etapa</th>
+              <th>Documentos</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCatequeseCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: LOJINHA -->
+      <div id="abaLojinha" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaLojinha" placeholder="Buscar por produto, categoria ou descrição...">
+          <select id="filtroCategoriaLoja"><option value="">Todas as categorias</option></select>
+          <select id="filtroDispLoja">
+            <option value="">Toda disponibilidade</option>
+            <option value="Em estoque">Em estoque</option>
+            <option value="Esgotado">Esgotado</option>
+            <option value="Sob encomenda">Sob encomenda</option>
+          </select>
+          <button id="btnAtualizarLojinha" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnNovoProduto" title="Cadastrar um produto novo">➕ Novo produto</button>
+          <button id="btnAbrirCatalogo" title="Abrir a página pública da lojinha">🔗 Ver catálogo</button>
+        </div>
+
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaLojinha" aria-expanded="false" aria-label="Como funciona a aba Lojinha">?</button>
+          <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como funciona esta aba.</span>
+        </div>
+
+        <div id="ajudaLojinha" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>O que é esta aba:</strong> o cadastro dos produtos da Lojinha Paroquial. Os fiéis só <strong>consultam</strong> (fotos, preço e se tem): não há compra pelo WhatsApp nem pelo site.</p>
+          <p><strong>Onde o fiel vê:</strong> na página do catálogo e pelo WhatsApp: o assistente responde sobre preço e disponibilidade e envia o link do catálogo.</p>
+          <p class="exemplo" id="linkCatalogoLojinha">https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html</p>
+          <p><button type="button" class="btn-acao btn-editar" id="btnCopiarLinkLojinha">📋 Copiar link do catálogo</button> <span id="msgCopiarLinkLojinha" style="color:#276e35; font-weight:600;"></span></p>
+          <p><strong>Para cadastrar:</strong> clique em <em>➕ Novo produto</em>, preencha o nome, a descrição, o preço e a disponibilidade, e escolha a foto do produto (do celular ou do computador). A foto é enviada e reduzida sozinha.</p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Disponibilidade:</strong> <em>Em estoque</em>, <em>Esgotado</em> (aparece, mas avisando que acabou) ou <em>Sob encomenda</em>.</li>
+            <li><strong>Categoria:</strong> agrupa os produtos no catálogo (ex.: Terços, Livros, Camisetas). Use sempre o mesmo nome para a mesma categoria.</li>
+            <li><strong>Tamanhos / variações:</strong> escreva separado por vírgula (ex.: P, M, G).</li>
+          </ul>
+          <p><strong>Produto acabou?</strong> Edite e mude para <em>Esgotado</em>. <strong>Não vai mais vender?</strong> Use <em>Ocultar</em>: ele some do catálogo e do WhatsApp, mas continua guardado aqui. <em>Excluir</em> apaga de vez.</p>
+          <p><strong>Boas fotos:</strong> fundo claro, produto centralizado e bem iluminado. Uma foto por produto.</p>
+          <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. O catálogo público pode levar cerca de 1 minuto para mostrar uma mudança. Se continuar, chame a equipe da Pascom.</p>
+        </div>
+
+        <p id="statusMsgLojinha" class="status"></p>
+
+        <table id="tabelaLojinha">
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Preço</th>
+              <th>Disponibilidade</th>
+              <th>No catálogo</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaLojinhaCorpo"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalExtra" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2 id="modalExtraTitulo">Novo aviso</h2>
+        <button id="btnFecharModalExtra" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <p class="modal-intro">Toque no <strong>?</strong> ao lado de cada campo para ver como preencher.</p>
+
+      <form id="formExtra">
+        <div class="campo">
+          <div class="campo-rotulo">
+            <label for="extraAssunto">Assunto</label>
+            <button type="button" class="btn-ajuda" data-ajuda="ajudaAssunto" aria-expanded="false" aria-label="Como preencher o Assunto">?</button>
+          </div>
+          <div id="ajudaAssunto" class="ajuda-texto" hidden>
+            <p><strong>O que é:</strong> o tema do aviso, em poucas palavras. É por ele que o bot liga o aviso à pergunta do fiel.</p>
+            <p><strong>Se for uma mudança:</strong> use o nome que as pessoas usam no dia a dia (Missa de domingo, Confissão, Festa de Nossa Senhora…) e diga o que mudou.</p>
+            <p class="exemplo">Exemplos: Curso de Casais · Missa de domingo 28/09 cancelada · Pe. Willians ausente (21 a 27/09)</p>
+          </div>
+          <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
+        </div>
+
+        <div class="campo">
+          <div class="campo-rotulo">
+            <label for="extraInformacao">Informação</label>
+            <button type="button" class="btn-ajuda" data-ajuda="ajudaInformacao" aria-expanded="false" aria-label="Como preencher a Informação">?</button>
+          </div>
+          <div id="ajudaInformacao" class="ajuda-texto" hidden>
+            <p><strong>O que é:</strong> a resposta pronta que o bot vai dar ao fiel. Escreva do jeito que quer que ele fale, com dia, horário e local.</p>
+            <p><strong>Use para dois casos:</strong></p>
+            <ul style="margin:0 0 4px; padding-left:18px;">
+              <li><strong>Informação avulsa</strong> que não está em nenhuma outra aba (ex.: local de um curso).</li>
+              <li><strong>Mudança</strong> em algo que já existe nas outras abas: data ou horário alterado, cancelamento, local trocado, padre ausente… O aviso <strong>vale mais</strong> que a informação normal.</li>
+            </ul>
+            <p><strong>Nas mudanças,</strong> cite o nome do que mudou e diga o que valia antes e o que vale agora.</p>
+            <p>Não use para repetir uma informação que já está certa nas outras abas.</p>
+            <p class="exemplo">Exemplos: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial. · A missa de domingo, 28/09, às 19h na Matriz está cancelada; haverá missa às 18h.</p>
+          </div>
+          <textarea id="extraInformacao" rows="4" required placeholder="Ex: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial."></textarea>
+        </div>
+
+        <div class="campo">
+          <div class="campo-rotulo">
+            <label for="extraValidoAte">Válido até (opcional)</label>
+            <button type="button" class="btn-ajuda" data-ajuda="ajudaValidoAte" aria-expanded="false" aria-label="Como preencher o Válido até">?</button>
+          </div>
+          <div id="ajudaValidoAte" class="ajuda-texto" hidden>
+            <p><strong>O que é:</strong> o último dia em que o aviso deve ser usado. Depois dessa data o bot para de usar o aviso sozinho — não precisa apagar.</p>
+            <p><strong>Em avisos de mudança,</strong> preencha com o último dia da mudança. Assim, quando ela acabar, o bot volta a usar a informação normal.</p>
+            <p><strong>Para prorrogar,</strong> é só clicar em <em>Editar</em> e escolher uma data nova: a situação (Valendo / Vencido) muda sozinha.</p>
+            <p><strong>Deixe em branco</strong> só se a informação não tem data para acabar.</p>
+            <p class="exemplo">Exemplos: evento no dia 05/10 → escolha 05/10 · padre ausente até 27/09 → escolha 27/09.</p>
+          </div>
+          <input type="date" id="extraValidoAte">
+        </div>
+
+        <button type="submit" id="btnSalvarExtra">Salvar</button>
+        <p id="modalExtraResultado"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalProduto" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2 id="modalProdutoTitulo">Novo produto</h2>
+        <button id="btnFecharModalProduto" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <form id="formProduto">
+        <div class="campo">
+          <label for="prodNome">Produto</label>
+          <input type="text" id="prodNome" required placeholder="Ex.: Terço de madeira">
+        </div>
+
+        <div class="campo">
+          <label for="prodCategoria">Categoria</label>
+          <input type="text" id="prodCategoria" list="listaCategoriasLoja" placeholder="Ex.: Terços">
+          <datalist id="listaCategoriasLoja"></datalist>
+        </div>
+
+        <div class="campo">
+          <label for="prodDescricao">Descrição</label>
+          <textarea id="prodDescricao" rows="3" placeholder="Ex.: Terço de madeira com crucifixo, 55 cm."></textarea>
+        </div>
+
+        <div class="modal-linha-dupla">
+          <div>
+            <label for="prodPreco">Preço (R$)</label>
+            <input type="text" id="prodPreco" inputmode="decimal" placeholder="Ex.: 25,00">
+          </div>
+          <div>
+            <label for="prodDisp">Disponibilidade</label>
+            <select id="prodDisp">
+              <option value="Em estoque">Em estoque</option>
+              <option value="Esgotado">Esgotado</option>
+              <option value="Sob encomenda">Sob encomenda</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label for="prodVariacoes">Tamanhos ou variações (opcional)</label>
+          <input type="text" id="prodVariacoes" placeholder="Ex.: P, M, G">
+        </div>
+
+        <div class="campo">
+          <label for="prodFoto">Foto do produto</label>
+          <input type="file" id="prodFoto" accept="image/*">
+          <div id="prodFotoBloco" hidden style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+            <img id="prodFotoPreview" alt="Foto do produto" style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--cinza-borda);">
+            <button type="button" class="btn-acao btn-excluir" id="btnRemoverFotoProduto">Remover foto</button>
+          </div>
+        </div>
+
+        <div class="campo" style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="prodExibir" checked style="width:18px; height:18px;">
+          <label for="prodExibir" style="margin:0;">Mostrar este produto no catálogo</label>
+        </div>
+
+        <button type="submit" id="btnSalvarProduto">Salvar</button>
+        <p id="modalProdutoResultado"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="modalReserva" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2>Nova Reserva</h2>
+        <button id="btnFecharModal" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+
+      <form id="formNovaReserva">
+        <label for="modalSala">Sala</label>
+        <select id="modalSala" required>
+          <option value="">Selecione...</option>
+          <option value="Salão principal">Salão principal</option>
+          <option value="Sala 01">Sala 01 (ar-condicionado)</option>
+          <option value="Sala 02">Sala 02</option>
+          <option value="Sala 03">Sala 03</option>
+          <option value="Sala 04">Sala 04</option>
+          <option value="Sala 05">Sala 05 (com TV)</option>
+          <option value="Sala 06">Sala 06</option>
+          <option value="Sala 07">Sala 07</option>
+          <option value="Capela">Capela</option>
+        </select>
+
+        <label for="modalData">Data</label>
+        <input type="date" id="modalData" required>
+
+        <div class="modal-linha-dupla">
+          <div>
+            <label for="modalHoraInicio">Hora início</label>
+            <input type="time" id="modalHoraInicio" required step="900">
+          </div>
+          <div>
+            <label for="modalHoraFim">Hora fim</label>
+            <input type="time" id="modalHoraFim" required step="900">
+          </div>
+        </div>
+
+        <label for="modalNome">Nome</label>
+        <input type="text" id="modalNome" required>
+
+        <label for="modalWhatsapp">WhatsApp</label>
+        <input type="tel" id="modalWhatsapp" required placeholder="(14) 99999-9999">
+
+        <label for="modalAtividade">Atividade / motivo</label>
+        <input type="text" id="modalAtividade" required placeholder="Ex: Reunião da pastoral, curso de casais...">
+
+        <button type="submit" id="btnConfirmarReserva">Confirmar reserva</button>
+        <p id="modalResultado"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js?v=20261016a"></script>
+</body>
+</html>
+
 <link rel="stylesheet" href="style.css?v=20260926a">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
