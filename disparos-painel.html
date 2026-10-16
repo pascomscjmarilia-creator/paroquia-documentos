@@ -533,6 +533,7 @@
       b.textContent = 'Entrar com Google';
       b.style.cssText = 'background:#fff;border:1px solid #ccc;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;';
       b.onclick = () => { el('loginErro').hidden = true; cliente.requestAccessToken(); };
+      el('googleBtn').innerHTML = ''; // nunca deixa dois botões, mesmo que esta função rode duas vezes
       el('googleBtn').appendChild(b);
     } catch (e) { erroLogin('Erro ao iniciar o login do Google: ' + e.message); }
   }
