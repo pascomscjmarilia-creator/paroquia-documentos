@@ -378,6 +378,51 @@ function mensagemErroGravacao(err, aba, planilha) {
   return 'Sem conexão com o Google. Confira a internet e tente novamente.';
 }
 
+// Apaga LINHAS inteiras da aba Informacoes_Extras (de baixo para cima, para os números não se deslocarem durante a operação).
+async function apagarLinhasExtras(linhas) {
+  const ordenadas = [...new Set(linhas)].sort((a, b) => b - a);
+  const requests = ordenadas.map(n => ({ deleteDimension: { range: { sheetId: CONFIG.EXTRAS_GID, dimension: 'ROWS', startIndex: n - 1, endIndex: n } } }));
+  const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}:batchUpdate`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests }),
+  });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+}
+
+async function excluirVencidosExtras() {
+  const vencidos = linhasExtras.filter(l => situacaoExtra(l.validoAte) === 'vencido');
+  if (vencidos.length === 0) { alert('Não há avisos vencidos para excluir.'); return; }
+  const lista = vencidos.map(l => '• ' + l.assunto + ' (válido até ' + l.validoAte + ')').join('\n');
+  if (!confirm('Excluir ' + vencidos.length + ' aviso(s) vencido(s)? A linha inteira de cada um será apagada da planilha.\n\n' + lista + '\n\nEssa ação não pode ser desfeita.')) return;
+  try {
+    await apagarLinhasExtras(vencidos.map(l => l.linha));
+    await carregarExtras();
+  } catch (e) {
+    console.error('Erro ao excluir vencidos:', e);
+    alert(mensagemErroGravacao(e));
+  }
+}
+
+async function removerLinhasBrancasExtras() {
+  try {
+    const valores = await buscarValoresSheet(CONFIG.EXTRAS_RANGE, CONFIG.SHEET_ID_DADOS);
+    const brancas = [];
+    valores.forEach((row, idx) => {
+      const vazia = !row || row.every(c => String(c || '').trim() === '');
+      if (vazia) brancas.push(idx + 2);
+    });
+    // linhas vazias depois da última com conteúdo nem aparecem na leitura; só as do meio da lista contam
+    if (brancas.length === 0) { alert('Não há linhas em branco no meio da lista.'); return; }
+    if (!confirm('Remover ' + brancas.length + ' linha(s) em branco da aba Informações Extras? Só linhas totalmente vazias serão apagadas.')) return;
+    await apagarLinhasExtras(brancas);
+    await carregarExtras();
+  } catch (e) {
+    console.error('Erro ao remover linhas em branco:', e);
+    alert(e && e.status ? mensagemErroGravacao(e) : 'Não foi possível ler a planilha agora. Tente de novo em instantes.');
+  }
+}
+
 async function excluirExtra(linhaNumero) {
   const l = linhasExtras.find(x => x.linha === linhaNumero);
   const nome = l ? ' "' + l.assunto + '"' : '';
@@ -1563,6 +1608,8 @@ window.addEventListener('DOMContentLoaded', () => {
   el('buscaExtras').addEventListener('input', renderizarExtras);
   el('filtroValidade').addEventListener('change', renderizarExtras);
   el('btnAtualizarExtras').addEventListener('click', carregarExtras);
+  el('btnExcluirVencidos').addEventListener('click', excluirVencidosExtras);
+  el('btnLinhasBrancas').addEventListener('click', removerLinhasBrancasExtras);
   el('btnNovaExtra').addEventListener('click', () => abrirModalExtra(null));
   el('btnFecharModalExtra').addEventListener('click', fecharModalExtra);
   el('formExtra').addEventListener('submit', salvarExtra);
