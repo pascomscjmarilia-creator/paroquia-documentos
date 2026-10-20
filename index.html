@@ -450,7 +450,7 @@
   <div id="modalReserva" class="modal-overlay" hidden>
     <div class="modal-caixa">
       <div class="modal-topo">
-        <h2>Nova Reserva</h2>
+        <h2 id="modalReservaTitulo">Nova Reserva</h2>
         <button id="btnFecharModal" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
       </div>
 
@@ -477,6 +477,9 @@
           <ul id="listaFixas" style="color:#b3261e; font-weight:600; margin:4px 0 2px; padding-left:18px;"><li>Carregando…</li></ul>
         </div>
 
+        <div id="salasExtras"></div>
+        <button type="button" id="btnOutraSala" class="btn-outra-sala" style="margin:8px 0 14px; background:none; border:1px dashed #8a1c2b; color:#8a1c2b; border-radius:6px; padding:7px 12px; font-size:0.85rem; font-weight:600; cursor:pointer;">➕ Reservar outra sala neste mesmo horário</button>
+
         <label for="modalData">Data</label>
         <input type="date" id="modalData" required>
 
@@ -501,11 +504,11 @@
         <input type="text" id="modalAtividade" required placeholder="Ex: Reunião da pastoral, curso de casais...">
 
         <button type="submit" id="btnConfirmarReserva">Confirmar reserva</button>
-        <p id="modalResultado"></p>
+        <p id="modalResultado" style="white-space:pre-line;"></p>
       </form>
     </div>
   </div>
 
-  <script src="app.js?v=20261020b"></script>
+  <script src="app.js?v=20261021a"></script>
 </body>
 </html>
