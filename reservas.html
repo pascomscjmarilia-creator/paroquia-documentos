@@ -41,6 +41,8 @@
             <option value="Sala 07">Sala 07</option>
             <option value="Capela">Capela</option>
           </select>
+          <div id="salasExtras"></div>
+          <button type="button" id="btnOutraSala" style="margin-top:8px; background:none; border:1px dashed var(--vinho); color:var(--vinho); border-radius:6px; padding:7px 12px; font-size:0.85rem; font-weight:600; cursor:pointer;">➕ Reservar outra sala neste mesmo horário</button>
         </div>
 
         <div>
@@ -77,7 +79,7 @@
         <button type="submit" id="btnEnviar" style="background:var(--vinho); color:#fff; border:none; padding:12px; border-radius:6px; font-size:1rem; font-weight:600; cursor:pointer;">Confirmar reserva</button>
       </form>
 
-      <p id="resultado" style="margin-top:16px; font-weight:600;"></p>
+      <p id="resultado" style="margin-top:16px; font-weight:600; white-space:pre-line;"></p>
     </section>
   </main>
 
@@ -173,16 +175,52 @@ function mascararTelefone(valor) {
     return dia + '/' + mes + '/' + ano;
   }
 
+  // "Reservar outra sala neste mesmo horário": cada sala extra é um menu a mais; no envio vira uma reserva por sala.
+  function adicionarSalaExtra(valor) {
+    const linha = document.createElement('div');
+    linha.className = 'sala-extra';
+    linha.style.cssText = 'display:flex; gap:8px; margin-top:8px; align-items:center;';
+    const sel = document.createElement('select');
+    sel.required = true;
+    sel.style.cssText = 'flex:1; padding:10px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:0.95rem;';
+    sel.innerHTML = document.getElementById('sala').innerHTML;
+    sel.value = valor || '';
+    const remover = document.createElement('button');
+    remover.type = 'button';
+    remover.className = 'btn-remover-sala';
+    remover.setAttribute('aria-label', 'Tirar esta sala');
+    remover.title = 'Tirar esta sala';
+    remover.textContent = '✕';
+    remover.style.cssText = 'background:#b3261e; color:#fff; border:none; border-radius:6px; padding:10px 13px; font-weight:700; cursor:pointer;';
+    linha.append(sel, remover);
+    document.getElementById('salasExtras').appendChild(linha);
+  }
+  function listarSalasEscolhidas() {
+    return [document.getElementById('sala').value].concat(Array.from(document.getElementById('salasExtras').querySelectorAll('select')).map(s => s.value));
+  }
+  function definirSalasEscolhidas(lista) {
+    document.getElementById('sala').value = lista[0] || '';
+    document.getElementById('salasExtras').innerHTML = '';
+    lista.slice(1).forEach(adicionarSalaExtra);
+  }
+  document.getElementById('btnOutraSala').addEventListener('click', () => adicionarSalaExtra());
+  document.getElementById('salasExtras').addEventListener('click', (e) => { const r = e.target.closest('.btn-remover-sala'); if (r) r.parentElement.remove(); });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (validarDia()) return;
     resultado.textContent = '';
     resultado.style.color = '';
+    const salas = listarSalasEscolhidas();
+    if (new Set(salas).size !== salas.length) {
+      resultado.style.color = '#b3261e';
+      resultado.textContent = '⚠️ Você escolheu a mesma sala mais de uma vez. Tire a repetida (✕).';
+      return;
+    }
     btnEnviar.disabled = true;
     btnEnviar.textContent = 'Enviando...';
 
-    const payload = {
-      sala: document.getElementById('sala').value,
+    const base = {
       data: formatarDataBR(document.getElementById('data').value),
       horaInicio: document.getElementById('horaInicio').value,
       horaFim: document.getElementById('horaFim').value,
@@ -191,30 +229,37 @@ function mascararTelefone(valor) {
       atividade: document.getElementById('atividade').value.trim()
     };
 
-    try {
-      const resp = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const dados = await resp.json();
-
-      if (dados.sucesso) {
-        resultado.style.color = '#276e35';
-        resultado.textContent = '✅ ' + dados.mensagem;
-        form.reset();
-      } else {
-        resultado.style.color = '#b3261e';
-        resultado.textContent = '⚠️ ' + dados.mensagem;
+    // Uma chamada por sala, uma depois da outra: cada uma é conferida (conflito, dia liberado, horário fixo) na hora.
+    const resultados = [];
+    for (const sala of salas) {
+      try {
+        const resp = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({ sala }, base))
+        });
+        const dados = await resp.json();
+        resultados.push({ sala, ok: !!dados.sucesso, mensagem: dados.mensagem });
+      } catch (err) {
+        console.error(err);
+        resultados.push({ sala, ok: false, mensagem: 'Não foi possível enviar sua reserva agora. Tente novamente em instantes.' });
       }
-    } catch (err) {
-      resultado.style.color = '#b3261e';
-      resultado.textContent = '⚠️ Não foi possível enviar sua reserva agora. Tente novamente em instantes.';
-      console.error(err);
-    } finally {
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = 'Confirmar reserva';
     }
+
+    const falharam = resultados.filter(r => !r.ok);
+    resultado.style.color = falharam.length ? '#b3261e' : '#276e35';
+    resultado.textContent = resultados.length === 1
+      ? (falharam.length ? '⚠️ ' : '✅ ') + resultados[0].mensagem
+      : resultados.map(r => (r.ok ? '✅ ' : '⚠️ ') + r.sala + ': ' + r.mensagem).join('\n');
+    if (!falharam.length) {
+      form.reset();
+      definirSalasEscolhidas([]);
+    } else if (falharam.length < resultados.length) {
+      // Parte deu certo: deixa na tela só as salas que falharam, para tentar de novo sem duplicar as que já foram reservadas.
+      definirSalasEscolhidas(falharam.map(r => r.sala));
+    }
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = 'Confirmar reserva';
   });
 </script>
 </body>
