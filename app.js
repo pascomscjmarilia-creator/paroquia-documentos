@@ -7,7 +7,2034 @@ const CONFIG = {
 
   // Planilha "Pascom_Controle" — usada pelas duas abas (Índice de Documentos e Recados)
   SHEET_ID: '1-9ZRasNVZK3qX3j51QffsZjOzI59axMkh4pCZxxhFws',
+  DOCS_RANGE: 'Índice de Documentos!A2:F',// ============================================================
+// CONFIGURAÇÃO — preencha estes valores antes de publicar
+// ============================================================
+const CONFIG = {
+  // Client ID OAuth criado no Google Cloud Console (tela "Credenciais")
+  CLIENT_ID: '172692599350-9ssc0ir4r4j4rtn3v7ksd5i6un41damc.apps.googleusercontent.com',
+
+  // Planilha "Pascom_Controle" — usada pelas duas abas (Índice de Documentos e Recados)
+  SHEET_ID: '1-9ZRasNVZK3qX3j51QffsZjOzI59axMkh4pCZxxhFws',
   DOCS_RANGE: 'Índice de Documentos!A2:F',
+  RECADOS_RANGE: 'Recados!A2:G',
+  RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
+
+  RESERVAS_RANGE: 'Reservas_Salas!A2:I',
+  RESERVAS_ABA: 'Reservas_Salas',
+  WEBHOOK_RESERVA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala',
+
+  // Planilha "PascomSCJ_Marilia_Dados_Paroquia" (base de conhecimento do bot) — aba Informacoes_Extras
+  SHEET_ID_DADOS: '1ac6la9wQEMkt_Q4MuazNeLNEAchLlOL9zwKGUuhdMFQ',
+  EXTRAS_RANGE: 'Informacoes_Extras!A2:C',
+  EXTRAS_ABA: 'Informacoes_Extras',
+  EXTRAS_GID: 1895112022, // id numérico da aba (para apagar a linha inteira, não só o conteúdo)
+
+  // Inscrições da catequese (planilha Pascom_Controle) — gravadas pelo formulário catequese.html via n8n
+  CATEQUESE_RANGE: 'Catequese_Inscricoes!A2:L',
+  CATEQUESE_ABA: 'Catequese_Inscricoes',
+
+  // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
+  LOJINHA_RANGE: 'Lojinha!A2:H',
+  LOJINHA_ABA: 'Lojinha',
+
+  // Salas da paróquia (planilha de dados da paróquia, aba "Salas"): A Sala · B Também chamada de · C Descrição · D Ativa
+  SALAS_RANGE: 'Salas!A2:D',
+  // Dias da semana em que dá para reservar sala (aba "Dias de Reserva": A Dia · B Reserva liberada Sim/Não)
+  DIAS_RESERVA_RANGE: "'Dias de Reserva'!A2:B",
+  WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
+  URL_LOJINHA: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
+
+  // E-mails autorizados a usar o app (checagem de UX — a segurança
+  // de verdade é a permissão de compartilhamento da planilha no Google)
+  ALLOWED_EMAILS: ['pascomscjmarilia@gmail.com'],
+};
+// ============================================================
+
+let accessToken = null;
+let linhasDocs = [];
+let linhasRecados = [];
+let linhasReservas = [];
+let linhasExtras = [];
+let linhasCatequese = [];
+let linhasLojinha = [];
+let produtoEditandoLinha = null;
+let fotoAtualProduto = '';
+let extraEditandoLinha = null;
+
+const el = (id) => document.getElementById(id);
+
+function mostrarErroLogin(msg) {
+  const erro = el('loginErro');
+  erro.textContent = msg;
+  erro.hidden = false;
+}
+
+function iniciarBotaoGoogle(tentativas) {
+  tentativas = tentativas || 0;
+  if (!window.google || !window.google.accounts) {
+    // O script do Google carrega em paralelo (async) e pode ainda não
+    // ter chegado quando a página termina de montar — tenta de novo por alguns segundos.
+    if (tentativas < 20) {
+      setTimeout(() => iniciarBotaoGoogle(tentativas + 1), 200);
+      return;
+    }
+    mostrarErroLogin('Não foi possível carregar o login do Google. Verifique sua conexão com a internet e recarregue a página.');
+    return;
+  }
+
+  try {
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.CLIENT_ID,
+      // spreadsheets (não .readonly): precisamos gravar o Status ao marcar um recado como Resolvido.
+      scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
+      callback: async (resp) => {
+        if (resp.error) {
+          mostrarErroLogin('Não foi possível entrar com essa conta Google (' + resp.error + ').');
+          return;
+        }
+        accessToken = resp.access_token;
+        await handleLoginSucesso();
+      },
+    });
+
+    // Botão próprio (mais confiável em GitHub Pages do que o widget padrão do GIS)
+    const btn = document.createElement('button');
+    btn.textContent = 'Entrar com Google';
+    btn.className = 'btn-google';
+    btn.style.cssText = 'background:#fff;border:1px solid #ccc;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:0.95rem;font-weight:600;color:#3c4043;';
+    btn.onclick = () => {
+      el('loginErro').hidden = true;
+      tokenClient.requestAccessToken();
+    };
+    el('googleBtn').innerHTML = ''; // nunca deixa dois botões, mesmo que esta função rode duas vezes
+    el('googleBtn').appendChild(btn);
+  } catch (e) {
+    mostrarErroLogin('Erro ao iniciar o login do Google: ' + e.message);
+  }
+}
+
+async function handleLoginSucesso() {
+  try {
+    const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken },
+    });
+    const perfil = await resp.json();
+    const email = (perfil.email || '').toLowerCase();
+
+    if (!CONFIG.ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+      mostrarErroLogin('Conta "' + email + '" não autorizada para este app.');
+      accessToken = null;
+      return;
+    }
+
+    el('userEmail').textContent = email;
+    el('userBox').hidden = false;
+    el('loginScreen').hidden = true;
+    el('appScreen').hidden = false;
+
+    await carregarDocumentos();
+    await carregarRecados();
+    await carregarSalas();
+    await carregarDiasReserva();
+    await carregarReservasFixas();
+    await carregarReservas();
+    await carregarExtras();
+    await carregarCatequese();
+    await carregarLojinha();
+  } catch (e) {
+    mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
+  }
+}
+
+async function buscarValoresSheet(range, sheetId) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId || CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (resp.status === 403) throw new Error('SEM_PERMISSAO');
+  if (!resp.ok) throw new Error('STATUS_' + resp.status);
+  const data = await resp.json();
+  return data.values || [];
+}
+
+async function carregarDocumentos() {
+  const statusMsg = el('statusMsg');
+  statusMsg.textContent = 'Carregando documentos...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.DOCS_RANGE);
+    linhasDocs = valores
+      .filter(row => row && row.length > 0)
+      .map((row, idx) => ({
+        ordem: idx, // posição original na planilha (desempate quando a data é igual)
+        data: row[0] || '',
+        nome: row[1] || '',
+        numero: limparNumero(row[2]),
+        tipo: row[3] || '',
+        arquivo: row[4] || '',
+        link: row[5] || '',
+      }));
+
+    statusMsg.textContent = linhasDocs.length + ' documento(s) encontrado(s).';
+    renderizarTabela();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : 'Erro ao carregar documentos.';
+  }
+}
+
+async function carregarRecados() {
+  const statusMsg = el('statusMsgRecados');
+  statusMsg.textContent = 'Carregando recados...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.RECADOS_RANGE);
+    // Mantém o número da linha real da planilha (RECADOS_RANGE começa em A2 → primeira linha = 2)
+    // mesmo depois de filtrar linhas em branco, pra gravar o status de volta na célula certa.
+    linhasRecados = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        data: row[1] || '',
+        hora: row[2] || '',
+        nome: row[3] || '',
+        whatsapp: limparNumero(row[4]),
+        assunto: row[5] || '',
+        status: row[6] || '',
+      }))
+      .filter(l => l.nome || l.whatsapp || l.assunto);
+
+    statusMsg.textContent = linhasRecados.length + ' recado(s) encontrado(s).';
+    renderizarRecados();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : 'Erro ao carregar recados.';
+  }
+}
+
+function parseDataBR(s) {
+  const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+}
+
+function dataBRparaISO(s) {
+  const d = parseDataBR(s);
+  if (!d) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// Mesma regra do bot: sem data = vale sempre; data ilegível = não descarta; data passada = vencido.
+function situacaoExtra(validoAte) {
+  if (!validoAte) return 'semprazo';
+  const d = parseDataBR(validoAte);
+  if (!d) return 'ativo';
+  const hoje = new Date();
+  const hojeZero = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return d >= hojeZero ? 'ativo' : 'vencido';
+}
+
+async function carregarExtras() {
+  const statusMsg = el('statusMsgExtras');
+  statusMsg.textContent = 'Carregando informações extras...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.EXTRAS_RANGE, CONFIG.SHEET_ID_DADOS);
+    // EXTRAS_RANGE começa em A2 → primeira linha = 2; guarda o número real da linha pra editar/excluir a célula certa.
+    linhasExtras = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        assunto: row[0] || '',
+        informacao: row[1] || '',
+        validoAte: row[2] || '',
+      }))
+      .filter(l => l.assunto || l.informacao);
+
+    statusMsg.textContent = linhasExtras.length + ' aviso(s) cadastrado(s).';
+    renderizarExtras();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso à planilha de dados da paróquia. Peça para compartilhá-la com você (como editor).'
+      : 'Erro ao carregar informações extras.';
+  }
+}
+
+function renderizarExtras() {
+  const termo = norm(el('buscaExtras').value.trim());
+  const validadeFiltro = el('filtroValidade').value;
+
+  const filtradas = linhasExtras.filter(l => {
+    const situacao = situacaoExtra(l.validoAte);
+    const bateTexto = !termo || norm(l.assunto + ' ' + l.informacao).includes(termo);
+    const bateValidade = !validadeFiltro
+      || (validadeFiltro === 'vencido' && situacao === 'vencido')
+      || (validadeFiltro === 'ativo' && situacao !== 'vencido');
+    return bateTexto && bateValidade;
+  });
+
+  const corpo = el('tabelaExtrasCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="5">Nenhum aviso encontrado.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const situacao = situacaoExtra(l.validoAte);
+    const rotulo = situacao === 'vencido' ? 'Vencido' : (situacao === 'semprazo' ? 'Sem prazo' : 'Valendo');
+    const classe = situacao === 'vencido' ? 'pendente' : 'resolvido';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
+      <td data-label="Informação" class="texto-longo">${escapeHtml(l.informacao)}</td>
+      <td data-label="Válido até">${escapeHtml(l.validoAte || '—')}</td>
+      <td data-label="Situação"><span class="status-pill ${classe}" title="A situação depende do 'Válido até'. Para mudar, clique em Editar.">${rotulo}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        <button class="btn-acao btn-editar" data-linha="${l.linha}">✏️ Editar</button>
+        <button class="btn-acao btn-excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+function abrirModalExtra(linhaNumero) {
+  extraEditandoLinha = linhaNumero || null;
+  el('formExtra').reset();
+  document.querySelectorAll('#formExtra .ajuda-texto').forEach(d => { d.hidden = true; });
+  document.querySelectorAll('#formExtra .btn-ajuda').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  el('modalExtraResultado').textContent = '';
+  el('modalExtraResultado').className = '';
+
+  if (extraEditandoLinha) {
+    const l = linhasExtras.find(x => x.linha === extraEditandoLinha);
+    if (l) {
+      el('extraAssunto').value = l.assunto;
+      el('extraInformacao').value = l.informacao;
+      el('extraValidoAte').value = dataBRparaISO(l.validoAte);
+    }
+    el('modalExtraTitulo').textContent = 'Editar aviso';
+  } else {
+    el('modalExtraTitulo').textContent = 'Novo aviso';
+  }
+  el('modalExtra').hidden = false;
+}
+
+function fecharModalExtra() {
+  el('modalExtra').hidden = true;
+  extraEditandoLinha = null;
+}
+
+async function salvarExtra(e) {
+  e.preventDefault();
+  const resultado = el('modalExtraResultado');
+  const btn = el('btnSalvarExtra');
+  resultado.textContent = '';
+  resultado.className = '';
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const validoIso = el('extraValidoAte').value;
+  const valores = [[
+    el('extraAssunto').value.trim(),
+    el('extraInformacao').value.trim(),
+    validoIso ? formatarDataBR(validoIso) : '',
+  ]];
+
+  const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/`;
+  const cabecalhos = { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
+
+  try {
+    let resp;
+    if (extraEditandoLinha) {
+      const range = `${CONFIG.EXTRAS_ABA}!A${extraEditandoLinha}:C${extraEditandoLinha}`;
+      resp = await fetch(base + encodeURIComponent(range) + '?valueInputOption=RAW', {
+        method: 'PUT', headers: cabecalhos, body: JSON.stringify({ values: valores }),
+      });
+    } else {
+      const range = `${CONFIG.EXTRAS_ABA}!A:C`;
+      resp = await fetch(base + encodeURIComponent(range) + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', {
+        method: 'POST', headers: cabecalhos, body: JSON.stringify({ values: valores }),
+      });
+    }
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+
+    resultado.className = 'sucesso';
+    resultado.textContent = '✅ Aviso salvo.';
+    await carregarExtras();
+    setTimeout(fecharModalExtra, 900);
+  } catch (err) {
+    console.error('Erro ao salvar aviso:', err);
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ ' + mensagemErroGravacao(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+// Traduz o erro do Google Sheets numa mensagem que diz o que fazer (em vez de um "tente novamente" genérico).
+function mensagemErroGravacao(err, aba, planilha) {
+  aba = aba || CONFIG.EXTRAS_ABA;
+  planilha = planilha || 'planilha de dados da paróquia';
+  const s = err && err.status;
+  if (s === 401) return 'Sua sessão do Google expirou. Clique em "Sair" (canto superior direito), entre de novo e tente outra vez.';
+  if (s === 403) return 'Sua conta Google não tem permissão para EDITAR a ' + planilha + ' (só para ver). Peça para compartilhá-la com você como Editor e tente de novo.';
+  if (s === 400 || s === 404) return 'Não encontrei a aba "' + aba + '" na ' + planilha + '. Confira se o nome da aba está exatamente assim.';
+  if (s === 429) return 'O Google está limitando os acessos neste momento. Aguarde 1 minuto e tente de novo.';
+  if (s) return 'O Google recusou a gravação (código ' + s + '). Tente novamente em instantes; se continuar, avise a equipe técnica.';
+  return 'Sem conexão com o Google. Confira a internet e tente novamente.';
+}
+
+// Apaga LINHAS inteiras da aba Informacoes_Extras (de baixo para cima, para os números não se deslocarem durante a operação).
+async function apagarLinhasExtras(linhas) {
+  const ordenadas = [...new Set(linhas)].sort((a, b) => b - a);
+  const requests = ordenadas.map(n => ({ deleteDimension: { range: { sheetId: CONFIG.EXTRAS_GID, dimension: 'ROWS', startIndex: n - 1, endIndex: n } } }));
+  const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}:batchUpdate`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests }),
+  });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+}
+
+async function excluirVencidosExtras() {
+  const vencidos = linhasExtras.filter(l => situacaoExtra(l.validoAte) === 'vencido');
+  if (vencidos.length === 0) { alert('Não há avisos vencidos para excluir.'); return; }
+  const lista = vencidos.map(l => '• ' + l.assunto + ' (válido até ' + l.validoAte + ')').join('\n');
+  if (!confirm('Excluir ' + vencidos.length + ' aviso(s) vencido(s)? A linha inteira de cada um será apagada da planilha.\n\n' + lista + '\n\nEssa ação não pode ser desfeita.')) return;
+  try {
+    await apagarLinhasExtras(vencidos.map(l => l.linha));
+    await carregarExtras();
+  } catch (e) {
+    console.error('Erro ao excluir vencidos:', e);
+    alert(mensagemErroGravacao(e));
+  }
+}
+
+async function removerLinhasBrancasExtras() {
+  try {
+    const valores = await buscarValoresSheet(CONFIG.EXTRAS_RANGE, CONFIG.SHEET_ID_DADOS);
+    const brancas = [];
+    valores.forEach((row, idx) => {
+      const vazia = !row || row.every(c => String(c || '').trim() === '');
+      if (vazia) brancas.push(idx + 2);
+    });
+    // linhas vazias depois da última com conteúdo nem aparecem na leitura; só as do meio da lista contam
+    if (brancas.length === 0) { alert('Não há linhas em branco no meio da lista.'); return; }
+    if (!confirm('Remover ' + brancas.length + ' linha(s) em branco da aba Informações Extras? Só linhas totalmente vazias serão apagadas.')) return;
+    await apagarLinhasExtras(brancas);
+    await carregarExtras();
+  } catch (e) {
+    console.error('Erro ao remover linhas em branco:', e);
+    alert(e && e.status ? mensagemErroGravacao(e) : 'Não foi possível ler a planilha agora. Tente de novo em instantes.');
+  }
+}
+
+async function excluirExtra(linhaNumero) {
+  const l = linhasExtras.find(x => x.linha === linhaNumero);
+  const nome = l ? ' "' + l.assunto + '"' : '';
+  if (!confirm('Confirma que quer excluir o aviso' + nome + '? Essa ação não pode ser desfeita.')) return;
+
+  // Apaga a LINHA inteira da planilha (desloca as linhas de baixo pra cima), em vez de só limpar
+  // o conteúdo das células — assim não fica um "buraco" em branco no meio da aba.
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}:batchUpdate`;
+  const corpo = {
+    requests: [{
+      deleteDimension: {
+        range: { sheetId: CONFIG.EXTRAS_GID, dimension: 'ROWS', startIndex: linhaNumero - 1, endIndex: linhaNumero },
+      },
+    }],
+  };
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    await carregarExtras();
+  } catch (e) {
+    console.error('Erro ao excluir aviso:', e);
+    alert(mensagemErroGravacao(e));
+  }
+}
+
+
+// ---------- Salas (aba "Salas": o menu de salas e os apelidos vêm da planilha) ----------
+let aliasSalas = {};
+
+function montarSalas(valores) {
+  return valores
+    .map(row => ({
+      nome: String(row[0] || '').trim(),
+      apelidos: String(row[1] || '').split(/[;,]/).map(a => norm(a)).filter(Boolean),
+      descricao: String(row[2] || '').trim(),
+      ativa: norm(row[3] || 'Sim') !== 'nao',
+    }))
+    .filter(s => s.nome && s.ativa);
+}
+
+// "sala com TV" e "Sala 05" são a mesma sala: compara sempre pelo nome oficial
+function canonSala(s) {
+  const n = norm(s);
+  return aliasSalas[n] || n;
+}
+
+function preencherSelectSalas(select, primeiraOpcao, salas) {
+  const atual = select.value;
+  select.innerHTML = `<option value="">${escapeHtml(primeiraOpcao)}</option>` +
+    salas.map(s => `<option value="${escapeAttr(s.nome)}">${escapeHtml(s.nome + (s.descricao ? ' (' + s.descricao + ')' : ''))}</option>`).join('');
+  if (salas.some(s => s.nome === atual)) select.value = atual;
+}
+
+// Se a aba não existir ou estiver vazia, ficam as opções que já vêm no HTML.
+async function carregarSalas() {
+  try {
+    const salas = montarSalas(await buscarValoresSheet(CONFIG.SALAS_RANGE, CONFIG.SHEET_ID_DADOS));
+    if (salas.length === 0) return;
+    aliasSalas = {};
+    salas.forEach(s => s.apelidos.forEach(a => { aliasSalas[a] = norm(s.nome); }));
+    preencherSelectSalas(el('filtroSala'), 'Todas as salas', salas);
+    preencherSelectSalas(el('modalSala'), 'Selecione...', salas);
+  } catch (e) { /* mantém as opções do HTML */ }
+}
+
+// ---------- Dias liberados para reserva (aba "Dias de Reserva") ----------
+const NOMES_DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+let diasLiberados = [2, 4, 5, 6]; // padrão se a aba não carregar: terça, quinta, sexta e sábado
+
+function idxDiaSemana(texto) {
+  const d = norm(texto);
+  const nomes = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+  return nomes.findIndex(n => d.includes(n));
+}
+
+function montarDiasLiberados(valores) {
+  const mapa = {};
+  valores.forEach(row => {
+    const i = idxDiaSemana(row[0]);
+    if (i >= 0) mapa[i] = norm(row[1]) === 'sim';
+  });
+  if (Object.keys(mapa).length === 0) return null;
+  return [0, 1, 2, 3, 4, 5, 6].filter(i => mapa[i]);
+}
+
+function listaDiasTexto(dias) {
+  const nomes = dias.map(i => NOMES_DIAS[i]);
+  return nomes.length > 1 ? nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1] : (nomes[0] || '');
+}
+
+function mensagemDiaBloqueado(isoDate) {
+  const h = new Date();
+  const hojeISO = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+  if (isoDate < hojeISO) return 'Essa data já passou. Escolha uma data a partir de hoje.';
+  const [ano, mes, dia] = isoDate.split('-').map(Number);
+  const idx = new Date(ano, mes - 1, dia).getDay();
+  if (diasLiberados.includes(idx)) return '';
+  const emDia = ['aos domingos', 'nas segundas-feiras', 'nas terças-feiras', 'nas quartas-feiras', 'nas quintas-feiras', 'nas sextas-feiras', 'aos sábados'][idx];
+  return 'As salas não estão disponíveis ' + emDia + '. Dias disponíveis: ' + listaDiasTexto(diasLiberados) + '.';
+}
+
+// Mostra, na caixa do "?", os dias da semana em que NÃO dá para reservar (os que não estão liberados na aba "Dias de Reserva").
+function renderizarDiasSemReserva() {
+  const caixaSem = el('diasSemReserva');
+  if (!caixaSem) return;
+  const maiuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const bloqueados = [0, 1, 2, 3, 4, 5, 6].filter(i => !diasLiberados.includes(i));
+  caixaSem.textContent = bloqueados.length ? listaDiasTexto(bloqueados).split(/(, | e )/).map((p, k) => (k % 2 === 0 ? maiuscula(p) : p)).join('') : 'nenhum (todos os dias estão liberados)';
+  const ok = el('diasComReserva');
+  if (ok) ok.textContent = diasLiberados.length ? 'Dias liberados para reserva: ' + listaDiasTexto(diasLiberados) + '.' : '';
+}
+
+async function carregarDiasReserva() {
+  try {
+    const dias = montarDiasLiberados(await buscarValoresSheet(CONFIG.DIAS_RESERVA_RANGE, CONFIG.SHEET_ID_DADOS));
+    if (dias && dias.length > 0) diasLiberados = dias;
+  } catch (e) { /* mantém o padrão */ }
+  renderizarDiasSemReserva();
+}
+
+function avisarDiaBloqueado() {
+  const msg = el('modalData').value ? mensagemDiaBloqueado(el('modalData').value) : '';
+  el('modalData').setCustomValidity(msg);
+  const resultado = el('modalResultado');
+  resultado.className = msg ? 'erro' : '';
+  resultado.textContent = msg ? '⚠️ ' + msg : '';
+  return msg;
+}
+
+async function carregarReservas() {
+  const statusMsg = el('statusMsgReservas');
+  statusMsg.textContent = 'Carregando reservas...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.RESERVAS_RANGE);
+    linhasReservas = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        data: row[0] || '',
+        horaInicio: row[1] || '',
+        horaFim: row[2] || '',
+        sala: row[3] || '',
+        nome: row[4] || '',
+        whatsapp: limparNumero(row[5]),
+        atividade: row[6] || '',
+        status: row[7] || '',
+      }))
+      .filter(l => l.sala || l.nome);
+
+    statusMsg.textContent = linhasReservas.length + ' reserva(s) encontrada(s).';
+    renderizarReservas();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : 'Erro ao carregar reservas.';
+  }
+}
+
+async function cancelarReserva(linhaNumero) {
+  const reserva = linhasReservas.find(x => x.linha === linhaNumero);
+  if (reserva && reservaJaPassou(reserva.data)) {
+    alert('Esta reserva é de uma data que já passou e não pode mais ser cancelada. Use "Excluir" para apagá-la da lista.');
+    return;
+  }
+  const confirmado = confirm('Confirma que quer cancelar essa reserva?');
+  if (!confirmado) return;
+
+  const range = `${CONFIG.RESERVAS_ABA}!H${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [['Cancelado']] }),
+    });
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    await carregarReservas();
+  } catch (e) {
+    alert('Não foi possível cancelar a reserva agora. Tente novamente em instantes.');
+  }
+}
+
+// ---------- Salas com agendamento fixo (aba "RESERVAS FIXAS DE SALAS": A Dia · B Início · C Fim · D Sala · E Atividade · F Observação) ----------
+let reservasFixas = [];
+let fixasEstado = 'nao'; // nao | ok | erro
+
+async function obterNomeAbaFixas() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}?fields=sheets.properties(sheetId,title)`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+  const dados = await resp.json();
+  const aba = (dados.sheets || []).find(s => /reservas\s+fixas/i.test(s.properties.title));
+  if (!aba) { const e = new Error('aba não encontrada'); e.status = 404; throw e; }
+  return aba.properties.title;
+}
+
+async function carregarReservasFixas() {
+  try {
+    const nome = await obterNomeAbaFixas();
+    const valores = await buscarValoresSheet("'" + nome.replace(/'/g, "''") + "'!A2:F", CONFIG.SHEET_ID_DADOS);
+    reservasFixas = valores
+      .map(r => ({ dia: String(r[0] || '').trim(), inicio: String(r[1] || '').trim(), fim: String(r[2] || '').trim(), sala: String(r[3] || '').trim(), atividade: String(r[4] || '').trim(), obs: String(r[5] || '').trim() }))
+      .filter(f => f.sala || f.atividade);
+    fixasEstado = 'ok';
+  } catch (e) {
+    reservasFixas = [];
+    fixasEstado = 'erro';
+  }
+  renderizarFixas();
+}
+
+function renderizarFixas() {
+  const ul = el('listaFixas');
+  if (!ul) return;
+  if (fixasEstado === 'erro') { ul.innerHTML = '<li>Não consegui carregar os horários fixos agora. Feche e abra de novo, ou confira a aba “RESERVAS FIXAS DE SALAS” da planilha.</li>'; return; }
+  if (fixasEstado === 'nao') { ul.innerHTML = '<li>Carregando…</li>'; return; }
+  if (reservasFixas.length === 0) { ul.innerHTML = '<li>Nenhum horário fixo cadastrado.</li>'; return; }
+  const todas = (s) => /^todas\b/.test(norm(s));
+  const lista = reservasFixas.slice().sort((a, b) =>
+    (todas(b.sala) - todas(a.sala)) || norm(a.sala).localeCompare(norm(b.sala), 'pt-BR') ||
+    (idxDiaSemana(a.dia) - idxDiaSemana(b.dia)) || a.inicio.localeCompare(b.inicio));
+  ul.innerHTML = lista.map(f => {
+    const horario = f.inicio ? f.inicio + (f.fim ? ' às ' + f.fim : '') : '';
+    const partes = [f.dia, horario].filter(Boolean).join(', ');
+    return '<li><strong>' + escapeHtml(f.sala || 'Sala não informada') + '</strong>' + (partes ? ' · ' + escapeHtml(partes) : '') +
+      (f.atividade ? ' · ' + escapeHtml(f.atividade) : '') + (f.obs ? ' <span style="font-weight:400;">(' + escapeHtml(f.obs) + ')</span>' : '') + '</li>';
+  }).join('');
+}
+
+function alternarAjudaFixas() {
+  renderizarDiasSemReserva();
+  const caixa = el('ajudaFixas');
+  caixa.hidden = !caixa.hidden;
+  el('btnAjudaFixas').setAttribute('aria-expanded', String(!caixa.hidden));
+  if (!caixa.hidden && fixasEstado !== 'ok') carregarReservasFixas();
+}
+
+// Reserva em edição (null = modal está em modo "Nova Reserva")
+var reservaEditando = null;
+
+function prepararModalReservaNova() {
+  reservaEditando = null;
+  el('modalReservaTitulo').textContent = 'Nova Reserva';
+  el('btnConfirmarReserva').textContent = 'Confirmar reserva';
+  el('btnOutraSala').hidden = false;
+  el('salasExtras').innerHTML = '';
+  // opção de sala acrescentada só para editar uma reserva cuja sala não está mais no menu
+  Array.from(el('modalSala').options).filter(o => o.dataset.temporaria).forEach(o => o.remove());
+}
+
+// "Reservar outra sala neste mesmo horário": cada sala extra é um menu a mais; no envio vira uma reserva por sala.
+function adicionarSalaExtra(valor) {
+  const linha = document.createElement('div');
+  linha.className = 'sala-extra';
+  linha.style.cssText = 'display:flex; gap:8px; margin-top:8px; align-items:center;';
+  const sel = document.createElement('select');
+  sel.required = true;
+  sel.style.flex = '1';
+  sel.innerHTML = el('modalSala').innerHTML;
+  sel.value = valor || '';
+  const remover = document.createElement('button');
+  remover.type = 'button';
+  remover.className = 'btn-remover-sala';
+  remover.setAttribute('aria-label', 'Tirar esta sala');
+  remover.title = 'Tirar esta sala';
+  remover.textContent = '✕';
+  remover.style.cssText = 'background:#b3261e; color:#fff; border:none; border-radius:6px; padding:8px 11px; font-weight:700; cursor:pointer;';
+  linha.append(sel, remover);
+  el('salasExtras').appendChild(linha);
+}
+
+function listarSalasEscolhidas() {
+  return [el('modalSala').value].concat(Array.from(el('salasExtras').querySelectorAll('select')).map(s => s.value));
+}
+
+function definirSalasEscolhidas(lista) {
+  el('modalSala').value = lista[0] || '';
+  el('salasExtras').innerHTML = '';
+  lista.slice(1).forEach(adicionarSalaExtra);
+}
+
+function abrirModalReserva() {
+  prepararModalReservaNova();
+  el('ajudaFixas').hidden = true;
+  el('btnAjudaFixas').setAttribute('aria-expanded', 'false');
+  el('formNovaReserva').reset();
+  el('modalData').setCustomValidity('');
+  const hj = new Date();
+  el('modalData').min = hj.getFullYear() + '-' + String(hj.getMonth() + 1).padStart(2, '0') + '-' + String(hj.getDate()).padStart(2, '0');
+  el('modalResultado').textContent = '';
+  el('modalResultado').className = '';
+  el('modalReserva').hidden = false;
+}
+
+function fecharModalReserva() {
+  el('modalReserva').hidden = true;
+}
+
+function formatarDataBR(isoDate) {
+  const [ano, mes, dia] = isoDate.split('-');
+  return dia + '/' + mes + '/' + ano;
+}
+
+async function enviarNovaReserva(e) {
+  e.preventDefault();
+  if (reservaEditando) { await salvarEdicaoReserva(); return; }
+  if (avisarDiaBloqueado()) return;
+  const resultado = el('modalResultado');
+  const btn = el('btnConfirmarReserva');
+  resultado.textContent = '';
+  resultado.className = '';
+
+  const salas = listarSalasEscolhidas();
+  if (new Set(salas.map(canonSala)).size !== salas.length) {
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ Você escolheu a mesma sala mais de uma vez. Tire a repetida (✕).';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const base = {
+    data: formatarDataBR(el('modalData').value),
+    horaInicio: el('modalHoraInicio').value,
+    horaFim: el('modalHoraFim').value,
+    nome: el('modalNome').value.trim(),
+    numero: el('modalWhatsapp').value.trim(),
+    atividade: el('modalAtividade').value.trim(),
+  };
+
+  // Uma chamada por sala, uma depois da outra: cada uma é conferida (conflito, dia liberado, horário fixo) pelo n8n.
+  const resultados = [];
+  for (const sala of salas) {
+    try {
+      const resp = await fetch(CONFIG.WEBHOOK_RESERVA, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ sala }, base)),
+      });
+      const dados = await resp.json();
+      resultados.push({ sala, ok: !!dados.sucesso, mensagem: dados.mensagem });
+    } catch (err) {
+      resultados.push({ sala, ok: false, mensagem: 'Não foi possível enviar a reserva agora. Tente novamente em instantes.' });
+    }
+  }
+
+  const falharam = resultados.filter(r => !r.ok);
+  if (resultados.length === 1) {
+    resultado.className = falharam.length ? 'erro' : 'sucesso';
+    resultado.textContent = (falharam.length ? '⚠️ ' : '✅ ') + resultados[0].mensagem;
+  } else {
+    resultado.className = falharam.length ? 'erro' : 'sucesso';
+    resultado.textContent = resultados.map(r => (r.ok ? '✅ ' : '⚠️ ') + r.sala + ': ' + r.mensagem).join('\n');
+  }
+  if (resultados.some(r => r.ok)) await carregarReservas();
+  if (!falharam.length) {
+    setTimeout(fecharModalReserva, resultados.length > 1 ? 2500 : 1200);
+  } else if (falharam.length < resultados.length) {
+    // Parte deu certo: deixa na tela só as salas que falharam, para tentar de novo sem duplicar as que já foram reservadas.
+    definirSalasEscolhidas(falharam.map(r => r.sala));
+  }
+  btn.disabled = false;
+  btn.textContent = 'Confirmar reserva';
+}
+
+// ---------- Editar uma reserva ----------
+function horaParaInput(h) {
+  const m = String(h || '').match(/(\d{1,2}):(\d{2})/);
+  return m ? m[1].padStart(2, '0') + ':' + m[2] : '';
+}
+
+function minutosDeHora(h) {
+  const m = String(h || '').match(/(\d{1,2}):(\d{2})/);
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+
+function dataBRparaISO(s) {
+  const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : '';
+}
+
+function abrirModalEditarReserva(linhaNumero) {
+  const l = linhasReservas.find(x => x.linha === linhaNumero);
+  if (!l || reservaCancelada(l.status) || reservaJaPassou(l.data)) {
+    alert('Só é possível editar reservas ativas, de hoje em diante.');
+    return;
+  }
+  abrirModalReserva();
+  reservaEditando = { linha: linhaNumero, original: Object.assign({}, l) };
+  el('modalReservaTitulo').textContent = 'Editar reserva';
+  el('btnConfirmarReserva').textContent = 'Salvar alterações';
+  el('btnOutraSala').hidden = true;
+
+  const sel = el('modalSala');
+  let op = Array.from(sel.options).find(o => o.value && canonSala(o.value) === canonSala(l.sala));
+  if (!op) { op = new Option(l.sala, l.sala); op.dataset.temporaria = '1'; sel.add(op); }
+  sel.value = op.value;
+  el('modalData').value = dataBRparaISO(l.data);
+  el('modalHoraInicio').value = horaParaInput(l.horaInicio);
+  el('modalHoraFim').value = horaParaInput(l.horaFim);
+  el('modalNome').value = l.nome;
+  el('modalWhatsapp').value = mascararTelefone(l.whatsapp);
+  el('modalAtividade').value = l.atividade;
+}
+
+async function salvarEdicaoReserva() {
+  const { linha, original } = reservaEditando;
+  const resultado = el('modalResultado');
+  const btn = el('btnConfirmarReserva');
+  const erro = (msg) => { resultado.className = 'erro'; resultado.textContent = '⚠️ ' + msg; };
+  resultado.textContent = '';
+  resultado.className = '';
+  if (avisarDiaBloqueado()) return;
+
+  const novo = {
+    sala: el('modalSala').value,
+    data: formatarDataBR(el('modalData').value),
+    horaInicio: el('modalHoraInicio').value,
+    horaFim: el('modalHoraFim').value,
+    nome: el('modalNome').value.trim(),
+    numero: el('modalWhatsapp').value.trim(),
+    atividade: el('modalAtividade').value.trim(),
+  };
+  const iniMin = minutosDeHora(novo.horaInicio);
+  const fimMin = minutosDeHora(novo.horaFim);
+  if (iniMin === null || fimMin === null || iniMin >= fimMin) { erro('O horário de início precisa ser antes do horário de término.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+  try {
+    // Lê a planilha agora: confere que a linha ainda é esta reserva e procura conflitos com as outras.
+    const todas = await buscarValoresSheet(CONFIG.RESERVAS_RANGE);
+    const row = todas[linha - 2] || [];
+    const igual = (row[0] || '') === original.data && (row[1] || '') === original.horaInicio && (row[2] || '') === original.horaFim &&
+      (row[3] || '') === original.sala && (row[4] || '') === original.nome;
+    if (!igual || reservaCancelada(row[7])) {
+      erro('Esta reserva mudou (ou foi cancelada) desde que a tela foi carregada. Nada foi alterado. Atualizei a lista: feche esta janela, confira e tente de novo.');
+      await carregarReservas();
+      return;
+    }
+
+    const dataAlvo = parseDataBR(novo.data);
+    const sobrepoe = (i1, f1) => i1 !== null && f1 !== null && iniMin < f1 && fimMin > i1;
+    const conflito = todas.find((r, i) => (i + 2) !== linha && !reservaCancelada(r[7]) && canonSala(r[3]) === canonSala(novo.sala) &&
+      parseDataBR(r[0]) && parseDataBR(r[0]).getTime() === dataAlvo.getTime() && sobrepoe(minutosDeHora(r[1]), minutosDeHora(r[2])));
+    if (conflito) { erro('Essa sala já está reservada nesse horário (' + conflito[1] + ' às ' + conflito[2] + '). Escolha outro horário ou sala.'); return; }
+
+    if (fixasEstado !== 'ok') await carregarReservasFixas();
+    if (fixasEstado !== 'ok') { erro('Não consegui conferir os horários fixos das salas agora. Tente de novo em instantes.'); return; }
+    const fixo = reservasFixas.find(f => idxDiaSemana(f.dia) === dataAlvo.getDay() &&
+      (/^todas\b/.test(norm(f.sala)) || canonSala(f.sala) === canonSala(novo.sala)) && sobrepoe(minutosDeHora(f.inicio), minutosDeHora(f.fim)));
+    if (fixo) {
+      erro('Esse horário já é ocupado toda semana por "' + (fixo.atividade || 'um compromisso fixo') + '" (' + fixo.inicio + ' às ' + fixo.fim + '). Escolha outro horário' + (/^todas\b/.test(norm(fixo.sala)) ? '.' : ' ou sala.'));
+      return;
+    }
+
+    // WhatsApp: se não mudou, mantém exatamente o que já estava na célula
+    const whats = limparNumero(novo.numero) === limparNumero(original.whatsapp) ? (row[5] || '') : novo.numero;
+    const range = CONFIG.RESERVAS_ABA + '!A' + linha + ':G' + linha;
+    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [[novo.data, novo.horaInicio, novo.horaFim, novo.sala, novo.nome, whats, novo.atividade]] }),
+    });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+
+    reservaEditando = null;
+    resultado.className = 'sucesso';
+    resultado.textContent = '✅ Reserva atualizada.';
+    await carregarReservas();
+    setTimeout(fecharModalReserva, 900);
+  } catch (e) {
+    console.error('Erro ao editar reserva:', e);
+    if (!e.status) { const m = /STATUS_(\d+)/.exec(e.message || ''); if (m) e.status = Number(m[1]); else if (e.message === 'SEM_PERMISSAO') e.status = 403; }
+    erro(mensagemErroGravacao(e, CONFIG.RESERVAS_ABA, 'planilha de reservas'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = reservaEditando ? 'Salvar alterações' : 'Confirmar reserva';
+  }
+}
+
+async function marcarComoResolvido(linhaNumero) {
+  const confirmado = confirm('Confirma que já entrou em contato e quer marcar este recado como Resolvido?');
+  if (!confirmado) return;
+
+  const range = `${CONFIG.RECADOS_ABA}!G${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [['Resolvido']] }),
+    });
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    await carregarRecados();
+  } catch (e) {
+    alert('Não foi possível atualizar o status agora. Tente novamente em instantes.');
+  }
+}
+
+async function marcarResolvidoAutomatico(linhaNumero) {
+  const range = `${CONFIG.RECADOS_ABA}!G${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ values: [['Resolvido']] }),
+    });
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    await carregarRecados();
+  } catch (e) {
+    // Falha silenciosa: o WhatsApp já abriu numa aba própria; só não deu pra atualizar o status agora.
+  }
+}
+
+// Máscara de telefone enquanto digita: (14) 99999-9999 (celular) ou (14) 9999-9999 (fixo). Aceita colar com +55.
+function mascararTelefone(valor) {
+  let d = String(valor || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  d = d.slice(0, 11);
+  if (d.length === 0) return '';
+  if (d.length <= 2) return '(' + d;
+  if (d.length <= 6) return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+  if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+  return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+}
+
+// Deixa só os dígitos: "5514997222096@s.whatsapp.net" ou "(14) 99722-2096" -> só números.
+// Usado em todas as abas, então a exibição e a busca por número ficam iguais.
+function limparNumero(numero) {
+  // Instagram/Facebook não têm telefone: a conversa é identificada por "ig_NN" / "fb_NN" (ou "Instagram (ig_NN)") — mantém esse código inteiro.
+  const social = String(numero || '').toLowerCase().match(/\b(ig|fb)_\d+\b/);
+  if (social) return social[0];
+  return String(numero || '').replace('@s.whatsapp.net', '').replace(/\D/g, '');
+}
+
+const CHATWOOT_CONVERSAS = 'https://paroquia-scjm-chatwoot.ndjgby.easypanel.host/app/accounts/1/conversations/';
+function ehContatoSocial(numero) { return /^(ig|fb)_\d+$/.test(String(numero || '')); }
+// "ig_77" -> "Instagram #77"; telefone continua como está
+function rotuloContato(numero) {
+  const m = String(numero || '').match(/^(ig|fb)_(\d+)$/);
+  return m ? (m[1] === 'ig' ? 'Instagram #' : 'Facebook #') + m[2] : numero;
+}
+function rotuloBotaoContato(numero) { return ehContatoSocial(numero) ? '💬 Abrir no Chatwoot' : '💬 WhatsApp'; }
+
+function linkWhatsApp(numero) {
+  // Instagram/Facebook: o link abre a conversa no Chatwoot, onde a secretaria responde
+  const social = String(numero || '').match(/^(ig|fb)_(\d+)$/);
+  if (social) return CHATWOOT_CONVERSAS + social[2];
+  const digits = limparNumero(numero);
+  // Número digitado sem o código do país (10 ou 11 dígitos, ex.: 14997222096) -> acrescenta 55 para o link abrir
+  const comPais = (digits.length === 10 || digits.length === 11) ? '55' + digits : digits;
+  return comPais ? `https://wa.me/${comPais}` : '';
+}
+
+// "23/09/2026 18:05" -> número para ordenar. Sem data legível, vai para o fim da lista.
+function valorDataHora(s) {
+  const m = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\D+(\d{1,2}):(\d{2}))?/);
+  if (!m) return -Infinity;
+  return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0)).getTime();
+}
+
+// Recado: data (dd/mm/aaaa ou aaaa-mm-dd) + hora (hh:mm) -> número para ordenar. Sem data legível, vai para o fim.
+function valorDataHoraRecado(l) {
+  const v = valorDataHora(String(l.data || '') + ' ' + String(l.hora || ''));
+  if (v !== -Infinity) return v;
+  const iso = String(l.data || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!iso) return -Infinity;
+  const hm = String(l.hora || '').match(/(\d{1,2}):(\d{2})/);
+  return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), hm ? Number(hm[1]) : 0, hm ? Number(hm[2]) : 0).getTime();
+}
+
+function renderizarTabela() {
+  const termo = el('busca').value.trim().toLowerCase();
+  const tipoFiltro = el('filtroTipo').value;
+
+  const filtradas = linhasDocs.filter(l => {
+    const bateTexto = !termo || (l.nome + ' ' + l.tipo + ' ' + l.arquivo + ' ' + l.numero).toLowerCase().includes(termo);
+    const bateTipo = !tipoFiltro || l.tipo === tipoFiltro;
+    return bateTexto && bateTipo;
+  }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo (só na tela)
+
+  const corpo = el('tabelaCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="6">Nenhum documento encontrado.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data/Hora">${escapeHtml(l.data)}</td>
+      <td data-label="Contato">${escapeHtml(l.nome)}</td>
+      <td data-label="Número">${escapeHtml(rotuloContato(l.numero))}</td>
+      <td data-label="Tipo">${escapeHtml(l.tipo)}</td>
+      <td data-label="Arquivo">${escapeHtml(l.arquivo)}</td>
+      <td data-label="Ação" class="no-print">${l.link ? `<a href="${escapeAttr(l.link)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+function renderizarRecados() {
+  const termo = el('buscaRecados').value.trim().toLowerCase();
+  const statusFiltro = el('filtroStatus').value;
+
+  const filtradas = linhasRecados.filter(l => {
+    const bateTexto = !termo || (l.nome + ' ' + l.whatsapp + ' ' + l.assunto).toLowerCase().includes(termo);
+    const bateStatus = !statusFiltro || l.status.trim().toLowerCase() === statusFiltro.toLowerCase();
+    return bateTexto && bateStatus;
+  }).sort((a, b) => (valorDataHoraRecado(b) - valorDataHoraRecado(a)) || (b.linha - a.linha)); // mais recentes no topo (só na tela; a planilha não muda)
+
+  const corpo = el('tabelaRecadosCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="7">Nenhum recado encontrado.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const statusNorm = norm(l.status);
+    const jaResolvido = statusNorm.includes('resolvid');
+    const statusClasse = jaResolvido ? 'resolvido' : 'pendente';
+    const wa = linkWhatsApp(l.whatsapp);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data">${escapeHtml(l.data)}</td>
+      <td data-label="Hora">${escapeHtml(l.hora)}</td>
+      <td data-label="Nome">${escapeHtml(l.nome)}</td>
+      <td data-label="WhatsApp">${escapeHtml(rotuloContato(l.whatsapp))}</td>
+      <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Pendente')}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao${jaResolvido ? '' : ' btn-whatsapp-auto'}" data-linha="${l.linha}">${rotuloBotaoContato(l.whatsapp)}</a>` : ''}
+        ${jaResolvido ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✅ Marcar Resolvido</button>`}
+        ${jaResolvido ? `<button class="btn-acao btn-excluir btn-excluir-recado" data-linha="${l.linha}" title="Apagar este recado da planilha">🗑️ Excluir</button>` : ''}
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+// Reserva: data + hora de início -> número para ordenar (menor = mais antigo). Sem data legível, vai para o fim da lista.
+function valorReservaCronologico(l) {
+  const v = valorDataHora(String(l.data || '') + ' ' + String(l.horaInicio || ''));
+  return v === -Infinity ? Infinity : v;
+}
+
+function renderizarReservas() {
+  const termo = el('buscaReservas').value.trim().toLowerCase();
+  const salaFiltro = el('filtroSala').value;
+  const statusFiltro = el('filtroStatusReserva').value;
+
+  const filtradas = linhasReservas.filter(l => {
+    const bateTexto = !termo || (l.sala + ' ' + l.nome + ' ' + l.atividade).toLowerCase().includes(termo);
+    const bateSala = !salaFiltro || canonSala(l.sala) === canonSala(salaFiltro);
+    const bateStatus = !statusFiltro || norm(statusReservaExibido(l)) === norm(statusFiltro);
+    return bateTexto && bateSala && bateStatus;
+  }).sort((a, b) => (valorReservaCronologico(a) - valorReservaCronologico(b)) || (a.linha - b.linha)); // em ordem de data: passadas no alto, depois as mais próximas e, embaixo, as mais distantes (só na tela)
+
+  const corpo = el('tabelaReservasCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="9">Nenhuma reserva encontrada.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const cancelado = norm(l.status).includes('cancelado');
+    // Cancelado = amarelo, Realizado (data passada) = azul, Confirmado = verde
+    const statusClasse = cancelado ? 'pendente' : (statusReservaExibido(l) === 'Realizado' ? 'andamento' : 'resolvido');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data">${escapeHtml(l.data)}</td>
+      <td data-label="Hora Início">${escapeHtml(l.horaInicio)}</td>
+      <td data-label="Hora Fim">${escapeHtml(l.horaFim)}</td>
+      <td data-label="Sala">${escapeHtml(l.sala)}</td>
+      <td data-label="Nome">${escapeHtml(l.nome)}</td>
+      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
+      <td data-label="Atividade">${escapeHtml(l.atividade)}</td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(statusReservaExibido(l))}</span></td>
+      <td data-label="Ação" class="no-print" style="vertical-align:middle;">
+        <div style="display:flex;flex-direction:column;gap:6px;width:112px;">
+          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-editar-reserva" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;background:var(--dourado);color:var(--vinho-escuro);" title="Corrigir sala, data, horário ou dados desta reserva">✏️ Editar</button>`}
+          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;">✖ Cancelar</button>`}
+          ${podeExcluirReserva(l) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para reservas canceladas ou de datas que já passaram)">🗑 Excluir</button>` : ''}
+        </div>
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+// ---------- Excluir reservas canceladas ou de datas passadas ----------
+// O botão só existe para linhas CANCELADAS ou cuja data é ANTERIOR a hoje. Uma reserva ativa de hoje ou do futuro nunca tem o botão.
+function reservaJaPassou(dataBR) {
+  const d = parseDataBR(dataBR);
+  if (!d) return false; // data ilegível: nunca oferece exclusão
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return d.getTime() < hoje.getTime();
+}
+
+function reservaCancelada(status) {
+  return norm(status).includes('cancelado');
+}
+
+// Status mostrado na tela (a planilha não muda): reserva não cancelada cuja data já passou aparece como "Realizado".
+function statusReservaExibido(l) {
+  if (reservaCancelada(l.status)) return l.status;
+  if (reservaJaPassou(l.data)) return 'Realizado';
+  return l.status || 'Confirmado';
+}
+
+function podeExcluirReserva(l) {
+  return reservaCancelada(l.status) || reservaJaPassou(l.data);
+}
+
+let sheetIdAbaRecados = null;
+async function obterSheetIdAbaRecados() {
+  if (sheetIdAbaRecados !== null) return sheetIdAbaRecados;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?fields=sheets.properties(sheetId,title)`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+  const dados = await resp.json();
+  const aba = (dados.sheets || []).find(s => s.properties.title === CONFIG.RECADOS_ABA);
+  if (!aba) { const e = new Error('aba não encontrada'); e.status = 404; throw e; }
+  sheetIdAbaRecados = aba.properties.sheetId;
+  return sheetIdAbaRecados;
+}
+
+// Exclui um recado JÁ RESOLVIDO: apaga a linha inteira da planilha (não só o conteúdo).
+async function excluirRecado(linhaNumero) {
+  const l = linhasRecados.find(x => x.linha === linhaNumero);
+  if (!l || linhaNumero < 2 || !norm(l.status).includes('resolvid')) {
+    alert('Só é possível excluir recados que já estão como Resolvido.');
+    return;
+  }
+  const resumo = [l.data + ' ' + l.hora, l.nome, rotuloContato(l.whatsapp), l.assunto].filter(Boolean).join(' · ');
+  if (!confirm('Excluir DEFINITIVAMENTE este recado da planilha?\n\n' + resumo + '\n\nNão dá para desfazer.')) return;
+
+  try {
+    // Confere a linha agora: se mexeram na planilha desde que a tela carregou, as linhas mudam de lugar
+    const atual = await buscarValoresSheet(`${CONFIG.RECADOS_ABA}!A${linhaNumero}:G${linhaNumero}`);
+    const row = atual[0] || [];
+    const igual = (row[1] || '') === l.data && (row[2] || '') === l.hora && (row[3] || '') === l.nome && (row[5] || '') === l.assunto;
+    if (!igual || !norm(row[6] || '').includes('resolvid')) {
+      alert('A planilha mudou desde que esta tela foi carregada (ou o recado deixou de estar Resolvido). Nada foi excluído. Vou atualizar a lista; confira e tente de novo.');
+      await carregarRecados();
+      return;
+    }
+    const sheetId = await obterSheetIdAbaRecados();
+    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: linhaNumero - 1, endIndex: linhaNumero } } }] }),
+    });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    await carregarRecados();
+  } catch (e) {
+    console.error('Erro ao excluir recado:', e);
+    alert(mensagemErroGravacao(e, CONFIG.RECADOS_ABA, 'planilha de controle (Pascom_Controle)'));
+  }
+}
+
+let sheetIdAbaReservas = null;
+async function obterSheetIdAbaReservas() {
+  if (sheetIdAbaReservas !== null) return sheetIdAbaReservas;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?fields=sheets.properties(sheetId,title)`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+  const dados = await resp.json();
+  const aba = (dados.sheets || []).find(s => s.properties.title === CONFIG.RESERVAS_ABA);
+  if (!aba) { const e = new Error('aba não encontrada'); e.status = 404; throw e; }
+  sheetIdAbaReservas = aba.properties.sheetId;
+  return sheetIdAbaReservas;
+}
+
+async function excluirReservaPassada(linhaNumero) {
+  const l = linhasReservas.find(x => x.linha === linhaNumero);
+  if (!l || linhaNumero < 2 || !podeExcluirReserva(l)) {
+    alert('Só é possível excluir reservas canceladas ou de datas que já passaram.');
+    return;
+  }
+  const resumo = `${l.data} · ${l.horaInicio}–${l.horaFim} · ${l.sala} · ${l.nome}`;
+  const tipo = reservaCancelada(l.status) ? 'cancelada' : 'passada';
+  if (!confirm(`Excluir DEFINITIVAMENTE esta reserva ${tipo} da planilha?\n\n${resumo}\n\nNão dá para desfazer.`)) return;
+
+  try {
+    // Confere a linha na planilha agora: se alguém mexeu nas reservas desde que a tela carregou, as linhas mudam de lugar
+    const atual = await buscarValoresSheet(`${CONFIG.RESERVAS_ABA}!A${linhaNumero}:I${linhaNumero}`);
+    const row = atual[0] || [];
+    const igual = (row[0] || '') === l.data && (row[1] || '') === l.horaInicio && (row[2] || '') === l.horaFim &&
+      (row[3] || '') === l.sala && (row[4] || '') === l.nome;
+    if (!igual || !(reservaCancelada(row[7]) || reservaJaPassou(row[0]))) {
+      alert('A planilha mudou desde que esta tela foi carregada. Nada foi excluído. Vou atualizar a lista; confira e tente de novo.');
+      await carregarReservas();
+      return;
+    }
+
+    const sheetId = await obterSheetIdAbaReservas();
+    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: linhaNumero - 1, endIndex: linhaNumero } } }] }),
+    });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    await carregarReservas();
+  } catch (e) {
+    console.error('Erro ao excluir reserva:', e);
+    alert(mensagemErroGravacao(e, CONFIG.RESERVAS_ABA, 'planilha de reservas'));
+  }
+}
+
+// ---------- Catequese (inscrições feitas pelo formulário catequese.html) ----------
+// Colunas da aba: A Data/Hora · B Catequizando · C Nascimento · D Responsável · E WhatsApp · F Etapa ·
+// G Batizado · H Paróquia do Batismo · I Observações · J Situação dos Documentos · K Links dos Documentos · L Status
+
+async function carregarCatequese() {
+  const statusMsg = el('statusMsgCatequese');
+  statusMsg.textContent = 'Carregando inscrições...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.CATEQUESE_RANGE);
+    // Guarda a linha real da planilha (o range começa em A2) para gravar o status na célula certa.
+    linhasCatequese = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        ordem: idx,
+        data: row[0] || '',
+        catequizando: row[1] || '',
+        nascimento: row[2] || '',
+        responsavel: row[3] || '',
+        whatsapp: limparNumero(row[4]),
+        etapa: row[5] || '',
+        batizado: row[6] || '',
+        paroquiaBatismo: row[7] || '',
+        observacoes: row[8] || '',
+        situacao: row[9] || '',
+        links: row[10] || '',
+        status: (row[11] || '').trim() || 'Nova',
+      }))
+      .filter(l => l.catequizando || l.responsavel);
+
+    statusMsg.textContent = linhasCatequese.length + ' inscrição(ões) encontrada(s).';
+    renderizarCatequese();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : e.message === 'STATUS_400'
+        ? 'A aba "' + CONFIG.CATEQUESE_ABA + '" ainda não existe na planilha Pascom_Controle. Crie a aba (veja as instruções) e clique em Atualizar.'
+        : 'Erro ao carregar as inscrições.';
+  }
+}
+
+// "Certidão de nascimento: https://..." (uma por linha) -> [{ rotulo, url }]; só aceita links https
+function linksDaCatequese(texto) {
+  return String(texto || '').split('\n').map(t => t.trim()).filter(Boolean).map(t => {
+    const i = t.indexOf(': ');
+    return i > 0 ? { rotulo: t.slice(0, i), url: t.slice(i + 2).trim() } : { rotulo: 'Documento', url: t };
+  }).filter(x => /^https:\/\//i.test(x.url));
+}
+
+function renderizarCatequese() {
+  const termo = norm(el('buscaCatequese').value.trim());
+  const docsFiltro = el('filtroDocsCatequese').value;
+  const statusFiltro = norm(el('filtroStatusCatequese').value);
+
+  const filtradas = linhasCatequese.filter(l => {
+    const completos = norm(l.situacao).startsWith('completo');
+    const bateTexto = !termo || norm(l.catequizando + ' ' + l.responsavel + ' ' + l.whatsapp + ' ' + l.etapa).includes(termo);
+    const bateDocs = !docsFiltro || (docsFiltro === 'completos' ? completos : !completos);
+    const bateStatus = !statusFiltro || norm(l.status) === statusFiltro;
+    return bateTexto && bateDocs && bateStatus;
+  }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novas no topo
+
+  const corpo = el('tabelaCatequeseCorpo');
+  corpo.innerHTML = '';
+
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="8">Nenhuma inscrição encontrada.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const completos = norm(l.situacao).startsWith('completo');
+    const concluida = norm(l.status).startsWith('conclu');
+    const emAtendimento = norm(l.status).startsWith('em atend');
+    const statusClasse = concluida ? 'resolvido' : (emAtendimento ? 'andamento' : 'pendente');
+    const wa = linkWhatsApp(l.whatsapp);
+    const links = linksDaCatequese(l.links);
+
+    const detalhes = `
+      <details class="detalhes-cat">
+        <summary>Ver dados e documentos</summary>
+        <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
+        <p><strong>Batizado(a):</strong> ${escapeHtml(l.batizado || '—')}${l.paroquiaBatismo ? ' — ' + escapeHtml(l.paroquiaBatismo) : ''}</p>
+        ${l.observacoes ? `<p><strong>Observações:</strong> ${escapeHtml(l.observacoes)}</p>` : ''}
+        <p><strong>Documentos:</strong></p>
+        ${links.length
+          ? `<ul>${links.map(x => `<li><a href="${escapeAttr(x.url)}" target="_blank" rel="noopener">${escapeHtml(x.rotulo)}</a></li>`).join('')}</ul>`
+          : '<p>Nenhum arquivo encontrado.</p>'}
+      </details>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data">${escapeHtml(l.data)}</td>
+      <td data-label="Catequizando"><strong>${escapeHtml(l.catequizando)}</strong>${detalhes}</td>
+      <td data-label="Responsável">${escapeHtml(l.responsavel)}</td>
+      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
+      <td data-label="Etapa">${escapeHtml(l.etapa)}</td>
+      <td data-label="Documentos"><span class="status-pill ${completos ? 'resolvido' : 'pendente'}">${escapeHtml(l.situacao || 'Sem informação')}</span></td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+        <button class="btn-acao btn-editar btn-cat" data-acao="ficha" data-linha="${l.linha}" title="Imprimir a ficha já preenchida">🖨️ Ficha</button>
+        ${!concluida && !emAtendimento ? `<button class="btn-acao btn-editar btn-cat" data-acao="atendimento" data-linha="${l.linha}">▶ Em atendimento</button>` : ''}
+        ${!concluida ? `<button class="btn-acao btn-resolver btn-cat" data-acao="concluir" data-linha="${l.linha}">✅ Concluir</button>` : `<button class="btn-acao btn-editar btn-cat" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+// Ficha de inscrição já preenchida com o que o fiel informou no formulário (o resto fica em branco para a catequista).
+// Devolve um documento HTML completo, pronto para abrir numa janela e imprimir em A4.
+function htmlFichaCatequese(l, autoImprimir) {
+  const e = escapeHtml;
+  const campo = (rot, val, cls) => `<div class="campo ${cls || ''}"><span class="l">${rot}</span><span class="v">${e(val || '')}</span></div>`;
+  const cx = (marcado, texto) => `<span><i class="cx">${marcado ? '✕' : ''}</i>${texto}</span>`;
+
+  const rotulosDocs = linksDaCatequese(l.links).map(x => norm(x.rotulo));
+  const tem = (parte) => rotulosDocs.some(r => r.includes(parte));
+  const outros = linksDaCatequese(l.links).map(x => x.rotulo)
+    .filter(r => !/nascimento|batismo|resid/.test(norm(r))).join(', ');
+  const batizado = norm(l.batizado) === 'sim';
+  // 5514997222096 -> (14) 99722-2096 (só quando tem o formato de número brasileiro; senão mostra como está)
+  const telBonito = (t) => {
+    const m = String(t || '').match(/^55(\d{2})(9?\d{4})(\d{4})$/);
+    return m ? `(${m[1]}) ${m[2]}-${m[3]}` : (t || '');
+  };
+  const dataInscricao = String(l.data || '').split(' ')[0];
+  const brasao = new URL('brasao.png', location.href).href;
+
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Ficha de inscrição — ${e(l.catequizando)}</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --vinho:#7a1f2b; --vinho-escuro:#591622; --dourado:#c9a24a; --creme:#faf7f0; --texto:#2b2420; --linha:#8f847a; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin:0; width:210mm; height:297mm; overflow:hidden; font-family:"Segoe UI", Arial, sans-serif; font-size:9.5pt; line-height:1.3; color:var(--texto); position:relative; }
+  .topo { background: radial-gradient(circle at 25% 30%, #8a2b32 0%, var(--vinho-escuro) 80%); color:#fff; padding:6mm 14mm; display:flex; align-items:center; gap:6mm; border-bottom:2.2mm solid var(--dourado); }
+  .topo img { height:17mm; }
+  .topo .sup { color:#e3c88a; font-size:8pt; letter-spacing:1.4px; text-transform:uppercase; }
+  .topo .nome { font-family:Georgia, serif; font-size:15pt; font-weight:700; line-height:1.15; margin:0.5mm 0 1mm; color:#f1dfae; }
+  .topo .contato { font-size:8pt; color:#eadfd2; }
+  .conteudo { padding:5mm 14mm 0; }
+  h1 { font-family:Georgia, serif; color:var(--vinho); font-size:16pt; margin:0; line-height:1.15; text-align:center; }
+  .subtitulo { text-align:center; color:#6b6055; font-size:8.5pt; margin:0.5mm 0 2.5mm; }
+  h2 { font-size:9.5pt; color:#fff; background:var(--vinho); margin:3mm 0 0.5mm; padding:1mm 3mm; border-radius:2px; letter-spacing:0.3px; }
+  .linha { display:flex; gap:4mm; }
+  .campo { flex:1; min-height:11.5mm; border-bottom:1px solid var(--linha); padding-top:1mm; }
+  .campo .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
+  .campo .v { display:block; font-size:10.5pt; font-weight:600; color:#1d1a17; margin-top:0.6mm; }
+  .campo.p2 { flex:2; } .campo.p3 { flex:3; }
+  .opcoes { display:flex; flex-wrap:wrap; gap:1.5mm 6mm; align-items:center; padding:1.6mm 0 1mm; font-size:9pt; }
+  .opcoes .rot { font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; margin-right:1mm; }
+  .cx { display:inline-block; width:3.6mm; height:3.6mm; border:1px solid #4a4038; margin-right:1.5mm; vertical-align:-0.7mm; font-style:normal; font-size:9pt; line-height:3.3mm; text-align:center; font-weight:700; }
+  .obs { min-height:18mm; border-bottom:1px solid var(--linha); padding-top:1mm; }
+  .obs .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
+  .obs .v { display:block; font-size:10pt; font-weight:600; margin-top:0.6mm; white-space:pre-line; }
+  .obs + .obs { min-height:8mm; }
+  .autoriza { background:var(--creme); border-left:3px solid var(--dourado); padding:2mm 3mm; margin-top:2.5mm; font-size:8.3pt; line-height:1.35; border-radius:2px; }
+  .assina { display:flex; gap:8mm; margin-top:6mm; }
+  .assina .a { flex:3; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
+  .assina .d { flex:1; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
+  .uso { margin-top:3.5mm; border:1.2px dashed #a89a8a; border-radius:3px; padding:1.5mm 3mm 0; background:#fdfbf6; }
+  .uso .tit { font-size:7.5pt; font-weight:700; color:var(--vinho); text-transform:uppercase; letter-spacing:0.6px; }
+  .uso .campo { min-height:8mm; }
+  .rodape { position:absolute; left:0; right:0; bottom:5mm; text-align:center; font-size:7.5pt; color:#888; }
+</style></head><body>
+<div class="topo"><img src="${brasao}" alt=""><div>
+  <div class="sup">Paróquia</div><div class="nome">Sagrado Coração de Jesus</div>
+  <div class="contato">Diocese de Marília · Rua Etelvina Teixeira da Silva, 17 — Marília/SP · Secretaria: (14) 3425-1732</div>
+</div></div>
+<div class="conteudo">
+  <h1>Ficha de Inscrição na Catequese</h1>
+  <p class="subtitulo">Dados informados pelo responsável na inscrição pela internet. Complete à mão o que estiver em branco.</p>
+
+  <h2>Dados do catequizando</h2>
+  <div class="linha">${campo('Nome completo', l.catequizando, 'p3')}${campo('Data de nascimento', l.nascimento)}</div>
+  <div class="linha">${campo('Endereço (rua, número, bairro)', '', 'p3')}${campo('Cidade', '')}</div>
+  <div class="linha">${campo('Etapa / turma desejada', l.etapa, 'p2')}${campo('Escola e série (opcional)', '', 'p2')}</div>
+  <div class="opcoes"><span class="rot">Sacramentos já recebidos:</span>${cx(batizado, 'Batismo')}${cx(false, '1ª Eucaristia')}${cx(false, 'Crisma')}${cx(!batizado && !!l.batizado, 'Nenhum')}</div>
+  <div class="linha">${campo('Paróquia onde foi batizado(a)', l.paroquiaBatismo, 'p3')}${campo('Cidade', '', 'p2')}${campo('Data do batismo', '')}</div>
+
+  <h2>Filiação</h2>
+  <div class="linha">${campo('Nome da mãe', '')}${campo('Nome do pai', '')}</div>
+
+  <h2>Responsável pela inscrição</h2>
+  <div class="linha">${campo('Nome completo do responsável', l.responsavel, 'p3')}${campo('Parentesco', '')}</div>
+  <div class="linha">${campo('WhatsApp com DDD', telBonito(l.whatsapp))}${campo('Outro telefone para recado', '')}</div>
+
+  <h2>Saúde e observações</h2>
+  <div class="obs"><span class="l">Alergias, necessidades especiais, melhor dia e horário, outras informações</span><span class="v">${e(l.observacoes || '')}</span></div>
+  <div class="obs"></div>
+
+  <h2>Documentos entregues</h2>
+  <div class="opcoes">${cx(tem('nascimento'), 'Certidão de nascimento')}${cx(tem('batismo'), 'Certidão de batismo (se já batizado)')}${cx(tem('resid'), 'Comprovante de residência')}${cx(!!outros, 'Outro: ' + (outros ? e(outros) : '____________________'))}</div>
+
+  <div class="autoriza"><strong>Autorização.</strong> Declaro que sou responsável pelo(a) catequizando(a) e que as informações acima são verdadeiras.
+  Autorizo a paróquia a usar estes dados e documentos <strong>somente</strong> para a inscrição e o acompanhamento na catequese,
+  com sigilo e cuidado, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</div>
+  <div class="assina"><div class="a">Assinatura do responsável</div><div class="d">Data</div></div>
+
+  <div class="uso"><div class="tit">Uso da paróquia</div>
+    <div class="linha">${campo('Recebido por', 'Inscrição pela internet')}${campo('Data', dataInscricao)}${campo('Turma / horário', '')}</div>
+    <div class="linha">${campo('Observações da secretaria / catequista', '', 'p3')}</div>
+  </div>
+</div>
+<div class="rodape">Paróquia Sagrado Coração de Jesus · Marília/SP</div>
+${autoImprimir === false ? '' : '<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });<\/script>'}
+</body></html>`;
+}
+
+function imprimirFichaCatequese(linhaNumero) {
+  const l = linhasCatequese.find(x => x.linha === linhaNumero);
+  if (!l) return;
+  const janela = window.open('', '_blank');
+  if (!janela) {
+    alert('O navegador bloqueou a janela da ficha. Permita pop-ups para este site (ícone na barra de endereço) e tente de novo.');
+    return;
+  }
+  janela.document.open();
+  janela.document.write(htmlFichaCatequese(l));
+  janela.document.close();
+}
+
+async function atualizarStatusCatequese(linhaNumero, novoStatus) {
+  const range = `${CONFIG.CATEQUESE_ABA}!L${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [[novoStatus]] }),
+    });
+    if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+    await carregarCatequese();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.CATEQUESE_ABA, 'planilha Pascom_Controle'));
+  }
+}
+
+// ---------- Lojinha Paroquial (produtos com foto; os fiéis só consultam) ----------
+// Colunas da aba (planilha de dados da paróquia): A Produto · B Categoria · C Descrição · D Preço ·
+// E Variações · F Disponibilidade · G Foto (link) · H Exibir (Sim/Não)
+
+function precoLojinha(p) {
+  const t = String(p || '').trim();
+  if (!t) return '—';
+  return /^r\$/i.test(t) ? t : 'R$ ' + t;
+}
+
+// "25", "25.5", "R$ 25,50" -> "25,50". Devolve null se não for um valor válido e '' se estiver vazio.
+function normalizarPreco(txt) {
+  const t = String(txt || '').replace(/^R\$\s*/i, '').trim();
+  if (!t) return '';
+  if (!/^\d{1,6}([.,]\d{1,2})?$/.test(t)) return null;
+  return Number(t.replace(',', '.')).toFixed(2).replace('.', ',');
+}
+
+// Só aceita foto por link https (evita javascript: e coisas parecidas em src)
+function fotoSegura(url) {
+  return /^https:\/\//i.test(String(url || '').trim()) ? String(url).trim() : '';
+}
+
+async function carregarLojinha() {
+  const statusMsg = el('statusMsgLojinha');
+  statusMsg.textContent = 'Carregando produtos...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.LOJINHA_RANGE, CONFIG.SHEET_ID_DADOS);
+    // O range começa em A2: guarda a linha real para editar/ocultar/excluir a célula certa.
+    linhasLojinha = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        produto: row[0] || '',
+        categoria: row[1] || '',
+        descricao: row[2] || '',
+        preco: row[3] || '',
+        variacoes: row[4] || '',
+        disp: (row[5] || '').trim() || 'Em estoque',
+        foto: row[6] || '',
+        exibir: norm(row[7] || 'Sim') !== 'nao',
+      }))
+      .filter(l => l.produto);
+
+    statusMsg.textContent = linhasLojinha.length + ' produto(s) cadastrado(s).';
+    atualizarCategoriasLoja();
+    renderizarLojinha();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso à planilha de dados da paróquia. Peça para compartilhá-la com você (como editor).'
+      : e.message === 'STATUS_400'
+        ? 'A aba "' + CONFIG.LOJINHA_ABA + '" ainda não existe na planilha de dados da paróquia. Crie a aba (veja as instruções) e clique em Atualizar.'
+        : 'Erro ao carregar os produtos.';
+  }
+}
+
+// Lista de categorias existentes: alimenta o filtro e a sugestão do campo Categoria
+function atualizarCategoriasLoja() {
+  const cats = [...new Set(linhasLojinha.map(l => l.categoria.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const sel = el('filtroCategoriaLoja');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${escapeHtml(c)}</option>`).join('');
+  if (cats.includes(atual)) sel.value = atual;
+  el('listaCategoriasLoja').innerHTML = cats.map(c => `<option value="${escapeAttr(c)}"></option>`).join('');
+}
+
+function renderizarLojinha() {
+  const termo = norm(el('buscaLojinha').value.trim());
+  const catFiltro = el('filtroCategoriaLoja').value;
+  const dispFiltro = el('filtroDispLoja').value;
+
+  const filtradas = linhasLojinha.filter(l => {
+    const bateTexto = !termo || norm(l.produto + ' ' + l.categoria + ' ' + l.descricao + ' ' + l.variacoes).includes(termo);
+    return bateTexto && (!catFiltro || l.categoria === catFiltro) && (!dispFiltro || l.disp === dispFiltro);
+  });
+
+  const corpo = el('tabelaLojinhaCorpo');
+  corpo.innerHTML = '';
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="7">Nenhum produto encontrado.</td></tr>';
+    return;
+  }
+
+  filtradas.forEach(l => {
+    const foto = fotoSegura(l.foto);
+    const dispClasse = l.disp === 'Esgotado' ? 'pendente' : (l.disp === 'Sob encomenda' ? 'andamento' : 'resolvido');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Foto">${foto ? `<img class="thumb-produto" src="${escapeAttr(foto)}" alt="" loading="lazy">` : '<span class="thumb-produto thumb-vazio">sem foto</span>'}</td>
+      <td data-label="Produto"><strong>${escapeHtml(l.produto)}</strong>${l.descricao ? `<div class="desc-produto">${escapeHtml(l.descricao)}</div>` : ''}${l.variacoes ? `<div class="desc-produto">Variações: ${escapeHtml(l.variacoes)}</div>` : ''}</td>
+      <td data-label="Categoria">${escapeHtml(l.categoria || '—')}</td>
+      <td data-label="Preço">${escapeHtml(precoLojinha(l.preco))}</td>
+      <td data-label="Disponibilidade"><span class="status-pill ${dispClasse}">${escapeHtml(l.disp)}</span></td>
+      <td data-label="No catálogo"><span class="status-pill ${l.exibir ? 'resolvido' : 'pendente'}">${l.exibir ? 'Visível' : 'Oculto'}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        <button class="btn-acao btn-editar btn-loja" data-acao="editar" data-linha="${l.linha}">✏️ Editar</button>
+        <button class="btn-acao btn-editar btn-loja" data-acao="exibir" data-linha="${l.linha}">${l.exibir ? '🙈 Ocultar' : '👁️ Mostrar'}</button>
+        <button class="btn-acao btn-excluir btn-loja" data-acao="excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+function mostrarFotoProduto(url) {
+  const ok = fotoSegura(url);
+  el('prodFotoBloco').hidden = !ok;
+  if (ok) el('prodFotoPreview').src = ok;
+}
+
+function abrirModalProduto(linhaNumero) {
+  produtoEditandoLinha = linhaNumero || null;
+  el('formProduto').reset();
+  el('modalProdutoResultado').textContent = '';
+  el('modalProdutoResultado').className = '';
+  fotoAtualProduto = '';
+  el('prodExibir').checked = true;
+
+  if (produtoEditandoLinha) {
+    const l = linhasLojinha.find(x => x.linha === produtoEditandoLinha);
+    if (l) {
+      el('prodNome').value = l.produto;
+      el('prodCategoria').value = l.categoria;
+      el('prodDescricao').value = l.descricao;
+      el('prodPreco').value = String(l.preco || '').replace(/^R\$\s*/i, '');
+      el('prodVariacoes').value = l.variacoes;
+      el('prodDisp').value = l.disp;
+      el('prodExibir').checked = l.exibir;
+      fotoAtualProduto = fotoSegura(l.foto);
+    }
+    el('modalProdutoTitulo').textContent = 'Editar produto';
+  } else {
+    el('modalProdutoTitulo').textContent = 'Novo produto';
+  }
+  mostrarFotoProduto(fotoAtualProduto);
+  el('modalProduto').hidden = false;
+}
+
+function fecharModalProduto() {
+  el('modalProduto').hidden = true;
+  produtoEditandoLinha = null;
+}
+
+// Foto -> JPEG reduzido (máx. 1200 px). Devolve só o base64.
+function reduzirImagemProduto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, 1200 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * escala);
+      c.height = Math.round(img.height * escala);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não consegui abrir essa imagem. Tente outra foto (JPG ou PNG).')); };
+    img.src = url;
+  });
+}
+
+// Envia a foto ao n8n, que guarda no Drive e devolve o link público. Só quem está logado no painel consegue enviar.
+async function enviarFotoProduto(file, nomeProduto) {
+  const base64 = await reduzirImagemProduto(file);
+  let resp;
+  try {
+    resp = await fetch(CONFIG.WEBHOOK_LOJINHA_FOTO, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: accessToken, nome: nomeProduto, mime: 'image/jpeg', base64 }),
+    });
+  } catch (e) {
+    throw new Error('Não foi possível enviar a foto agora. Confira a internet e tente de novo.');
+  }
+  let dados = {};
+  try { dados = await resp.json(); } catch (e) { /* resposta sem JSON */ }
+  if (!dados.sucesso || !dados.url) throw new Error(dados.mensagem || 'Não foi possível enviar a foto agora. Tente de novo em instantes.');
+  return dados.url;
+}
+
+async function salvarProduto(e) {
+  e.preventDefault();
+  const resultado = el('modalProdutoResultado');
+  const btn = el('btnSalvarProduto');
+  resultado.textContent = '';
+  resultado.className = '';
+
+  const nome = el('prodNome').value.trim();
+  const preco = normalizarPreco(el('prodPreco').value);
+  if (!nome) { resultado.className = 'erro'; resultado.textContent = '⚠️ Escreva o nome do produto.'; return; }
+  if (preco === null) { resultado.className = 'erro'; resultado.textContent = '⚠️ Preço inválido. Use só números, por exemplo 25,00.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    let fotoUrl = fotoAtualProduto;
+    const arquivo = el('prodFoto').files[0];
+    if (arquivo) {
+      resultado.textContent = 'Enviando a foto…';
+      fotoUrl = await enviarFotoProduto(arquivo, nome);
+      resultado.textContent = '';
+    }
+
+    const valores = [[
+      nome,
+      el('prodCategoria').value.trim(),
+      el('prodDescricao').value.trim(),
+      preco,
+      el('prodVariacoes').value.trim(),
+      el('prodDisp').value,
+      fotoUrl,
+      el('prodExibir').checked ? 'Sim' : 'Não',
+    ]];
+
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/`;
+    const cabecalhos = { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' };
+    let resp;
+    if (produtoEditandoLinha) {
+      const range = `${CONFIG.LOJINHA_ABA}!A${produtoEditandoLinha}:H${produtoEditandoLinha}`;
+      resp = await fetch(base + encodeURIComponent(range) + '?valueInputOption=RAW', { method: 'PUT', headers: cabecalhos, body: JSON.stringify({ values: valores }) });
+    } else {
+      const range = `${CONFIG.LOJINHA_ABA}!A:H`;
+      resp = await fetch(base + encodeURIComponent(range) + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', { method: 'POST', headers: cabecalhos, body: JSON.stringify({ values: valores }) });
+    }
+    if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+
+    resultado.className = 'sucesso';
+    resultado.textContent = '✅ Produto salvo.';
+    await carregarLojinha();
+    setTimeout(fecharModalProduto, 900);
+  } catch (err) {
+    console.error('Erro ao salvar produto:', err);
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ ' + (err.status ? mensagemErroGravacao(err, CONFIG.LOJINHA_ABA) : err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+async function gravarCelulasLojinha(range, valores) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+  const resp = await fetch(url, { method: 'PUT', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ values: valores }) });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+}
+
+// Abre o catálogo público por cima do painel (sem sair da página, mantendo o login).
+function abrirCatalogoLojinha() {
+  let tela = document.getElementById('catalogoLojinhaTela');
+  if (!tela) {
+    tela = document.createElement('div');
+    tela.id = 'catalogoLojinhaTela';
+    tela.style.cssText = 'position:fixed;inset:0;z-index:1000;background:#fff;display:flex;flex-direction:column;';
+    const barra = document.createElement('div');
+    barra.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:#7a1f2b;color:#fff;flex-shrink:0;';
+    const voltar = document.createElement('button');
+    voltar.type = 'button';
+    voltar.textContent = '← Voltar ao painel';
+    voltar.style.cssText = 'background:#fff;color:#7a1f2b;border:none;padding:9px 14px;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;';
+    const aviso = document.createElement('span');
+    aviso.textContent = 'Assim os fiéis veem o catálogo';
+    aviso.style.cssText = 'font-size:0.85rem;opacity:0.9;';
+    barra.appendChild(voltar);
+    barra.appendChild(aviso);
+    const frame = document.createElement('iframe');
+    frame.title = 'Catálogo da Lojinha';
+    frame.style.cssText = 'flex:1;width:100%;border:0;';
+    tela.appendChild(barra);
+    tela.appendChild(frame);
+    document.body.appendChild(tela);
+    const fechar = () => { tela.hidden = true; tela.style.display = 'none'; frame.src = 'about:blank'; document.body.style.overflow = ''; };
+    voltar.addEventListener('click', fechar);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !tela.hidden) fechar(); });
+  }
+  tela.hidden = false;
+  tela.style.display = 'flex';
+  tela.querySelector('iframe').src = CONFIG.URL_LOJINHA + '?v=' + Date.now();
+  document.body.style.overflow = 'hidden';
+}
+
+async function alternarExibirProduto(linhaNumero) {
+  const l = linhasLojinha.find(x => x.linha === linhaNumero);
+  if (!l) return;
+  try {
+    await gravarCelulasLojinha(`${CONFIG.LOJINHA_ABA}!H${linhaNumero}`, [[l.exibir ? 'Não' : 'Sim']]);
+    await carregarLojinha();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.LOJINHA_ABA));
+  }
+}
+
+async function excluirProduto(linhaNumero) {
+  const l = linhasLojinha.find(x => x.linha === linhaNumero);
+  const nome = l ? ' "' + l.produto + '"' : '';
+  if (!confirm('Confirma que quer excluir o produto' + nome + '? Essa ação não pode ser desfeita. (Para só tirar do catálogo, use Ocultar.)')) return;
+
+  const range = `${CONFIG.LOJINHA_ABA}!A${linhaNumero}:H${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}/values/${encodeURIComponent(range)}:clear`;
+  try {
+    const resp = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' }, body: '{}' });
+    if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+    await carregarLojinha();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.LOJINHA_ABA));
+  }
+}
+
+function norm(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function escapeAttr(s) {
+  return String(s).replace(/"/g, '&quot;');
+}
+
+const ABAS = {
+  documentos: ['abaDocumentos', 'btnAbaDocumentos'],
+  recados: ['abaRecados', 'btnAbaRecados'],
+  reservas: ['abaReservas', 'btnAbaReservas'],
+  extras: ['abaExtras', 'btnAbaExtras'],
+  catequese: ['abaCatequese', 'btnAbaCatequese'],
+  lojinha: ['abaLojinha', 'btnAbaLojinha'],
+};
+
+function trocarAba(aba) {
+  Object.entries(ABAS).forEach(([nome, [divId, btnId]]) => {
+    el(divId).hidden = nome !== aba;
+    el(btnId).classList.toggle('ativa', nome === aba);
+  });
+}
+
+function sair() {
+  if (accessToken) {
+    google.accounts.oauth2.revoke(accessToken, () => {});
+  }
+  accessToken = null;
+  linhasDocs = [];
+  linhasRecados = [];
+  linhasReservas = [];
+  linhasExtras = [];
+  linhasCatequese = [];
+  linhasLojinha = [];
+  el('userBox').hidden = true;
+  el('appScreen').hidden = true;
+  el('loginScreen').hidden = false;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  iniciarBotaoGoogle();
+
+  el('busca').addEventListener('input', renderizarTabela);
+  el('filtroTipo').addEventListener('change', renderizarTabela);
+  el('btnAtualizar').addEventListener('click', carregarDocumentos);
+  el('btnImprimirLista').addEventListener('click', () => window.print());
+
+  el('buscaRecados').addEventListener('input', renderizarRecados);
+  el('filtroStatus').addEventListener('change', renderizarRecados);
+  el('btnAtualizarRecados').addEventListener('click', carregarRecados);
+  el('btnImprimirRecados').addEventListener('click', () => window.print());
+
+  // Delegação de evento: os botões "Marcar Resolvido" são recriados a cada renderização
+  el('tabelaRecadosCorpo').addEventListener('click', (e) => {
+    const btnResolver = e.target.closest('.btn-resolver');
+    if (btnResolver) { marcarComoResolvido(Number(btnResolver.dataset.linha)); return; }
+
+    const btnExcluirRecado = e.target.closest('.btn-excluir-recado');
+    if (btnExcluirRecado) { excluirRecado(Number(btnExcluirRecado.dataset.linha)); return; }
+
+    const btnWhats = e.target.closest('.btn-whatsapp-auto');
+    if (btnWhats) marcarResolvidoAutomatico(Number(btnWhats.dataset.linha));
+  });
+
+  el('buscaReservas').addEventListener('input', renderizarReservas);
+  el('filtroSala').addEventListener('change', renderizarReservas);
+  el('filtroStatusReserva').addEventListener('change', renderizarReservas);
+  el('btnAtualizarReservas').addEventListener('click', carregarReservas);
+  el('btnNovaReserva').addEventListener('click', abrirModalReserva);
+  el('btnOutraSala').addEventListener('click', () => adicionarSalaExtra());
+  el('salasExtras').addEventListener('click', (e) => { const r = e.target.closest('.btn-remover-sala'); if (r) r.parentElement.remove(); });
+  el('btnAjudaFixas').addEventListener('click', alternarAjudaFixas);
+  el('modalWhatsapp').addEventListener('input', e => { e.target.value = mascararTelefone(e.target.value); });
+  el('modalData').addEventListener('change', avisarDiaBloqueado);
+  el('btnFecharModal').addEventListener('click', fecharModalReserva);
+  el('formNovaReserva').addEventListener('submit', enviarNovaReserva);
+  el('modalReserva').addEventListener('click', (e) => {
+    if (e.target === el('modalReserva')) fecharModalReserva();
+  });
+
+  el('tabelaReservasCorpo').addEventListener('click', (e) => {
+    const btnEditarRes = e.target.closest('.btn-editar-reserva');
+    if (btnEditarRes) { abrirModalEditarReserva(Number(btnEditarRes.dataset.linha)); return; }
+    const btnExcluir = e.target.closest('.btn-excluir-reserva');
+    if (btnExcluir) { excluirReservaPassada(Number(btnExcluir.dataset.linha)); return; }
+    const btnCancelar = e.target.closest('.btn-resolver');
+    if (btnCancelar) cancelarReserva(Number(btnCancelar.dataset.linha));
+  });
+
+  el('buscaExtras').addEventListener('input', renderizarExtras);
+  el('filtroValidade').addEventListener('change', renderizarExtras);
+  el('btnAtualizarExtras').addEventListener('click', carregarExtras);
+  el('btnExcluirVencidos').addEventListener('click', excluirVencidosExtras);
+  el('btnLinhasBrancas').addEventListener('click', removerLinhasBrancasExtras);
+  el('btnNovaExtra').addEventListener('click', () => abrirModalExtra(null));
+  el('btnFecharModalExtra').addEventListener('click', fecharModalExtra);
+  el('formExtra').addEventListener('submit', salvarExtra);
+  el('modalExtra').addEventListener('click', (e) => {
+    if (e.target === el('modalExtra')) { fecharModalExtra(); return; }
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+    }
+  });
+
+  el('tabelaExtrasCorpo').addEventListener('click', (e) => {
+    const btnEditar = e.target.closest('.btn-editar');
+    if (btnEditar) { abrirModalExtra(Number(btnEditar.dataset.linha)); return; }
+    const btnExcluir = e.target.closest('.btn-excluir');
+    if (btnExcluir) excluirExtra(Number(btnExcluir.dataset.linha));
+  });
+
+  el('buscaCatequese').addEventListener('input', renderizarCatequese);
+  el('filtroDocsCatequese').addEventListener('change', renderizarCatequese);
+  el('filtroStatusCatequese').addEventListener('change', renderizarCatequese);
+  el('btnAtualizarCatequese').addEventListener('click', carregarCatequese);
+  el('btnImprimirCatequese').addEventListener('click', () => window.print());
+  el('btnFichaBranco').addEventListener('click', () => window.open('Ficha_Inscricao_Catequese.pdf', '_blank'));
+
+  // "?" da aba Catequese (mostra/esconde as instruções) e botão de copiar o link do formulário
+  el('abaCatequese').addEventListener('click', async (e) => {
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+      return;
+    }
+    if (e.target.closest('#btnCopiarLinkCatequese')) {
+      const msg = el('msgCopiarLinkCatequese');
+      try {
+        await navigator.clipboard.writeText(el('linkFormCatequese').textContent.trim());
+        msg.textContent = 'Link copiado!';
+      } catch (err) {
+        msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.';
+      }
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+  });
+  el('tabelaCatequeseCorpo').addEventListener('click', (e) => {
+    const b = e.target.closest('.btn-cat');
+    if (!b) return;
+    const linha = Number(b.dataset.linha);
+    if (b.dataset.acao === 'ficha') imprimirFichaCatequese(linha);
+    else if (b.dataset.acao === 'atendimento') atualizarStatusCatequese(linha, 'Em atendimento');
+    else if (b.dataset.acao === 'reabrir') atualizarStatusCatequese(linha, 'Nova');
+    else if (b.dataset.acao === 'concluir' && confirm('Confirma que quer marcar esta inscrição como Concluída?')) atualizarStatusCatequese(linha, 'Concluída');
+  });
+
+  // Lojinha
+  el('buscaLojinha').addEventListener('input', renderizarLojinha);
+  el('filtroCategoriaLoja').addEventListener('change', renderizarLojinha);
+  el('filtroDispLoja').addEventListener('change', renderizarLojinha);
+  el('btnAtualizarLojinha').addEventListener('click', carregarLojinha);
+  el('btnNovoProduto').addEventListener('click', () => abrirModalProduto(null));
+  el('btnAbrirCatalogo').addEventListener('click', abrirCatalogoLojinha);
+  el('btnFecharModalProduto').addEventListener('click', fecharModalProduto);
+  el('formProduto').addEventListener('submit', salvarProduto);
+  el('modalProduto').addEventListener('click', (e) => { if (e.target === el('modalProduto')) fecharModalProduto(); });
+  el('prodFoto').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) { el('prodFotoPreview').src = URL.createObjectURL(f); el('prodFotoBloco').hidden = false; }
+    else mostrarFotoProduto(fotoAtualProduto);
+  });
+  el('btnRemoverFotoProduto').addEventListener('click', () => {
+    fotoAtualProduto = '';
+    el('prodFoto').value = '';
+    el('prodFotoBloco').hidden = true;
+  });
+  el('tabelaLojinhaCorpo').addEventListener('click', (e) => {
+    const b = e.target.closest('.btn-loja');
+    if (!b) return;
+    const linha = Number(b.dataset.linha);
+    if (b.dataset.acao === 'editar') abrirModalProduto(linha);
+    else if (b.dataset.acao === 'exibir') alternarExibirProduto(linha);
+    else if (b.dataset.acao === 'excluir') excluirProduto(linha);
+  });
+  el('abaLojinha').addEventListener('click', async (e) => {
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+      return;
+    }
+    if (e.target.closest('#btnCopiarLinkLojinha')) {
+      const msg = el('msgCopiarLinkLojinha');
+      try { await navigator.clipboard.writeText(el('linkCatalogoLojinha').textContent.trim()); msg.textContent = 'Link copiado!'; }
+      catch (err) { msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.'; }
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+  });
+  el('btnAbaLojinha').addEventListener('click', () => trocarAba('lojinha'));
+
+  el('btnAbaDocumentos').addEventListener('click', () => trocarAba('documentos'));
+  el('btnAbaRecados').addEventListener('click', () => trocarAba('recados'));
+  el('btnAbaReservas').addEventListener('click', () => trocarAba('reservas'));
+  el('btnAbaExtras').addEventListener('click', () => trocarAba('extras'));
+  el('btnAbaCatequese').addEventListener('click', () => trocarAba('catequese'));
+
+  el('btnSair').addEventListener('click', sair);
+});
+
   RECADOS_RANGE: 'Recados!A2:G',
   RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
 
