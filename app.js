@@ -616,6 +616,35 @@ async function cancelarReserva(linhaNumero) {
 }
 
 // ---------- Salas com agendamento fixo (aba "RESERVAS FIXAS DE SALAS": A Dia · B Início · C Fim · D Sala · E Atividade · F Observação) ----------
+// ── Semana do mês (coluna "SEMANA DO MÊS" dos horários fixos) ──
+// Vazio = toda semana. "3º" / "3ª" / "terceiro" = 3º dia daquela semana no mês; "1º e 3º" = vários; "último" = o último do mês.
+// Conta pela DATA: dias 1–7 = 1º, 8–14 = 2º, 15–21 = 3º, 22–28 = 4º, 29–31 = 5º.
+function semanasDoMesDeTexto(txt) {
+  const t = String(txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  if (!t) return null;
+  const achados = [];
+  if (/ultim/.test(t)) achados.push('U');
+  [['primeir', 1], ['segund', 2], ['terceir', 3], ['quart', 4], ['quint', 5]].forEach(p => { if (t.includes(p[0])) achados.push(p[1]); });
+  (t.match(/[1-5]/g) || []).forEach(d => achados.push(Number(d)));
+  const unicos = achados.filter((v, i) => achados.indexOf(v) === i);
+  return unicos.length ? unicos : null;
+}
+function dataValeNaSemanaDoMes(semanas, data) {
+  if (!semanas || !semanas.length) return true;
+  const dia = data.getDate();
+  const n = Math.floor((dia - 1) / 7) + 1;
+  const ultimo = dia + 7 > new Date(data.getFullYear(), data.getMonth() + 1, 0).getDate();
+  return semanas.some(s => (s === 'U' ? ultimo : s === n));
+}
+// "no 3º sábado de cada mês" / "na 1ª e 3ª terça-feira de cada mês" / "no último sábado de cada mês"
+function descreverSemanasDoMes(semanas, nomeDia) {
+  const dia = String(nomeDia || '').toLowerCase();
+  const fem = /feira/.test(dia);
+  const ord = s => (s === 'U' ? (fem ? 'última' : 'último') : s + (fem ? 'ª' : 'º'));
+  const lista = semanas.slice().sort((a, b) => (a === 'U' ? 9 : a) - (b === 'U' ? 9 : b)).map(ord);
+  const junto = lista.length > 1 ? lista.slice(0, -1).join(', ') + ' e ' + lista[lista.length - 1] : lista[0];
+  return (fem ? 'na ' : 'no ') + junto + ' ' + dia + ' de cada mês';
+}
 let reservasFixas = [];
 let fixasEstado = 'nao'; // nao | ok | erro
 
@@ -632,9 +661,9 @@ async function obterNomeAbaFixas() {
 async function carregarReservasFixas() {
   try {
     const nome = await obterNomeAbaFixas();
-    const valores = await buscarValoresSheet("'" + nome.replace(/'/g, "''") + "'!A2:F", CONFIG.SHEET_ID_DADOS);
+    const valores = await buscarValoresSheet("'" + nome.replace(/'/g, "''") + "'!A2:G", CONFIG.SHEET_ID_DADOS);
     reservasFixas = valores
-      .map(r => ({ dia: String(r[0] || '').trim(), inicio: String(r[1] || '').trim(), fim: String(r[2] || '').trim(), sala: String(r[3] || '').trim(), atividade: String(r[4] || '').trim(), obs: String(r[5] || '').trim() }))
+      .map(r => ({ dia: String(r[0] || '').trim(), inicio: String(r[1] || '').trim(), fim: String(r[2] || '').trim(), sala: String(r[3] || '').trim(), atividade: String(r[4] || '').trim(), obs: String(r[5] || '').trim(), semanas: semanasDoMesDeTexto(r[6]) }))
       .filter(f => f.sala || f.atividade);
     fixasEstado = 'ok';
   } catch (e) {
@@ -656,7 +685,8 @@ function renderizarFixas() {
     (idxDiaSemana(a.dia) - idxDiaSemana(b.dia)) || a.inicio.localeCompare(b.inicio));
   ul.innerHTML = lista.map(f => {
     const horario = f.inicio ? f.inicio + (f.fim ? ' às ' + f.fim : '') : '';
-    const partes = [f.dia, horario].filter(Boolean).join(', ');
+    const diaTxt = f.semanas ? 'só ' + descreverSemanasDoMes(f.semanas, f.dia) : f.dia;
+    const partes = [diaTxt, horario].filter(Boolean).join(', ');
     return '<li><strong>' + escapeHtml(f.sala || 'Sala não informada') + '</strong>' + (partes ? ' · ' + escapeHtml(partes) : '') +
       (f.atividade ? ' · ' + escapeHtml(f.atividade) : '') + (f.obs ? ' <span style="font-weight:400;">(' + escapeHtml(f.obs) + ')</span>' : '') + '</li>';
   }).join('');
@@ -883,10 +913,10 @@ async function salvarEdicaoReserva() {
 
     if (fixasEstado !== 'ok') await carregarReservasFixas();
     if (fixasEstado !== 'ok') { erro('Não consegui conferir os horários fixos das salas agora. Tente de novo em instantes.'); return; }
-    const fixo = reservasFixas.find(f => idxDiaSemana(f.dia) === dataAlvo.getDay() &&
+    const fixo = reservasFixas.find(f => idxDiaSemana(f.dia) === dataAlvo.getDay() && dataValeNaSemanaDoMes(f.semanas, dataAlvo) &&
       (/^todas\b/.test(norm(f.sala)) || canonSala(f.sala) === canonSala(novo.sala)) && sobrepoe(minutosDeHora(f.inicio), minutosDeHora(f.fim)));
     if (fixo) {
-      erro('Esse horário já é ocupado toda semana por "' + (fixo.atividade || 'um compromisso fixo') + '" (' + fixo.inicio + ' às ' + fixo.fim + '). Escolha outro horário' + (/^todas\b/.test(norm(fixo.sala)) ? '.' : ' ou sala.'));
+      erro('Esse horário já é ocupado ' + (fixo.semanas ? descreverSemanasDoMes(fixo.semanas, fixo.dia) : 'toda semana') + ' por "' + (fixo.atividade || 'um compromisso fixo') + '" (' + fixo.inicio + ' às ' + fixo.fim + '). Escolha outro horário' + (/^todas\b/.test(norm(fixo.sala)) ? '.' : ' ou sala.'));
       return;
     }
 
