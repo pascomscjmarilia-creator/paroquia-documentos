@@ -455,7 +455,7 @@
       </div>
 
       <form id="formNovaReserva">
-        <label for="modalSala">Sala</label>
+        <label for="modalSala">Sala <button type="button" class="btn-ajuda" id="btnAjudaFixas" aria-expanded="false" aria-controls="ajudaFixas" aria-label="Ver as salas com agendamento fixo" title="Salas com agendamento fixo" style="background:#b3261e;color:#fff;border-color:#b3261e;">?</button></label>
         <select id="modalSala" required>
           <option value="">Selecione...</option>
           <option value="Salão principal">Salão principal</option>
@@ -468,6 +468,14 @@
           <option value="Sala 07">Sala 07</option>
           <option value="Capela">Capela</option>
         </select>
+        <div id="ajudaFixas" class="ajuda-texto" hidden style="margin:6px 0 12px; border-left:4px solid #b3261e;">
+          <p><strong style="color:#b3261e;">Quando NÃO é possível reservar</strong></p>
+          <p style="margin:6px 0 2px;"><strong style="color:#b3261e;">1) Dias da semana sem reserva:</strong> <span id="diasSemReserva" style="color:#b3261e; font-weight:700;">carregando…</span></p>
+          <p id="diasComReserva" style="margin:0 0 8px; font-size:0.92em;"></p>
+          <p><strong style="color:#b3261e;">2) Salas com agendamento fixo</strong></p>
+          <p>Estas atividades acontecem <strong>toda semana</strong> e têm prioridade: <strong>não dá para reservar a mesma sala nesses dias e horários</strong>. Se a reserva cair num deles, o sistema avisa e não confirma. Escolha outro dia, outro horário ou outra sala. <em>“Todas as salas”</em> quer dizer que nenhuma sala fica livre naquele horário.</p>
+          <ul id="listaFixas" style="color:#b3261e; font-weight:600; margin:4px 0 2px; padding-left:18px;"><li>Carregando…</li></ul>
+        </div>
 
         <label for="modalData">Data</label>
         <input type="date" id="modalData" required>
@@ -498,6 +506,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261019a"></script>
+  <script src="app.js?v=20261020b"></script>
 </body>
 </html>
