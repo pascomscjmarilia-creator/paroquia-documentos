@@ -128,6 +128,7 @@ async function handleLoginSucesso() {
     await carregarRecados();
     await carregarSalas();
     await carregarDiasReserva();
+    await carregarReservasFixas();
     await carregarReservas();
     await carregarExtras();
     await carregarCatequese();
@@ -529,11 +530,23 @@ function mensagemDiaBloqueado(isoDate) {
   return 'As salas não estão disponíveis ' + emDia + '. Dias disponíveis: ' + listaDiasTexto(diasLiberados) + '.';
 }
 
+// Mostra, na caixa do "?", os dias da semana em que NÃO dá para reservar (os que não estão liberados na aba "Dias de Reserva").
+function renderizarDiasSemReserva() {
+  const caixaSem = el('diasSemReserva');
+  if (!caixaSem) return;
+  const maiuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const bloqueados = [0, 1, 2, 3, 4, 5, 6].filter(i => !diasLiberados.includes(i));
+  caixaSem.textContent = bloqueados.length ? listaDiasTexto(bloqueados).split(/(, | e )/).map((p, k) => (k % 2 === 0 ? maiuscula(p) : p)).join('') : 'nenhum (todos os dias estão liberados)';
+  const ok = el('diasComReserva');
+  if (ok) ok.textContent = diasLiberados.length ? 'Dias liberados para reserva: ' + listaDiasTexto(diasLiberados) + '.' : '';
+}
+
 async function carregarDiasReserva() {
   try {
     const dias = montarDiasLiberados(await buscarValoresSheet(CONFIG.DIAS_RESERVA_RANGE, CONFIG.SHEET_ID_DADOS));
     if (dias && dias.length > 0) diasLiberados = dias;
   } catch (e) { /* mantém o padrão */ }
+  renderizarDiasSemReserva();
 }
 
 function avisarDiaBloqueado() {
@@ -602,7 +615,64 @@ async function cancelarReserva(linhaNumero) {
   }
 }
 
+// ---------- Salas com agendamento fixo (aba "RESERVAS FIXAS DE SALAS": A Dia · B Início · C Fim · D Sala · E Atividade · F Observação) ----------
+let reservasFixas = [];
+let fixasEstado = 'nao'; // nao | ok | erro
+
+async function obterNomeAbaFixas() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID_DADOS}?fields=sheets.properties(sheetId,title)`;
+  const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!resp.ok) { const e = new Error('status ' + resp.status); e.status = resp.status; throw e; }
+  const dados = await resp.json();
+  const aba = (dados.sheets || []).find(s => /reservas\s+fixas/i.test(s.properties.title));
+  if (!aba) { const e = new Error('aba não encontrada'); e.status = 404; throw e; }
+  return aba.properties.title;
+}
+
+async function carregarReservasFixas() {
+  try {
+    const nome = await obterNomeAbaFixas();
+    const valores = await buscarValoresSheet("'" + nome.replace(/'/g, "''") + "'!A2:F", CONFIG.SHEET_ID_DADOS);
+    reservasFixas = valores
+      .map(r => ({ dia: String(r[0] || '').trim(), inicio: String(r[1] || '').trim(), fim: String(r[2] || '').trim(), sala: String(r[3] || '').trim(), atividade: String(r[4] || '').trim(), obs: String(r[5] || '').trim() }))
+      .filter(f => f.sala || f.atividade);
+    fixasEstado = 'ok';
+  } catch (e) {
+    reservasFixas = [];
+    fixasEstado = 'erro';
+  }
+  renderizarFixas();
+}
+
+function renderizarFixas() {
+  const ul = el('listaFixas');
+  if (!ul) return;
+  if (fixasEstado === 'erro') { ul.innerHTML = '<li>Não consegui carregar os horários fixos agora. Feche e abra de novo, ou confira a aba “RESERVAS FIXAS DE SALAS” da planilha.</li>'; return; }
+  if (fixasEstado === 'nao') { ul.innerHTML = '<li>Carregando…</li>'; return; }
+  if (reservasFixas.length === 0) { ul.innerHTML = '<li>Nenhum horário fixo cadastrado.</li>'; return; }
+  const todas = (s) => /^todas\b/.test(norm(s));
+  const lista = reservasFixas.slice().sort((a, b) =>
+    (todas(b.sala) - todas(a.sala)) || norm(a.sala).localeCompare(norm(b.sala), 'pt-BR') ||
+    (idxDiaSemana(a.dia) - idxDiaSemana(b.dia)) || a.inicio.localeCompare(b.inicio));
+  ul.innerHTML = lista.map(f => {
+    const horario = f.inicio ? f.inicio + (f.fim ? ' às ' + f.fim : '') : '';
+    const partes = [f.dia, horario].filter(Boolean).join(', ');
+    return '<li><strong>' + escapeHtml(f.sala || 'Sala não informada') + '</strong>' + (partes ? ' · ' + escapeHtml(partes) : '') +
+      (f.atividade ? ' · ' + escapeHtml(f.atividade) : '') + (f.obs ? ' <span style="font-weight:400;">(' + escapeHtml(f.obs) + ')</span>' : '') + '</li>';
+  }).join('');
+}
+
+function alternarAjudaFixas() {
+  renderizarDiasSemReserva();
+  const caixa = el('ajudaFixas');
+  caixa.hidden = !caixa.hidden;
+  el('btnAjudaFixas').setAttribute('aria-expanded', String(!caixa.hidden));
+  if (!caixa.hidden && fixasEstado !== 'ok') carregarReservasFixas();
+}
+
 function abrirModalReserva() {
+  el('ajudaFixas').hidden = true;
+  el('btnAjudaFixas').setAttribute('aria-expanded', 'false');
   el('formNovaReserva').reset();
   el('modalData').setCustomValidity('');
   const hj = new Date();
@@ -1641,6 +1711,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('filtroStatusReserva').addEventListener('change', renderizarReservas);
   el('btnAtualizarReservas').addEventListener('click', carregarReservas);
   el('btnNovaReserva').addEventListener('click', abrirModalReserva);
+  el('btnAjudaFixas').addEventListener('click', alternarAjudaFixas);
   el('modalWhatsapp').addEventListener('input', e => { e.target.value = mascararTelefone(e.target.value); });
   el('modalData').addEventListener('change', avisarDiaBloqueado);
   el('btnFecharModal').addEventListener('click', fecharModalReserva);
