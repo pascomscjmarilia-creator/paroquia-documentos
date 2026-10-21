@@ -41,7 +41,7 @@
         <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
         <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
         <button class="aba-btn" id="btnAbaLojinha" data-aba="lojinha">🛍️ Lojinha</button>
-        <button class="aba-btn" id="btnAbaCasamento" data-aba="casamento">💍 Casamento</button>
+        <button class="aba-btn" id="btnAbaAssuntos" data-aba="assuntos">📎 Docs por Assunto</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -80,28 +80,35 @@
         </table>
       </div>
 
-      <!-- ABA: CASAMENTO -->
-      <div id="abaCasamento" class="conteudo-aba" hidden>
+      <!-- ABA: DOCUMENTOS POR ASSUNTO -->
+      <div id="abaAssuntos" class="conteudo-aba" hidden>
         <div class="filtros">
-          <input type="text" id="buscaCasamento" placeholder="Buscar por nome, número ou arquivo...">
-          <button id="btnAtualizarCasamento" title="Recarregar dados da planilha">🔄 Atualizar</button>
-          <button id="btnImprimirCasamento" title="Imprimir lista">🖨️ Imprimir lista</button>
+          <input type="text" id="buscaAssuntos" placeholder="Buscar por nome, número ou arquivo...">
+          <select id="filtroAssunto">
+            <option value="">Todos os assuntos</option>
+            <option value="Casamento">💍 Casamento</option>
+            <option value="Batizado">👶 Batizado</option>
+            <option value="Catequese">📖 Catequese</option>
+          </select>
+          <button id="btnAtualizarAssuntos" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirAssuntos" title="Imprimir lista">🖨️ Imprimir lista</button>
         </div>
 
-        <p class="status" style="margin:4px 0 8px;">Documentos enviados por WhatsApp por quem falou em <strong>casamento</strong>. Cada pessoa também aparece em <strong>Recados / Retorno</strong> para a secretaria entrar em contato, conferir os documentos e passar mais informações.</p>
-        <p id="statusMsgCasamento" class="status"></p>
+        <p class="status" style="margin:4px 0 8px;">Documentos enviados por WhatsApp, separados pelo <strong>assunto</strong> informado pelo fiel (casamento, batizado ou catequese). Cada pessoa também aparece em <strong>Recados / Retorno</strong> para a secretaria entrar em contato, conferir os documentos e passar mais informações.</p>
+        <p id="statusMsgAssuntos" class="status"></p>
 
-        <table id="tabelaCasamento">
+        <table id="tabelaAssuntos">
           <thead>
             <tr>
               <th>Data/Hora</th>
+              <th>Assunto</th>
               <th>Contato</th>
               <th>Número</th>
               <th>Arquivo</th>
               <th class="no-print">Ação</th>
             </tr>
           </thead>
-          <tbody id="tabelaCasamentoCorpo"></tbody>
+          <tbody id="tabelaAssuntosCorpo"></tbody>
         </table>
       </div>
 
@@ -535,6 +542,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261023a"></script>
+  <script src="app.js?v=20261024c"></script>
 </body>
 </html>
