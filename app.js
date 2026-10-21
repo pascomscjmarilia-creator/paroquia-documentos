@@ -12,8 +12,8 @@ const CONFIG = {
   RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
 
   RESERVAS_RANGE: 'Reservas_Salas!A2:I',
-  // Documentos de casamento (planilha Pascom_Controle, aba "Casamento"): A Data/Hora · B Contato · C Número · D Tipo · E Arquivo · F Link
-  CASAMENTO_RANGE: 'Casamento!A2:F',
+  // Documentos por assunto (planilha Pascom_Controle): uma aba por assunto, colunas A Data/Hora · B Contato · C Número · D Tipo · E Arquivo · F Link
+  ASSUNTOS_ABAS: [['Casamento', 'Casamento!A2:F'], ['Batizado', 'Batizado!A2:F'], ['Catequese', 'Catequese_Docs!A2:F']],
   RESERVAS_ABA: 'Reservas_Salas',
   WEBHOOK_RESERVA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala',
 
@@ -50,7 +50,7 @@ let linhasRecados = [];
 let linhasReservas = [];
 let linhasExtras = [];
 let linhasCatequese = [];
-let linhasCasamento = [];
+let linhasAssuntos = [];
 let linhasLojinha = [];
 let produtoEditandoLinha = null;
 let fotoAtualProduto = '';
@@ -136,7 +136,7 @@ async function handleLoginSucesso() {
     await carregarExtras();
     await carregarCatequese();
     await carregarLojinha();
-    await carregarCasamento();
+    await carregarAssuntos();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -1297,56 +1297,58 @@ async function excluirReservaPassada(linhaNumero) {
   }
 }
 
-// ---------- Casamento (documentos recebidos por WhatsApp de quem falou em casamento) ----------
-async function carregarCasamento() {
-  const statusMsg = el('statusMsgCasamento');
-  statusMsg.textContent = 'Carregando documentos do casamento...';
-  try {
-    const valores = await buscarValoresSheet(CONFIG.CASAMENTO_RANGE);
-    linhasCasamento = valores
-      .filter(row => row && row.length > 0)
-      .map((row, idx) => ({
-        ordem: idx,
-        data: row[0] || '',
-        nome: row[1] || '',
-        numero: limparNumero(row[2]),
-        arquivo: row[4] || '',
-        link: row[5] || '',
+// ---------- Documentos por assunto (casamento · batizado · catequese) ----------
+const EMOJI_ASSUNTO = { Casamento: '💍', Batizado: '👶', Catequese: '📖' };
+
+async function carregarAssuntos() {
+  const statusMsg = el('statusMsgAssuntos');
+  statusMsg.textContent = 'Carregando documentos por assunto...';
+  const faltando = [];
+  let semPermissao = false;
+  linhasAssuntos = [];
+  for (const [assunto, range] of CONFIG.ASSUNTOS_ABAS) {
+    try {
+      const valores = await buscarValoresSheet(range);
+      valores.filter(row => row && row.length > 0).forEach((row, idx) => linhasAssuntos.push({
+        assunto, ordem: idx, data: row[0] || '', nome: row[1] || '', numero: limparNumero(row[2]), arquivo: row[4] || '', link: row[5] || '',
       }));
-    renderizarCasamento();
-  } catch (e) {
-    linhasCasamento = [];
-    renderizarCasamento();
-    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
-      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
-      : (/STATUS_(400|404)/.test(e.message) ? 'A aba "Casamento" ainda não existe na planilha Pascom_Controle. Crie a aba com os cabeçalhos: Data/Hora, Contato, Número, Tipo, Arquivo, Link.' : 'Erro ao carregar os documentos do casamento.');
+    } catch (e) {
+      if (e.message === 'SEM_PERMISSAO') semPermissao = true;
+      else if (/STATUS_(400|404)/.test(e.message)) faltando.push(range.split('!')[0]);
+    }
   }
+  renderizarAssuntos();
+  if (semPermissao) statusMsg.textContent = 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.';
+  else if (faltando.length) statusMsg.textContent = (linhasAssuntos.length ? el('statusMsgAssuntos').textContent + ' ' : '') + 'Aba(s) ainda não criada(s) na planilha Pascom_Controle: ' + faltando.join(', ') + '. Crie com os cabeçalhos: Data/Hora, Contato, Número, Tipo, Arquivo, Link.';
 }
 
-function renderizarCasamento() {
-  const termo = el('buscaCasamento').value.trim().toLowerCase();
-  const filtradas = linhasCasamento
-    .filter(l => !termo || (l.nome + ' ' + l.numero + ' ' + l.arquivo).toLowerCase().includes(termo))
+function renderizarAssuntos() {
+  const termo = el('buscaAssuntos').value.trim().toLowerCase();
+  const filtro = el('filtroAssunto').value;
+  const filtradas = linhasAssuntos
+    .filter(l => (!filtro || l.assunto === filtro) && (!termo || (l.nome + ' ' + l.numero + ' ' + l.arquivo).toLowerCase().includes(termo)))
     .sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo (só na tela)
 
-  const corpo = el('tabelaCasamentoCorpo');
+  const corpo = el('tabelaAssuntosCorpo');
   corpo.innerHTML = '';
   if (filtradas.length === 0) {
-    corpo.innerHTML = '<tr><td colspan="5">Nenhum documento de casamento encontrado.</td></tr>';
+    corpo.innerHTML = '<tr><td colspan="6">Nenhum documento encontrado.</td></tr>';
+    el('statusMsgAssuntos').textContent = '';
     return;
   }
   const pessoas = new Set(filtradas.map(l => l.numero || l.nome)).size;
-  el('statusMsgCasamento').textContent = filtradas.length + ' documento(s) de ' + pessoas + ' pessoa(s).';
+  el('statusMsgAssuntos').textContent = filtradas.length + ' documento(s) de ' + pessoas + ' pessoa(s).';
 
   filtradas.forEach(l => {
     const wa = linkWhatsApp(l.numero);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Data/Hora">${escapeHtml(l.data)}</td>
+      <td data-label="Assunto">${EMOJI_ASSUNTO[l.assunto] || ''} ${escapeHtml(l.assunto)}</td>
       <td data-label="Contato">${escapeHtml(l.nome)}</td>
       <td data-label="Número">${escapeHtml(rotuloContato(l.numero))}</td>
       <td data-label="Arquivo">${escapeHtml(l.arquivo)}</td>
-      <td data-label="Ação" class="no-print">${l.link ? `<a href="${escapeAttr(l.link)}" target="_blank" rel="noopener">Abrir</a>` : ''}${wa ? ` · <a href="${escapeAttr(wa)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}</td>
+      <td data-label="Ação" class="no-print"><div style="display:flex; flex-wrap:nowrap; gap:8px; align-items:center;">${l.link ? `<a href="${escapeAttr(l.link)}" target="_blank" rel="noopener" class="btn-acao btn-abrir-doc" style="background:var(--vinho); color:#fff;">📂 Abrir</a>` : ''}${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">${rotuloBotaoContato(l.numero)}</a>` : ''}</div></td>
     `;
     corpo.appendChild(tr);
   });
@@ -1924,7 +1926,7 @@ const ABAS = {
   extras: ['abaExtras', 'btnAbaExtras'],
   catequese: ['abaCatequese', 'btnAbaCatequese'],
   lojinha: ['abaLojinha', 'btnAbaLojinha'],
-  casamento: ['abaCasamento', 'btnAbaCasamento'],
+  assuntos: ['abaAssuntos', 'btnAbaAssuntos'],
 };
 
 function trocarAba(aba) {
@@ -1945,7 +1947,7 @@ function sair() {
   linhasExtras = [];
   linhasCatequese = [];
   linhasLojinha = [];
-  linhasCasamento = [];
+  linhasAssuntos = [];
   el('userBox').hidden = true;
   el('appScreen').hidden = true;
   el('loginScreen').hidden = false;
@@ -2026,9 +2028,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (btnExcluir) excluirExtra(Number(btnExcluir.dataset.linha));
   });
 
-  el('buscaCasamento').addEventListener('input', renderizarCasamento);
-  el('btnAtualizarCasamento').addEventListener('click', carregarCasamento);
-  el('btnImprimirCasamento').addEventListener('click', () => window.print());
+  el('buscaAssuntos').addEventListener('input', renderizarAssuntos);
+  el('filtroAssunto').addEventListener('change', renderizarAssuntos);
+  el('btnAtualizarAssuntos').addEventListener('click', carregarAssuntos);
+  el('btnImprimirAssuntos').addEventListener('click', () => window.print());
 
   el('buscaCatequese').addEventListener('input', renderizarCatequese);
   el('filtroDocsCatequese').addEventListener('change', renderizarCatequese);
@@ -2117,7 +2120,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnAbaReservas').addEventListener('click', () => trocarAba('reservas'));
   el('btnAbaExtras').addEventListener('click', () => trocarAba('extras'));
   el('btnAbaCatequese').addEventListener('click', () => trocarAba('catequese'));
-  el('btnAbaCasamento').addEventListener('click', () => trocarAba('casamento'));
+  el('btnAbaAssuntos').addEventListener('click', () => trocarAba('assuntos'));
 
   el('btnSair').addEventListener('click', sair);
 });
