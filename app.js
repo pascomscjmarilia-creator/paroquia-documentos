@@ -12,6 +12,8 @@ const CONFIG = {
   RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
 
   RESERVAS_RANGE: 'Reservas_Salas!A2:I',
+  // Documentos de casamento (planilha Pascom_Controle, aba "Casamento"): A Data/Hora · B Contato · C Número · D Tipo · E Arquivo · F Link
+  CASAMENTO_RANGE: 'Casamento!A2:F',
   RESERVAS_ABA: 'Reservas_Salas',
   WEBHOOK_RESERVA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala',
 
@@ -48,6 +50,7 @@ let linhasRecados = [];
 let linhasReservas = [];
 let linhasExtras = [];
 let linhasCatequese = [];
+let linhasCasamento = [];
 let linhasLojinha = [];
 let produtoEditandoLinha = null;
 let fotoAtualProduto = '';
@@ -133,6 +136,7 @@ async function handleLoginSucesso() {
     await carregarExtras();
     await carregarCatequese();
     await carregarLojinha();
+    await carregarCasamento();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -1293,6 +1297,61 @@ async function excluirReservaPassada(linhaNumero) {
   }
 }
 
+// ---------- Casamento (documentos recebidos por WhatsApp de quem falou em casamento) ----------
+async function carregarCasamento() {
+  const statusMsg = el('statusMsgCasamento');
+  statusMsg.textContent = 'Carregando documentos do casamento...';
+  try {
+    const valores = await buscarValoresSheet(CONFIG.CASAMENTO_RANGE);
+    linhasCasamento = valores
+      .filter(row => row && row.length > 0)
+      .map((row, idx) => ({
+        ordem: idx,
+        data: row[0] || '',
+        nome: row[1] || '',
+        numero: limparNumero(row[2]),
+        arquivo: row[4] || '',
+        link: row[5] || '',
+      }));
+    renderizarCasamento();
+  } catch (e) {
+    linhasCasamento = [];
+    renderizarCasamento();
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : (/STATUS_(400|404)/.test(e.message) ? 'A aba "Casamento" ainda não existe na planilha Pascom_Controle. Crie a aba com os cabeçalhos: Data/Hora, Contato, Número, Tipo, Arquivo, Link.' : 'Erro ao carregar os documentos do casamento.');
+  }
+}
+
+function renderizarCasamento() {
+  const termo = el('buscaCasamento').value.trim().toLowerCase();
+  const filtradas = linhasCasamento
+    .filter(l => !termo || (l.nome + ' ' + l.numero + ' ' + l.arquivo).toLowerCase().includes(termo))
+    .sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo (só na tela)
+
+  const corpo = el('tabelaCasamentoCorpo');
+  corpo.innerHTML = '';
+  if (filtradas.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="5">Nenhum documento de casamento encontrado.</td></tr>';
+    return;
+  }
+  const pessoas = new Set(filtradas.map(l => l.numero || l.nome)).size;
+  el('statusMsgCasamento').textContent = filtradas.length + ' documento(s) de ' + pessoas + ' pessoa(s).';
+
+  filtradas.forEach(l => {
+    const wa = linkWhatsApp(l.numero);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data/Hora">${escapeHtml(l.data)}</td>
+      <td data-label="Contato">${escapeHtml(l.nome)}</td>
+      <td data-label="Número">${escapeHtml(rotuloContato(l.numero))}</td>
+      <td data-label="Arquivo">${escapeHtml(l.arquivo)}</td>
+      <td data-label="Ação" class="no-print">${l.link ? `<a href="${escapeAttr(l.link)}" target="_blank" rel="noopener">Abrir</a>` : ''}${wa ? ` · <a href="${escapeAttr(wa)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}</td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
 // ---------- Catequese (inscrições feitas pelo formulário catequese.html) ----------
 // Colunas da aba: A Data/Hora · B Catequizando · C Nascimento · D Responsável · E WhatsApp · F Etapa ·
 // G Batizado · H Paróquia do Batismo · I Observações · J Situação dos Documentos · K Links dos Documentos · L Status
@@ -1865,6 +1924,7 @@ const ABAS = {
   extras: ['abaExtras', 'btnAbaExtras'],
   catequese: ['abaCatequese', 'btnAbaCatequese'],
   lojinha: ['abaLojinha', 'btnAbaLojinha'],
+  casamento: ['abaCasamento', 'btnAbaCasamento'],
 };
 
 function trocarAba(aba) {
@@ -1885,6 +1945,7 @@ function sair() {
   linhasExtras = [];
   linhasCatequese = [];
   linhasLojinha = [];
+  linhasCasamento = [];
   el('userBox').hidden = true;
   el('appScreen').hidden = true;
   el('loginScreen').hidden = false;
@@ -1964,6 +2025,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const btnExcluir = e.target.closest('.btn-excluir');
     if (btnExcluir) excluirExtra(Number(btnExcluir.dataset.linha));
   });
+
+  el('buscaCasamento').addEventListener('input', renderizarCasamento);
+  el('btnAtualizarCasamento').addEventListener('click', carregarCasamento);
+  el('btnImprimirCasamento').addEventListener('click', () => window.print());
 
   el('buscaCatequese').addEventListener('input', renderizarCatequese);
   el('filtroDocsCatequese').addEventListener('change', renderizarCatequese);
@@ -2052,6 +2117,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnAbaReservas').addEventListener('click', () => trocarAba('reservas'));
   el('btnAbaExtras').addEventListener('click', () => trocarAba('extras'));
   el('btnAbaCatequese').addEventListener('click', () => trocarAba('catequese'));
+  el('btnAbaCasamento').addEventListener('click', () => trocarAba('casamento'));
 
   el('btnSair').addEventListener('click', sair);
 });
