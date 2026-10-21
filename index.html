@@ -41,6 +41,7 @@
         <button class="aba-btn" id="btnAbaExtras" data-aba="extras">📌 Informações Extras</button>
         <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
         <button class="aba-btn" id="btnAbaLojinha" data-aba="lojinha">🛍️ Lojinha</button>
+        <button class="aba-btn" id="btnAbaCasamento" data-aba="casamento">💍 Casamento</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -76,6 +77,31 @@
             </tr>
           </thead>
           <tbody id="tabelaCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: CASAMENTO -->
+      <div id="abaCasamento" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaCasamento" placeholder="Buscar por nome, número ou arquivo...">
+          <button id="btnAtualizarCasamento" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirCasamento" title="Imprimir lista">🖨️ Imprimir lista</button>
+        </div>
+
+        <p class="status" style="margin:4px 0 8px;">Documentos enviados por WhatsApp por quem falou em <strong>casamento</strong>. Cada pessoa também aparece em <strong>Recados / Retorno</strong> para a secretaria entrar em contato, conferir os documentos e passar mais informações.</p>
+        <p id="statusMsgCasamento" class="status"></p>
+
+        <table id="tabelaCasamento">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Contato</th>
+              <th>Número</th>
+              <th>Arquivo</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCasamentoCorpo"></tbody>
         </table>
       </div>
 
@@ -509,6 +535,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261022a"></script>
+  <script src="app.js?v=20261023a"></script>
 </body>
 </html>
