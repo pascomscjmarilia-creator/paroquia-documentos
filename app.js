@@ -2021,6 +2021,15 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // "?" da aba Informações Extras (mostra/esconde as instruções de como escrever os avisos)
+  el('abaExtras').addEventListener('click', (e) => {
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (!btnAjuda) return;
+    const caixa = el(btnAjuda.dataset.ajuda);
+    caixa.hidden = !caixa.hidden;
+    btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+  });
+
   el('tabelaExtrasCorpo').addEventListener('click', (e) => {
     const btnEditar = e.target.closest('.btn-editar');
     if (btnEditar) { abrirModalExtra(Number(btnEditar.dataset.linha)); return; }
