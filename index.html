@@ -203,6 +203,30 @@
           <button id="btnLinhasBrancas" title="Apagar as linhas em branco que ficaram no meio da lista">🧽 Remover linhas em branco</button>
         </div>
 
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaExtras" aria-expanded="false" aria-label="Como funciona a aba Informações Extras">?</button>
+          <span class="modal-intro" style="margin:0;"><strong>O que você escrever aqui é a informação principal do bot:</strong> vale mais que as outras abas. Toque no <strong>?</strong> para ver como escrever.</span>
+        </div>
+
+        <div id="ajudaExtras" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>Para que serve esta aba:</strong> aqui a secretaria cadastra avisos, correções e complementos. O bot (WhatsApp, Instagram e Facebook) usa o que está aqui como a <strong>informação principal</strong> sobre o assunto.</p>
+          <p><strong>Se outra aba disser algo diferente</strong> (calendário, lista de eventos, atividades, horários), o bot usa o que está aqui e ignora o outro dado. As outras abas só completam o que o aviso não diz.</p>
+
+          <p><strong>Como escrever para o bot acertar:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Uma frase completa</strong>, com a data (com o ano), o horário e o local, se houver.</li>
+            <li><strong>Use o mesmo nome do evento</strong> que aparece no calendário (ex.: Adorai Kids). É por esse nome que o bot liga o aviso à pergunta do fiel.</li>
+            <li><strong>Um assunto por aviso.</strong> A inscrição e o evento são dois avisos separados.</li>
+            <li><strong>Preencha o "Válido até"</strong> com o último dia do aviso: depois dele o bot para de usar o aviso sozinho.</li>
+            <li><strong>Para corrigir, clique em Editar</strong> no aviso que já existe. Não crie um segundo aviso sobre o mesmo assunto, senão os dois valem e podem se contradizer.</li>
+          </ul>
+
+          <p class="exemplo">Exemplo, dois avisos:<br>
+            Assunto: Inscrições do 3º Adorai Kids · Informação: Inscrições para o 3º Adorai Kids, para crianças de 7 a 10 anos, no Salão Paroquial, no sábado, dia 24/10/2026, das 14h às 19h. · Válido até 24/10/2026<br>
+            Assunto: 3º Adorai Kids · Informação: O 3º Adorai Kids será no dia 05/12/2026 (sábado), no Espaço Elena Guerra. · Válido até 05/12/2026</p>
+          <p>Horários de missa, endereços e telefones continuam nas abas próprias da planilha. Use esta aba quando algo <strong>mudar</strong>, <strong>faltar</strong> ou precisar de um <strong>complemento</strong>.</p>
+        </div>
+
         <p id="statusMsgExtras" class="status"></p>
 
         <table id="tabelaExtras">
@@ -370,7 +394,8 @@
           </div>
           <div id="ajudaAssunto" class="ajuda-texto" hidden>
             <p><strong>O que é:</strong> o tema do aviso, em poucas palavras. É por ele que o bot liga o aviso à pergunta do fiel.</p>
-            <p><strong>Se for uma mudança:</strong> use o nome que as pessoas usam no dia a dia (Missa de domingo, Confissão, Festa de Nossa Senhora…) e diga o que mudou.</p>
+            <p><strong>Use o mesmo nome do calendário:</strong> o nome que as pessoas usam no dia a dia e que aparece no calendário (Adorai Kids, Missa de domingo, Confissão, Festa de Nossa Senhora…). Se for uma mudança, diga o que mudou.</p>
+            <p><strong>Um assunto por aviso:</strong> inscrição e evento são dois avisos separados.</p>
             <p class="exemplo">Exemplos: Curso de Casais · Missa de domingo 28/09 cancelada · Pe. Willians ausente (21 a 27/09)</p>
           </div>
           <input type="text" id="extraAssunto" required placeholder="Ex: Curso de Casais">
@@ -382,14 +407,15 @@
             <button type="button" class="btn-ajuda" data-ajuda="ajudaInformacao" aria-expanded="false" aria-label="Como preencher a Informação">?</button>
           </div>
           <div id="ajudaInformacao" class="ajuda-texto" hidden>
-            <p><strong>O que é:</strong> a resposta pronta que o bot vai dar ao fiel. Escreva do jeito que quer que ele fale, com dia, horário e local.</p>
+            <p><strong>O que é:</strong> a resposta pronta que o bot vai dar ao fiel. Escreva do jeito que quer que ele fale, em uma frase completa, com dia (e ano), horário e local.</p>
+            <p><strong>Este aviso é a informação principal:</strong> se qualquer outra aba disser algo diferente sobre o mesmo assunto, o bot usa o que você escrever aqui.</p>
             <p><strong>Use para dois casos:</strong></p>
             <ul style="margin:0 0 4px; padding-left:18px;">
               <li><strong>Informação avulsa</strong> que não está em nenhuma outra aba (ex.: local de um curso).</li>
               <li><strong>Mudança</strong> em algo que já existe nas outras abas: data ou horário alterado, cancelamento, local trocado, padre ausente… O aviso <strong>vale mais</strong> que a informação normal.</li>
             </ul>
             <p><strong>Nas mudanças,</strong> cite o nome do que mudou e diga o que valia antes e o que vale agora.</p>
-            <p>Não use para repetir uma informação que já está certa nas outras abas.</p>
+            <p>Não use para repetir uma informação que já está certa nas outras abas. Para corrigir um aviso, use <em>Editar</em> em vez de criar outro sobre o mesmo assunto.</p>
             <p class="exemplo">Exemplos: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial. · A missa de domingo, 28/09, às 19h na Matriz está cancelada; haverá missa às 18h.</p>
           </div>
           <textarea id="extraInformacao" rows="4" required placeholder="Ex: O curso de casais será no dia 25/09, às 20h, no Salão Paroquial."></textarea>
@@ -542,6 +568,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261024c"></script>
+  <script src="app.js?v=20261024d"></script>
 </body>
 </html>
