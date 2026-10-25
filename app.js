@@ -474,6 +474,8 @@ function montarSalas(valores) {
 }
 
 // "sala com TV" e "Sala 05" são a mesma sala: compara sempre pelo nome oficial
+// A Igreja (Matriz) NÃO entra em "Todas as salas" (a Catequese não ocupa a igreja): só um horário fixo com a SALA = Igreja a bloqueia (as missas).
+function ehIgrejaSala(s) { return /\bigreja\b/.test(norm(canonSala(s))); }
 function canonSala(s) {
   const n = norm(s);
   return aliasSalas[n] || n;
@@ -918,7 +920,7 @@ async function salvarEdicaoReserva() {
     if (fixasEstado !== 'ok') await carregarReservasFixas();
     if (fixasEstado !== 'ok') { erro('Não consegui conferir os horários fixos das salas agora. Tente de novo em instantes.'); return; }
     const fixo = reservasFixas.find(f => idxDiaSemana(f.dia) === dataAlvo.getDay() && dataValeNaSemanaDoMes(f.semanas, dataAlvo) &&
-      (/^todas\b/.test(norm(f.sala)) || canonSala(f.sala) === canonSala(novo.sala)) && sobrepoe(minutosDeHora(f.inicio), minutosDeHora(f.fim)));
+      ((/^todas\b/.test(norm(f.sala)) && !ehIgrejaSala(novo.sala)) || canonSala(f.sala) === canonSala(novo.sala)) && sobrepoe(minutosDeHora(f.inicio), minutosDeHora(f.fim)));
     if (fixo) {
       erro('Esse horário já é ocupado ' + (fixo.semanas ? descreverSemanasDoMes(fixo.semanas, fixo.dia) : 'toda semana') + ' por "' + (fixo.atividade || 'um compromisso fixo') + '" (' + fixo.inicio + ' às ' + fixo.fim + '). Escolha outro horário' + (/^todas\b/.test(norm(fixo.sala)) ? '.' : ' ou sala.'));
       return;
