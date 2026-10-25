@@ -118,11 +118,13 @@ main {
   border-bottom: 2px solid var(--cinza-borda);
 }
 
+/* As 7 abas cabem numa linha só: espaçamento e letra se ajustam à largura da tela (no celular vira grade de 2 colunas, mais abaixo) */
 .aba-btn {
   background: none;
   border: none;
-  padding: 10px 18px;
-  font-size: 0.95rem;
+  padding: 10px clamp(6px, 1vw, 10px);
+  font-size: clamp(0.8rem, 1.2vw, 0.9rem);
+  white-space: nowrap;
   font-weight: 600;
   color: #777;
   cursor: pointer;
@@ -328,6 +330,7 @@ td a:hover {
   .aba-btn {
     padding: 10px 6px;
     font-size: 0.9rem;
+    white-space: normal;
   }
 
   /* com número ímpar de abas, a última ocupa a linha inteira */
