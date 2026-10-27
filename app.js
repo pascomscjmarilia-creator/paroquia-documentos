@@ -798,6 +798,7 @@ async function enviarNovaReserva(e) {
     nome: el('modalNome').value.trim(),
     numero: el('modalWhatsapp').value.trim(),
     atividade: el('modalAtividade').value.trim(),
+    origem: 'secretaria', // só o painel (Secretaria) pode reservar a Igreja; o formulário público não envia isto
   };
 
   // Uma chamada por sala, uma depois da outra: cada uma é conferida (conflito, dia liberado, horário fixo) pelo n8n.
