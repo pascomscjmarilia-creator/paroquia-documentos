@@ -915,7 +915,8 @@ async function salvarEdicaoReserva() {
     const sobrepoe = (i1, f1) => i1 !== null && f1 !== null && iniMin < f1 && fimMin > i1;
     const conflito = todas.find((r, i) => (i + 2) !== linha && !reservaCancelada(r[7]) && canonSala(r[3]) === canonSala(novo.sala) &&
       parseDataBR(r[0]) && parseDataBR(r[0]).getTime() === dataAlvo.getTime() && sobrepoe(minutosDeHora(r[1]), minutosDeHora(r[2])));
-    if (conflito) { erro('Essa sala já está reservada nesse horário (' + conflito[1] + ' às ' + conflito[2] + '). Escolha outro horário ou sala.'); return; }
+    if (conflito && /^paroquia \(bloqueio/.test(norm(conflito[4]))) { erro('Não é possível reservar nesse horário: ' + (conflito[6] || 'horário bloqueado pela Paróquia') + '. Escolha outro horário ou outra data.'); return; }
+    if (conflito) { erro('Essa sala já está reservada nesse horário (' + conflito[1] + ' às ' + conflito[2] + ')' + (String(conflito[6] || '').trim() ? ' para "' + String(conflito[6]).trim() + '"' : '') + '. Escolha outro horário ou sala.'); return; }
 
     if (fixasEstado !== 'ok') await carregarReservasFixas();
     if (fixasEstado !== 'ok') { erro('Não consegui conferir os horários fixos das salas agora. Tente de novo em instantes.'); return; }
