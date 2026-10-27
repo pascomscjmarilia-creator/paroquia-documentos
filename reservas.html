@@ -142,7 +142,8 @@
       vazia.value = '';
       vazia.textContent = 'Selecione...';
       select.appendChild(vazia);
-      dados.salas.forEach(s => {
+      // A Igreja só é reservada pela Secretaria (pelo painel): não aparece no formulário público.
+      dados.salas.filter(s => !/\bigreja\b/i.test(s.nome)).forEach(s => {
         const op = document.createElement('option');
         op.value = s.nome;
         op.textContent = s.nome + (s.descricao ? ' (' + s.descricao + ')' : '');
