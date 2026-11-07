@@ -747,3 +747,37 @@ td.texto-longo {
   td[data-label="Foto"]::before { display: none; }
   .desc-produto { max-width: none; }
 }
+
+/* ---- Nova inscrição na catequese (preenchida pela secretaria) ---- */
+#formCatequese { display: flex; flex-direction: column; gap: 12px; }
+#formCatequese label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.9rem; }
+#formCatequese input[type="text"],
+#formCatequese input[type="tel"],
+#formCatequese input[type="date"],
+#formCatequese select,
+#formCatequese textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--cinza-borda);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  box-sizing: border-box;
+}
+#formCatequese textarea { resize: vertical; }
+#formCatequese button[type="submit"] {
+  background: var(--vinho);
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+#formCatequese button[type="submit"]:hover { background: var(--vinho-escuro); }
+#formCatequese button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+#modalCatequeseResultado { margin: 0; font-weight: 600; font-size: 0.9rem; }
+#modalCatequeseResultado.erro { color: #b3261e; margin-top: 0; }
+@media (max-width: 640px) { #modalCatequese .modal-linha-dupla { flex-direction: column; } }
