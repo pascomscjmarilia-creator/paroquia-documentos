@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="style.css?v=20261024a">
+<link rel="stylesheet" href="style.css?v=20261107a">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -260,6 +260,7 @@
           </select>
           <button id="btnAtualizarCatequese" title="Recarregar dados da planilha">🔄 Atualizar</button>
           <button id="btnImprimirCatequese" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+          <button id="btnNovaInscricaoCat" title="Preencher a ficha de inscrição aqui na secretaria">➕ Nova inscrição</button>
           <button id="btnFichaBranco" title="Abrir a ficha de inscrição em branco (PDF) para imprimir">🖨️ Ficha em branco</button>
         </div>
 
@@ -291,6 +292,8 @@
           </ul>
 
           <p><strong>Faltam documentos?</strong> Chame o responsável pelo botão WhatsApp e peça para enviar o que falta por este mesmo WhatsApp da paróquia ou levar na secretaria. Os arquivos enviados pelo WhatsApp aparecem na aba <em>Documentos</em>, com o número do fiel.</p>
+
+          <p><strong>Pessoa na secretaria?</strong> Toque em <em>➕ Nova inscrição</em>, preencha a ficha junto com a família e marque os documentos que ela entregou em papel. A inscrição entra nesta mesma lista, igual às feitas pela internet, e dá para imprimir a ficha logo em seguida. Se um documento faltar, o painel mostra <em>Faltam: …</em> e a catequista chama o responsável pelo WhatsApp.</p>
 
           <p><strong>Prefere o papel?</strong> O botão <em>🖨️ Ficha em branco</em> abre o PDF para imprimir. Quem preencher no papel entrega na secretaria com os documentos.</p>
 
@@ -506,6 +509,77 @@
     </div>
   </div>
 
+  <div id="modalCatequese" class="modal-overlay" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2>Nova inscrição na catequese</h2>
+        <button id="btnFecharModalCatequese" class="modal-fechar" type="button" aria-label="Fechar">&times;</button>
+      </div>
+      <p class="modal-intro">Ficha preenchida na secretaria. Ela entra na lista junto com as inscrições feitas pela internet.</p>
+
+      <form id="formCatequese" novalidate>
+        <div class="campo">
+          <label for="catNome">Nome completo de quem vai fazer a catequese</label>
+          <input type="text" id="catNome" autocomplete="off" required>
+        </div>
+
+        <div class="modal-linha-dupla">
+          <div>
+            <label for="catNascimento">Data de nascimento</label>
+            <input type="date" id="catNascimento" required>
+          </div>
+          <div>
+            <label for="catEtapa">Etapa / turma</label>
+            <select id="catEtapa" required></select>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label>Já é batizado(a)?</label>
+          <div style="display:flex; gap:20px;">
+            <label style="font-weight:500;"><input type="radio" name="catBatizado" value="Sim"> Sim</label>
+            <label style="font-weight:500;"><input type="radio" name="catBatizado" value="Não" checked> Não</label>
+          </div>
+        </div>
+
+        <div class="campo" id="catBlocoParoquia" hidden>
+          <label for="catParoquiaBatismo">Em qual paróquia foi batizado(a)? (opcional)</label>
+          <input type="text" id="catParoquiaBatismo" autocomplete="off">
+        </div>
+
+        <div class="modal-linha-dupla">
+          <div>
+            <label for="catResponsavel">Nome do responsável</label>
+            <input type="text" id="catResponsavel" autocomplete="off" required>
+          </div>
+          <div>
+            <label for="catWhatsapp">WhatsApp do responsável</label>
+            <input type="tel" id="catWhatsapp" inputmode="tel" placeholder="(14) 99999-9999" required>
+          </div>
+        </div>
+
+        <div class="campo">
+          <label>Documentos que a família entregou em papel</label>
+          <div id="catDocs" style="display:flex; flex-direction:column; gap:6px;"></div>
+          <p class="modal-intro" style="margin:6px 0 0;">Os marcados como <em>necessário</em> definem se a inscrição fica <strong>Completos</strong> ou <strong>Faltam…</strong>. Para anexar fotos dos documentos, use o formulário da internet.</p>
+        </div>
+
+        <div class="campo">
+          <label for="catObs">Observações (opcional)</label>
+          <textarea id="catObs" rows="3" maxlength="500" placeholder="Ex.: melhor horário, alguma necessidade especial…"></textarea>
+        </div>
+
+        <div class="campo" style="display:flex; align-items:flex-start; gap:8px;">
+          <input type="checkbox" id="catConsent" style="width:18px; height:18px; margin-top:3px; flex-shrink:0;">
+          <label for="catConsent" style="margin:0; font-weight:400;">O responsável autorizou a paróquia a usar estes dados e documentos apenas para a inscrição na catequese e declarou ser responsável pelo(a) catequizando(a) (ficha assinada na secretaria).</label>
+        </div>
+
+        <button type="submit" id="btnSalvarCatequese">Salvar inscrição</button>
+        <p id="modalCatequeseResultado"></p>
+      </form>
+    </div>
+  </div>
+
   <div id="modalReserva" class="modal-overlay" hidden>
     <div class="modal-caixa">
       <div class="modal-topo">
@@ -568,6 +642,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261029a"></script>
+  <script src="app.js?v=20261107a"></script>
 </body>
 </html>
