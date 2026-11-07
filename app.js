@@ -26,6 +26,14 @@ const CONFIG = {
   // Inscrições da catequese (planilha Pascom_Controle) — gravadas pelo formulário catequese.html via n8n
   CATEQUESE_RANGE: 'Catequese_Inscricoes!A2:L',
   CATEQUESE_ABA: 'Catequese_Inscricoes',
+  // Ficha preenchida pela secretaria (botão "➕ Nova inscrição"): manter IGUAL ao CONFIG de catequese.html (etapas e documentos).
+  CATEQUESE_ETAPAS: ['Catequese infantil', 'Crisma (adolescentes)', 'Catequese de adultos', 'Não sei — preciso de orientação'],
+  CATEQUESE_DOCUMENTOS: [
+    { tipo: 'certidao_nascimento', rotulo: 'Certidão de nascimento', exigido: true },
+    { tipo: 'certidao_batismo', rotulo: 'Certidão de batismo', exigido: 'batizado' },
+    { tipo: 'comprovante_residencia', rotulo: 'Comprovante de residência', exigido: true },
+    { tipo: 'outro', rotulo: 'Outro documento', exigido: false },
+  ],
 
   // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
   LOJINHA_RANGE: 'Lojinha!A2:H',
@@ -645,7 +653,7 @@ function dataValeNaSemanaDoMes(semanas, data) {
 // "no 3º sábado de cada mês" / "na 1ª e 3ª terça-feira de cada mês" / "no último sábado de cada mês"
 // ── Meses em que o horário fixo NÃO acontece (coluna "NÃO ACONTECE EM": ex.: "dezembro" ou "dezembro e janeiro"). Vazio = o ano todo. ──
 function mesesSemDeTexto(txt) {
-  const t = String(txt || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const t = String(txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'].map((n, i) => (t.includes(n) ? i : -1)).filter(i => i >= 0);
 }
 function dataValeNoMes(mesesSem, data) { return !(mesesSem && mesesSem.length && mesesSem.includes(data.getMonth())); }
@@ -1606,6 +1614,144 @@ async function atualizarStatusCatequese(linhaNumero, novoStatus) {
   }
 }
 
+// ---------- Nova inscrição preenchida pela secretaria ----------
+// Grava direto na aba Catequese_Inscricoes (planilha Pascom_Controle), nas MESMAS 12 colunas que o n8n usa para as inscrições feitas pelo
+// formulário da internet: por isso a inscrição aparece na lista, nos filtros e na ficha impressa igual às outras.
+// Colunas: A Data/Hora · B Catequizando · C Nascimento · D Responsável · E WhatsApp · F Etapa · G Batizado · H Paróquia do Batismo ·
+//          I Observações · J Situação dos Documentos · K Links dos Documentos · L Status
+let inscricaoSalvando = false;
+
+function agoraBrasilia() {
+  const p = {};
+  new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
+  return p.day + '/' + p.month + '/' + p.year + ' ' + (p.hour === '24' ? '00' : p.hour) + ':' + p.minute;
+}
+
+function catDocExigido(doc, batizado) { return doc.exigido === true || (doc.exigido === 'batizado' && batizado); }
+
+function catBatizadoMarcado() {
+  const r = document.querySelector('input[name="catBatizado"]:checked');
+  return !!r && r.value === 'Sim';
+}
+
+function montarDocsCatequeseSecretaria() {
+  const caixa = el('catDocs');
+  const batizado = catBatizadoMarcado();
+  const marcados = new Set(Array.from(caixa.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value));
+  caixa.innerHTML = '';
+  CONFIG.CATEQUESE_DOCUMENTOS.forEach(doc => {
+    const exigido = catDocExigido(doc, batizado);
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex; align-items:center; gap:8px; font-weight:500; margin:0;';
+    label.innerHTML = '<input type="checkbox" value="' + escapeAttr(doc.tipo) + '" style="width:18px; height:18px;"' + (marcados.has(doc.tipo) ? ' checked' : '') + '> ' +
+      escapeHtml(doc.rotulo) + ' <span style="font-weight:400; color:' + (exigido ? '#b3261e' : '#666') + ';">(' + (exigido ? 'necessário' : 'opcional') + ')</span>';
+    caixa.appendChild(label);
+  });
+}
+
+function abrirModalCatequese() {
+  el('formCatequese').reset();
+  el('modalCatequeseResultado').textContent = '';
+  el('modalCatequeseResultado').className = '';
+  el('catEtapa').innerHTML = '<option value="">Selecione…</option>' + CONFIG.CATEQUESE_ETAPAS.map(e => '<option>' + escapeHtml(e) + '</option>').join('');
+  el('catBlocoParoquia').hidden = true;
+  el('catDocs').innerHTML = '';
+  montarDocsCatequeseSecretaria();
+  el('btnSalvarCatequese').disabled = false;
+  el('btnSalvarCatequese').textContent = 'Salvar inscrição';
+  el('modalCatequese').hidden = false;
+  el('catNome').focus();
+}
+
+function fecharModalCatequese() {
+  el('modalCatequese').hidden = true;
+}
+
+// Confere os dados (mesmas regras do n8n). Devolve a mensagem de erro, ou '' se estiver tudo certo.
+function validarInscricaoCatequese(d, agora) {
+  if (!d.catequizando || !d.nascimentoISO || !d.etapa || !d.responsavel || !d.whatsapp) return 'Preencha todos os campos obrigatórios.';
+  if (d.catequizando.length < 3) return 'Confira o nome completo de quem vai fazer a catequese.';
+  const m = String(d.nascimentoISO).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const nasc = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+  if (!nasc || isNaN(nasc.getTime()) || nasc.getFullYear() < 1900 || nasc.getMonth() !== Number(m[2]) - 1) return 'Data de nascimento inválida.';
+  if (nasc.getTime() > (agora || new Date()).getTime()) return 'A data de nascimento não pode ser no futuro.';
+  const digitos = d.whatsapp.replace(/\D/g, '');
+  if (digitos.length < 10 || digitos.length > 13) return 'Confira o WhatsApp: use o DDD, por exemplo (14) 99999-9999.';
+  if (!d.consentimento) return 'Marque a autorização do responsável para concluir a inscrição.';
+  return '';
+}
+
+// Monta a linha da planilha (12 colunas) e a situação dos documentos.
+function montarLinhaInscricaoCatequese(d, dataHora) {
+  const batizado = d.batizado === 'Sim';
+  const entregues = new Set(d.docsEntregues || []);
+  const faltam = CONFIG.CATEQUESE_DOCUMENTOS.filter(doc => catDocExigido(doc, batizado) && !entregues.has(doc.tipo)).map(doc => doc.rotulo);
+  const situacao = faltam.length ? 'Faltam: ' + faltam.join(', ') : 'Completos';
+  const emPapel = CONFIG.CATEQUESE_DOCUMENTOS.filter(doc => entregues.has(doc.tipo)).map(doc => doc.rotulo);
+  const obs = ['[Ficha preenchida na secretaria]'];
+  obs.push(emPapel.length ? 'Documentos entregues em papel: ' + emPapel.join(', ') + '.' : 'Nenhum documento entregue ainda.');
+  if (d.observacoes) obs.push(d.observacoes);
+  let digitos = String(d.whatsapp || '').replace(/\D/g, '');
+  if (digitos.length <= 11) digitos = '55' + digitos;   // acrescenta o código do país, como o n8n faz
+  const [a, mm, dd] = String(d.nascimentoISO).split('-');
+  const valores = [dataHora, d.catequizando, dd + '/' + mm + '/' + a, d.responsavel, digitos, d.etapa, batizado ? 'Sim' : 'Não',
+    batizado ? (d.paroquiaBatismo || '') : '', obs.join(' '), situacao, '', 'Nova'];
+  return { valores, situacao, faltam };
+}
+
+async function salvarInscricaoCatequese(e) {
+  e.preventDefault();
+  if (inscricaoSalvando) return;
+  const resultado = el('modalCatequeseResultado');
+  const erro = (msg) => { resultado.className = 'erro'; resultado.textContent = '⚠️ ' + msg; };
+  resultado.textContent = ''; resultado.className = '';
+
+  const d = {
+    catequizando: el('catNome').value.trim().replace(/\s+/g, ' '),
+    nascimentoISO: el('catNascimento').value,
+    etapa: el('catEtapa').value,
+    batizado: catBatizadoMarcado() ? 'Sim' : 'Não',
+    paroquiaBatismo: el('catParoquiaBatismo').value.trim(),
+    responsavel: el('catResponsavel').value.trim().replace(/\s+/g, ' '),
+    whatsapp: el('catWhatsapp').value.trim(),
+    observacoes: el('catObs').value.trim(),
+    consentimento: el('catConsent').checked,
+    docsEntregues: Array.from(el('catDocs').querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value),
+  };
+  const msg = validarInscricaoCatequese(d);
+  if (msg) return erro(msg);
+
+  // Mesma pessoa já inscrita (nome + nascimento)? Pergunta antes de duplicar.
+  const [a, mm, dd] = d.nascimentoISO.split('-');
+  const nascBR = dd + '/' + mm + '/' + a;
+  const repetida = linhasCatequese.find(l => norm(l.catequizando) === norm(d.catequizando) && String(l.nascimento).trim() === nascBR);
+  if (repetida && !confirm('Já existe uma inscrição de "' + repetida.catequizando + '" (nascimento ' + nascBR + ', feita em ' + repetida.data + '). Salvar outra mesmo assim?')) return;
+
+  const { valores, situacao } = montarLinhaInscricaoCatequese(d, agoraBrasilia());
+  const botao = el('btnSalvarCatequese');
+  inscricaoSalvando = true; botao.disabled = true; botao.textContent = 'Salvando…';
+  try {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(CONFIG.CATEQUESE_ABA + '!A:L')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [valores] }),
+    });
+    if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+    let linhaNova = null;
+    try { const j = await resp.json(); const m = String((j.updates && j.updates.updatedRange) || '').match(/![A-Z]+(\d+)/); if (m) linhaNova = Number(m[1]); } catch (_) { /* sem a linha: só não oferece imprimir */ }
+    fecharModalCatequese();
+    await carregarCatequese();
+    const quer = confirm('✅ Inscrição de ' + d.catequizando + ' salva (documentos: ' + situacao + ').\n\nImprimir a ficha agora?');
+    if (quer && linhaNova) imprimirFichaCatequese(linhaNova);
+  } catch (err) {
+    erro(mensagemErroGravacao(err, CONFIG.CATEQUESE_ABA, 'planilha Pascom_Controle'));
+  } finally {
+    inscricaoSalvando = false; botao.disabled = false; botao.textContent = 'Salvar inscrição';
+  }
+}
+
 // ---------- Lojinha Paroquial (produtos com foto; os fiéis só consultam) ----------
 // Colunas da aba (planilha de dados da paróquia): A Produto · B Categoria · C Descrição · D Preço ·
 // E Variações · F Disponibilidade · G Foto (link) · H Exibir (Sim/Não)
@@ -1919,7 +2065,7 @@ async function excluirProduto(linhaNumero) {
 }
 
 function norm(s) {
-  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function escapeHtml(s) {
@@ -2058,6 +2204,13 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnAtualizarCatequese').addEventListener('click', carregarCatequese);
   el('btnImprimirCatequese').addEventListener('click', () => window.print());
   el('btnFichaBranco').addEventListener('click', () => window.open('Ficha_Inscricao_Catequese.pdf', '_blank'));
+  el('btnNovaInscricaoCat').addEventListener('click', abrirModalCatequese);
+  el('btnFecharModalCatequese').addEventListener('click', fecharModalCatequese);
+  el('formCatequese').addEventListener('submit', salvarInscricaoCatequese);
+  el('formCatequese').querySelectorAll('input[name="catBatizado"]').forEach(r => r.addEventListener('change', () => {
+    el('catBlocoParoquia').hidden = !catBatizadoMarcado();
+    montarDocsCatequeseSecretaria();
+  }));
 
   // "?" da aba Catequese (mostra/esconde as instruções) e botão de copiar o link do formulário
   el('abaCatequese').addEventListener('click', async (e) => {
