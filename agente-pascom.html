@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro de Agente da Pascom — Paróquia Sagrado Coração de Jesus</title>
+<meta property="og:title" content="Cadastro de Agente da Pascom — Paróquia Sagrado Coração de Jesus">
+<meta property="og:description" content="Quer fazer parte da Pascom? Preencha o cadastro de agente da Pascom.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<link rel="stylesheet" href="style.css?v=20261107a">
+<style>
+  .ag-card { background:#fff; border:1px solid var(--cinza-borda); border-radius:10px; padding:24px 20px; max-width:640px; margin:24px auto 0; }
+  .ag-card h2 { margin:0 0 4px; font-size:1.15rem; color:var(--vinho); }
+  .ag-intro { margin:0 0 18px; color:#555; font-size:0.95rem; }
+  #formAgente { display:flex; flex-direction:column; gap:16px; }
+  #formAgente label, #formAgente .rotulo { display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem; }
+  #formAgente input[type="text"], #formAgente input[type="tel"], #formAgente input[type="date"], #formAgente input[type="email"] {
+    width:100%; padding:11px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff;
+  }
+  .ag-dica { color:#666; font-size:0.82rem; margin:2px 0 0; font-weight:400; }
+  .ag-opcoes { display:flex; gap:20px; }
+  .ag-opcoes label { font-weight:500 !important; display:flex !important; align-items:center; gap:6px; margin:0 !important; font-size:1rem !important; }
+  .ag-consent { display:flex; gap:10px; align-items:flex-start; font-size:0.9rem; }
+  .ag-consent input { margin-top:3px; width:18px; height:18px; flex-shrink:0; }
+  .ag-consent label { font-weight:400 !important; margin:0 !important; font-size:0.9rem !important; }
+  #btnEnviarAg { background:var(--vinho); color:#fff; border:none; padding:14px; border-radius:6px; font-size:1.05rem; font-weight:600; cursor:pointer; }
+  #btnEnviarAg:disabled { opacity:0.6; cursor:default; }
+  #resultadoAg { margin:0; font-weight:600; }
+  #resultadoAg.erro { color:#b3261e; }
+  .ag-sucesso { text-align:center; padding:8px 0; }
+  .ag-sucesso h2 { font-size:1.3rem; }
+  .oculto-bot { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .ag-fechado { text-align:center; color:#555; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Agente da Pascom</h1>
+    </div>
+  </header>
+
+  <main>
+    <section class="ag-card" id="cartaoFormulario">
+      <h2>Cadastro de Agente da Pascom</h2>
+      <p class="ag-intro">Preencha os dados abaixo. A equipe da Pascom (Pastoral da Comunicação) recebe o cadastro e entra em contato pelo WhatsApp informado.</p>
+
+      <form id="formAgente" novalidate>
+        <div>
+          <label for="nome">Nome completo</label>
+          <input type="text" id="nome" autocomplete="name" required>
+        </div>
+
+        <div>
+          <label for="apelido">Nome abreviado</label>
+          <input type="text" id="apelido" autocomplete="nickname" required>
+          <p class="ag-dica">Como você gosta de ser chamado(a).</p>
+        </div>
+
+        <div>
+          <label for="nascimento">Data de nascimento</label>
+          <input type="date" id="nascimento" autocomplete="bday" required>
+        </div>
+
+        <div>
+          <span class="rotulo">Já recebeu o Sacramento da Crisma?</span>
+          <div class="ag-opcoes">
+            <label><input type="radio" name="crisma" value="Sim"> Sim</label>
+            <label><input type="radio" name="crisma" value="Não"> Não</label>
+          </div>
+        </div>
+
+        <div>
+          <label for="whatsapp">Telefone / WhatsApp</label>
+          <input type="tel" id="whatsapp" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999" required>
+        </div>
+
+        <div>
+          <label for="email">E-mail</label>
+          <input type="email" id="email" inputmode="email" autocomplete="email" placeholder="nome@exemplo.com" required>
+        </div>
+
+        <div>
+          <span class="rotulo">Participa de alguma pastoral, movimento ou grupo da paróquia?</span>
+          <div class="ag-opcoes">
+            <label><input type="radio" name="participa" value="Sim"> Sim</label>
+            <label><input type="radio" name="participa" value="Não"> Não</label>
+          </div>
+        </div>
+
+        <div id="blocoQual" hidden>
+          <label for="qual">Qual?</label>
+          <input type="text" id="qual" maxlength="200" autocomplete="off" placeholder="Ex.: Liturgia, Jovens, Catequese…">
+        </div>
+
+        <div class="oculto-bot" aria-hidden="true">
+          <label for="site">Não preencha este campo</label>
+          <input type="text" id="site" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="ag-consent">
+          <input type="checkbox" id="consentimento" required>
+          <label for="consentimento">Autorizo a paróquia a usar estes dados apenas para o cadastro e o contato da Pascom, conforme a <a href="privacidade.html" target="_blank" rel="noopener">política de privacidade</a>.</label>
+        </div>
+
+        <button type="submit" id="btnEnviarAg">Enviar cadastro</button>
+        <p id="resultadoAg" role="status"></p>
+      </form>
+    </section>
+
+    <section class="ag-card ag-fechado" id="cartaoFechado" hidden>
+      <h2>Cadastro de agentes</h2>
+      <p id="msgFechado"></p>
+    </section>
+
+    <section class="ag-card ag-sucesso" id="cartaoSucesso" hidden>
+      <h2>✅ Cadastro recebido!</h2>
+      <p id="sucessoNome"></p>
+      <p style="color:#555; font-size:0.92rem;">A equipe da Pascom vai entrar em contato pelo WhatsApp informado. Deus abençoe!</p>
+    </section>
+  </main>
+
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO — a secretaria/Pascom ajusta aqui
+  // ============================================================
+  const CONFIG = {
+    WEBHOOK_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/agente-pascom-cadastro',
+
+    // Para fechar o cadastro, troque para false (a página passa a mostrar a mensagem abaixo).
+    CADASTRO_ABERTO: true,
+    MENSAGEM_FECHADA: 'O cadastro de agentes da Pascom não está aberto no momento. Procure a equipe da Pascom ou a secretaria da paróquia.'
+  };
+  // ============================================================
+
+  const el = (id) => document.getElementById(id);
+  const form = el('formAgente');
+  const resultado = el('resultadoAg');
+  const btn = el('btnEnviarAg');
+
+  const marcado = (nome) => {
+    const r = form.querySelector('input[name="' + nome + '"]:checked');
+    return r ? r.value : '';
+  };
+
+  function formatarDataBR(iso) {
+    const [a, m, d] = iso.split('-');
+    return d + '/' + m + '/' + a;
+  }
+
+  function mostrarErro(msg) {
+    resultado.className = 'erro';
+    resultado.textContent = '⚠️ ' + msg;
+  }
+
+  function mostrarSucesso(apelido) {
+    el('cartaoFormulario').hidden = true;
+    el('cartaoSucesso').hidden = false;
+    el('sucessoNome').textContent = 'Obrigado, ' + apelido + '! Seu cadastro como agente da Pascom foi enviado.';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    resultado.textContent = '';
+    resultado.className = '';
+
+    const nome = el('nome').value.trim();
+    const apelido = el('apelido').value.trim();
+    const nascimento = el('nascimento').value;
+    const crisma = marcado('crisma');
+    const whatsapp = el('whatsapp').value.trim();
+    const email = el('email').value.trim();
+    const participa = marcado('participa');
+    const qual = el('qual').value.trim();
+
+    if (!nome || !apelido || !nascimento || !crisma || !whatsapp || !email || !participa) {
+      return mostrarErro('Preencha todos os campos obrigatórios.');
+    }
+    if (nome.length < 3 || !/\s/.test(nome)) {
+      return mostrarErro('Confira o nome completo (nome e sobrenome).');
+    }
+    if (new Date(nascimento + 'T00:00:00') > new Date() || nascimento < '1900-01-01') {
+      return mostrarErro('Confira a data de nascimento.');
+    }
+    const digitos = whatsapp.replace(/\D/g, '');
+    if (digitos.length < 10 || digitos.length > 13) {
+      return mostrarErro('Confira o telefone: use o DDD, por exemplo (14) 99999-9999.');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      return mostrarErro('Confira o e-mail digitado.');
+    }
+    if (participa === 'Sim' && !qual) {
+      return mostrarErro('Informe qual pastoral, movimento ou grupo você participa.');
+    }
+    if (!el('consentimento').checked) {
+      return mostrarErro('Marque a autorização para concluir o cadastro.');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    try {
+      const payload = {
+        nome,
+        apelido,
+        nascimento: formatarDataBR(nascimento),
+        crisma,
+        whatsapp,
+        email,
+        participa,
+        qual: participa === 'Sim' ? qual : '',
+        consentimento: true,
+        site: el('site').value
+      };
+
+      const resp = await fetch(CONFIG.WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const dados = await resp.json();
+
+      if (dados.sucesso) {
+        mostrarSucesso(apelido);
+      } else {
+        mostrarErro(dados.mensagem || 'Não foi possível concluir o cadastro.');
+      }
+    } catch (err) {
+      mostrarErro('Não foi possível enviar agora. Confira sua internet e tente novamente em instantes.');
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Enviar cadastro';
+    }
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!CONFIG.CADASTRO_ABERTO) {
+      el('cartaoFormulario').hidden = true;
+      el('msgFechado').textContent = CONFIG.MENSAGEM_FECHADA;
+      el('cartaoFechado').hidden = false;
+      return;
+    }
+    form.querySelectorAll('input[name="participa"]').forEach(r => r.addEventListener('change', () => {
+      el('blocoQual').hidden = marcado('participa') !== 'Sim';
+      if (marcado('participa') !== 'Sim') el('qual').value = '';
+    }));
+  });
+</script>
+</body>
+</html>
