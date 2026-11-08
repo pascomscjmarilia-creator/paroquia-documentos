@@ -42,6 +42,7 @@
         <button class="aba-btn" id="btnAbaCatequese" data-aba="catequese">📖 Catequese</button>
         <button class="aba-btn" id="btnAbaLojinha" data-aba="lojinha">🛍️ Lojinha</button>
         <button class="aba-btn" id="btnAbaAssuntos" data-aba="assuntos">📎 Docs por Assunto</button>
+        <button class="aba-btn" id="btnAbaAgentes" data-aba="agentes">🎥 Agentes Pascom</button>
       </div>
 
       <!-- ABA: DOCUMENTOS -->
@@ -320,6 +321,77 @@
             </tr>
           </thead>
           <tbody id="tabelaCatequeseCorpo"></tbody>
+        </table>
+      </div>
+
+      <!-- ABA: AGENTES DA PASCOM -->
+      <div id="abaAgentes" class="conteudo-aba" hidden>
+        <div class="filtros">
+          <input type="text" id="buscaAgentes" placeholder="Buscar por nome, WhatsApp, e-mail ou pastoral...">
+          <select id="filtroCrismaAgentes">
+            <option value="">Crisma: todos</option>
+            <option value="sim">Já recebeu a Crisma</option>
+            <option value="nao">Ainda não recebeu</option>
+          </select>
+          <select id="filtroStatusAgentes">
+            <option value="">Todos os status</option>
+            <option value="Novo">Novo</option>
+            <option value="Em contato">Em contato</option>
+            <option value="Ativo">Ativo</option>
+          </select>
+          <button id="btnAtualizarAgentes" title="Recarregar dados da planilha">🔄 Atualizar</button>
+          <button id="btnImprimirAgentes" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+        </div>
+
+        <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
+          <button type="button" class="btn-ajuda" data-ajuda="ajudaAgentes" aria-expanded="false" aria-label="Como funciona a aba Agentes Pascom">?</button>
+          <span class="modal-intro" style="margin:0;">Toque no <strong>?</strong> para ver como funciona esta aba.</span>
+        </div>
+
+        <div id="ajudaAgentes" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
+          <p><strong>O que é esta aba:</strong> aqui aparecem, sozinhos, os cadastros de quem quer ser <em>agente da Pascom</em>. Ninguém precisa digitar nada: a pessoa preenche o formulário e o cadastro cai aqui.</p>
+
+          <p><strong>Como a pessoa se cadastra:</strong> é só enviar o link do formulário (pelo WhatsApp, por exemplo):</p>
+          <p class="exemplo" id="linkFormAgentes">https://pascomscjmarilia-creator.github.io/paroquia-documentos/agente-pascom.html</p>
+          <p><button type="button" class="btn-acao btn-editar" id="btnCopiarLinkAgentes">📋 Copiar link do formulário</button> <span id="msgCopiarLinkAgentes" style="color:#276e35; font-weight:600;"></span></p>
+
+          <p><strong>O que cada coluna mostra:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>Agente:</strong> o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo. Em <em>Ver dados</em> aparecem nascimento e e-mail.</li>
+            <li><strong>Crisma:</strong> se a pessoa já recebeu o Sacramento da Crisma.</li>
+            <li><strong>Pastoral / grupo:</strong> se participa de alguma pastoral, movimento ou grupo da paróquia e qual.</li>
+            <li><strong>Status:</strong> <em>Novo</em> (ninguém falou com a pessoa ainda) · <em>Em contato</em> (alguém da equipe já está conversando) · <em>Ativo</em> (já faz parte da equipe).</li>
+          </ul>
+
+          <p><strong>Os botões de cada cadastro:</strong></p>
+          <ul style="margin:0 0 6px; padding-left:18px;">
+            <li><strong>💬 WhatsApp:</strong> abre a conversa com a pessoa.</li>
+            <li><strong>▶ Em contato:</strong> avisa a equipe que você já está cuidando deste cadastro.</li>
+            <li><strong>✅ Ativo:</strong> use quando a pessoa já estiver integrada à equipe. <strong>↩ Reabrir</strong> desfaz.</li>
+          </ul>
+
+          <p><strong>Cuidados:</strong> são dados pessoais (telefone, e-mail, data de nascimento). Imprima só o necessário e clique em <em>Sair</em> ao terminar em um computador de uso comum.</p>
+
+          <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. Se o cadastro continuar sem aparecer, ou se o painel avisar que a aba não existe, chame a equipe da Pascom.</p>
+        </div>
+
+        <p class="modal-intro no-print" style="margin:0 0 10px;">Cadastros feitos pelo formulário <strong>agente-pascom.html</strong>. Toque em <em>Ver dados</em> para abrir nascimento e e-mail.</p>
+
+        <p id="statusMsgAgentes" class="status"></p>
+
+        <table id="tabelaAgentes">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Agente</th>
+              <th>WhatsApp</th>
+              <th>Crisma</th>
+              <th>Pastoral / grupo</th>
+              <th>Status</th>
+              <th class="no-print">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaAgentesCorpo"></tbody>
         </table>
       </div>
 
@@ -642,6 +714,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261107a"></script>
+  <script src="app.js?v=20261108a"></script>
 </body>
 </html>
