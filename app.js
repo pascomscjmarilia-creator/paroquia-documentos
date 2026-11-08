@@ -35,6 +35,10 @@ const CONFIG = {
     { tipo: 'outro', rotulo: 'Outro documento', exigido: false },
   ],
 
+  // Cadastro de agentes da Pascom (planilha Pascom_Controle) — gravado pelo formulário agente-pascom.html via n8n
+  AGENTES_RANGE: 'Agentes_Pascom!A2:J',
+  AGENTES_ABA: 'Agentes_Pascom',
+
   // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
   LOJINHA_RANGE: 'Lojinha!A2:H',
   LOJINHA_ABA: 'Lojinha',
@@ -58,6 +62,7 @@ let linhasRecados = [];
 let linhasReservas = [];
 let linhasExtras = [];
 let linhasCatequese = [];
+let linhasAgentes = [];
 let linhasAssuntos = [];
 let linhasLojinha = [];
 let produtoEditandoLinha = null;
@@ -145,6 +150,7 @@ async function handleLoginSucesso() {
     await carregarCatequese();
     await carregarLojinha();
     await carregarAssuntos();
+    await carregarAgentes();
   } catch (e) {
     mostrarErroLogin('Erro ao verificar sua conta. Tente novamente.');
   }
@@ -1372,6 +1378,117 @@ function renderizarAssuntos() {
   });
 }
 
+// ---------- Agentes da Pascom (cadastros feitos pelo formulário agente-pascom.html) ----------
+// Colunas da aba: A Data/Hora · B Nome Completo · C Nome Abreviado · D Nascimento · E Crismado(a) · F WhatsApp ·
+// G E-mail · H Participa de Pastoral/Grupo · I Qual Pastoral/Grupo · J Status (Novo · Em contato · Ativo)
+
+async function carregarAgentes() {
+  const statusMsg = el('statusMsgAgentes');
+  statusMsg.textContent = 'Carregando cadastros...';
+
+  try {
+    const valores = await buscarValoresSheet(CONFIG.AGENTES_RANGE);
+    // Guarda a linha real da planilha (o range começa em A2) para gravar o status na célula certa.
+    linhasAgentes = valores
+      .map((row, idx) => ({
+        linha: idx + 2,
+        ordem: idx,
+        data: row[0] || '',
+        nome: row[1] || '',
+        apelido: row[2] || '',
+        nascimento: row[3] || '',
+        crisma: row[4] || '',
+        whatsapp: limparNumero(row[5]),
+        email: row[6] || '',
+        participa: row[7] || '',
+        qual: row[8] || '',
+        status: (row[9] || '').trim() || 'Novo',
+      }))
+      .filter(l => l.nome || l.apelido);
+
+    statusMsg.textContent = linhasAgentes.length + ' cadastro(s) encontrado(s).';
+    renderizarAgentes();
+  } catch (e) {
+    statusMsg.textContent = e.message === 'SEM_PERMISSAO'
+      ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
+      : e.message === 'STATUS_400'
+        ? 'A aba "' + CONFIG.AGENTES_ABA + '" ainda não existe na planilha Pascom_Controle. Crie a aba (veja as instruções) e clique em Atualizar.'
+        : 'Erro ao carregar os cadastros.';
+  }
+}
+
+function renderizarAgentes() {
+  const termo = norm(el('buscaAgentes').value.trim());
+  const crismaFiltro = el('filtroCrismaAgentes').value;
+  const statusFiltro = norm(el('filtroStatusAgentes').value);
+
+  const filtrados = linhasAgentes.filter(l => {
+    const bateTexto = !termo || norm(l.nome + ' ' + l.apelido + ' ' + l.whatsapp + ' ' + l.email + ' ' + l.qual).includes(termo);
+    const bateCrisma = !crismaFiltro || norm(l.crisma) === crismaFiltro;
+    const bateStatus = !statusFiltro || norm(l.status) === statusFiltro;
+    return bateTexto && bateCrisma && bateStatus;
+  }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo
+
+  const corpo = el('tabelaAgentesCorpo');
+  corpo.innerHTML = '';
+
+  if (filtrados.length === 0) {
+    corpo.innerHTML = '<tr><td colspan="7">Nenhum cadastro encontrado.</td></tr>';
+    return;
+  }
+
+  filtrados.forEach(l => {
+    const ativo = norm(l.status) === 'ativo';
+    const emContato = norm(l.status).startsWith('em contato');
+    const statusClasse = ativo ? 'resolvido' : (emContato ? 'andamento' : 'pendente');
+    const crismado = norm(l.crisma) === 'sim';
+    const participa = norm(l.participa) === 'sim';
+    const wa = linkWhatsApp(l.whatsapp);
+    const nomeCurto = l.apelido || l.nome;
+
+    const detalhes = `
+      <details class="detalhes-cat">
+        <summary>Ver dados</summary>
+        <p><strong>Nome completo:</strong> ${escapeHtml(l.nome || '—')}</p>
+        <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
+        <p><strong>E-mail:</strong> ${l.email ? `<a href="mailto:${escapeAttr(l.email)}">${escapeHtml(l.email)}</a>` : '—'}</p>
+      </details>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Data">${escapeHtml(l.data)}</td>
+      <td data-label="Agente"><strong>${escapeHtml(nomeCurto)}</strong>${l.apelido && l.nome ? `<br><small>${escapeHtml(l.nome)}</small>` : ''}${detalhes}</td>
+      <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
+      <td data-label="Crisma"><span class="status-pill ${crismado ? 'resolvido' : 'pendente'}">${escapeHtml(l.crisma || '—')}</span></td>
+      <td data-label="Pastoral / grupo">${participa ? escapeHtml(l.qual || 'Sim') : (norm(l.participa) === 'nao' ? 'Não participa' : '—')}</td>
+      <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
+      <td data-label="Ação" class="no-print acoes-recado">
+        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+        ${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
+        ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
+      </td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+async function atualizarStatusAgente(linhaNumero, novoStatus) {
+  const range = `${CONFIG.AGENTES_ABA}!J${linhaNumero}`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [[novoStatus]] }),
+    });
+    if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+    await carregarAgentes();
+  } catch (e) {
+    alert(mensagemErroGravacao(e, CONFIG.AGENTES_ABA, 'planilha Pascom_Controle'));
+  }
+}
+
 // ---------- Catequese (inscrições feitas pelo formulário catequese.html) ----------
 // Colunas da aba: A Data/Hora · B Catequizando · C Nascimento · D Responsável · E WhatsApp · F Etapa ·
 // G Batizado · H Paróquia do Batismo · I Observações · J Situação dos Documentos · K Links dos Documentos · L Status
@@ -2083,6 +2200,7 @@ const ABAS = {
   catequese: ['abaCatequese', 'btnAbaCatequese'],
   lojinha: ['abaLojinha', 'btnAbaLojinha'],
   assuntos: ['abaAssuntos', 'btnAbaAssuntos'],
+  agentes: ['abaAgentes', 'btnAbaAgentes'],
 };
 
 function trocarAba(aba) {
@@ -2102,6 +2220,7 @@ function sair() {
   linhasReservas = [];
   linhasExtras = [];
   linhasCatequese = [];
+  linhasAgentes = [];
   linhasLojinha = [];
   linhasAssuntos = [];
   el('userBox').hidden = true;
@@ -2242,6 +2361,41 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (b.dataset.acao === 'concluir' && confirm('Confirma que quer marcar esta inscrição como Concluída?')) atualizarStatusCatequese(linha, 'Concluída');
   });
 
+  // Agentes da Pascom
+  el('buscaAgentes').addEventListener('input', renderizarAgentes);
+  el('filtroCrismaAgentes').addEventListener('change', renderizarAgentes);
+  el('filtroStatusAgentes').addEventListener('change', renderizarAgentes);
+  el('btnAtualizarAgentes').addEventListener('click', carregarAgentes);
+  el('btnImprimirAgentes').addEventListener('click', () => window.print());
+  // "?" da aba (mostra/esconde as instruções) e botão de copiar o link do formulário
+  el('abaAgentes').addEventListener('click', async (e) => {
+    const btnAjuda = e.target.closest('.btn-ajuda');
+    if (btnAjuda) {
+      const caixa = el(btnAjuda.dataset.ajuda);
+      caixa.hidden = !caixa.hidden;
+      btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
+      return;
+    }
+    if (e.target.closest('#btnCopiarLinkAgentes')) {
+      const msg = el('msgCopiarLinkAgentes');
+      try {
+        await navigator.clipboard.writeText(el('linkFormAgentes').textContent.trim());
+        msg.textContent = 'Link copiado!';
+      } catch (err) {
+        msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.';
+      }
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+  });
+  el('tabelaAgentesCorpo').addEventListener('click', (e) => {
+    const b = e.target.closest('.btn-ag');
+    if (!b) return;
+    const linha = Number(b.dataset.linha);
+    if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
+    else if (b.dataset.acao === 'reabrir') atualizarStatusAgente(linha, 'Novo');
+    else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)?')) atualizarStatusAgente(linha, 'Ativo');
+  });
+
   // Lojinha
   el('buscaLojinha').addEventListener('input', renderizarLojinha);
   el('filtroCategoriaLoja').addEventListener('change', renderizarLojinha);
@@ -2293,6 +2447,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('btnAbaExtras').addEventListener('click', () => trocarAba('extras'));
   el('btnAbaCatequese').addEventListener('click', () => trocarAba('catequese'));
   el('btnAbaAssuntos').addEventListener('click', () => trocarAba('assuntos'));
+  el('btnAbaAgentes').addEventListener('click', () => trocarAba('agentes'));
 
   el('btnSair').addEventListener('click', sair);
 });
