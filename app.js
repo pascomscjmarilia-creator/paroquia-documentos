@@ -1509,7 +1509,11 @@ function htmlFichaAgente(l) {
   .conteudo { padding:7mm 14mm 0; }
   h1 { font-family:Georgia, serif; color:var(--vinho); font-size:17pt; margin:0; line-height:1.15; text-align:center; }
   .subtitulo { text-align:center; color:#6b6055; font-size:8.5pt; margin:1mm 0 4mm; }
-  h2 { font-size:9.5pt; color:#fff; background:var(--vinho); margin:6mm 0 1mm; padding:1mm 3mm; border-radius:2px; letter-spacing:0.3px; }
+  .aviso { background:var(--creme); border-left:3px solid var(--dourado); padding:2.5mm 4mm; margin:0 0 1mm; border-radius:2px; font-size:8.8pt; line-height:1.38; }
+  .aviso .t { font-size:9.5pt; font-weight:700; color:var(--vinho); letter-spacing:0.4px; margin-bottom:1.2mm; }
+  .aviso p { margin:0 0 1.4mm; }
+  .aviso p:last-child { margin-bottom:0; font-weight:700; color:var(--vinho); }
+  h2 { font-size:9.5pt; color:#fff; background:var(--vinho); margin:5mm 0 1mm; padding:1mm 3mm; border-radius:2px; letter-spacing:0.3px; }
   .linha { display:flex; gap:4mm; }
   .campo { flex:1; min-height:15mm; border-bottom:1px solid var(--linha); padding-top:1mm; }
   .campo .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
@@ -1541,6 +1545,13 @@ function htmlFichaAgente(l) {
 <div class="conteudo">
   <h1>Ficha de Cadastro — Agente da Pascom</h1>
   <p class="subtitulo">Pastoral da Comunicação · Dados informados no cadastro pela internet. Complete à mão o que estiver em branco.</p>
+
+  <div class="aviso">
+    <div class="t">INSCRIÇÕES PASCOM | 23/11 a 10/01</div>
+    <p>O primeiro encontro, de participação obrigatória, será no dia 16 de janeiro, às 16h, na Igreja Matriz. Pedimos que reservem essa data em suas agendas. Caso não possam comparecer, deverão justificar posteriormente à coordenação.</p>
+    <p>Será criado um grupo de WhatsApp com os inscritos para o envio de orientações e informações próximas à data do encontro.</p>
+    <p>Esperamos por vocês!</p>
+  </div>
 
   <h2>Dados do agente</h2>
   <div class="linha">${campo('Nome completo', l.nome, 'p3')}${campo('Data de nascimento', l.nascimento)}</div>
