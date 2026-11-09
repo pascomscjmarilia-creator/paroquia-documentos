@@ -1452,7 +1452,7 @@ function renderizarAgentes() {
         <p><strong>Nome completo:</strong> ${escapeHtml(l.nome || '—')}</p>
         <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
         <p><strong>E-mail:</strong> ${l.email ? `<a href="mailto:${escapeAttr(l.email)}">${escapeHtml(l.email)}</a>` : '—'}</p>
-        <p class="no-print"><button type="button" class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha de cadastro completa, já preenchida, e imprimir">🖨️ Abrir ficha completa</button></p>
+        <p class="no-print"><button type="button" class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha de cadastro completa, já preenchida (de lá dá para imprimir)">📄 Abrir ficha completa</button></p>
       </details>`;
 
     const tr = document.createElement('tr');
@@ -1465,7 +1465,7 @@ function renderizarAgentes() {
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
         ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
-        <button class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Imprimir a ficha já preenchida">🖨️ Ficha</button>
+        <button class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha já preenchida (de lá dá para imprimir)">📄 Ficha</button>
         ${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
         ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
       </td>
@@ -1475,8 +1475,9 @@ function renderizarAgentes() {
 }
 
 // Ficha de cadastro já preenchida com o que a pessoa informou no formulário (mesmo layout da ficha em branco, Ficha_Cadastro_Agente_Pascom.pdf).
-// Devolve um documento HTML completo, pronto para abrir numa janela e imprimir em A4.
-function htmlFichaAgente(l, autoImprimir) {
+// Devolve um documento HTML completo para abrir numa janela: a ficha aparece para conferir e a barra do topo tem o botão "Imprimir"
+// (a barra não sai no papel; a ficha imprime em 1 página A4).
+function htmlFichaAgente(l) {
   const e = escapeHtml;
   const campo = (rot, val, cls) => `<div class="campo ${cls || ''}"><span class="l">${rot}</span><span class="v">${e(val || '')}</span></div>`;
   const cx = (marcado, texto) => `<span><i class="cx">${marcado ? '✕' : ''}</i>${texto}</span>`;
@@ -1526,7 +1527,13 @@ function htmlFichaAgente(l, autoImprimir) {
   .uso .tit { font-size:7.5pt; font-weight:700; color:var(--vinho); text-transform:uppercase; letter-spacing:0.6px; }
   .uso .campo { min-height:10mm; }
   .rodape { position:absolute; left:0; right:0; bottom:5mm; text-align:center; font-size:7.5pt; color:#888; }
+  .barra { position:fixed; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:8px 12px; background:#2b2420; color:#f1dfae; font:600 14px "Segoe UI", Arial, sans-serif; box-shadow:0 2px 6px rgba(0,0,0,.35); }
+  .barra button { font:600 14px "Segoe UI", Arial, sans-serif; padding:8px 16px; border-radius:6px; border:0; cursor:pointer; background:#c9a24a; color:#2b2420; }
+  .barra button.sec { background:#eadfd2; }
+  @media screen { html { background:#d9d4cc; } body { margin:62px auto 20px; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.3); } }
+  @media print { .barra { display:none !important; } }
 </style></head><body>
+<div class="barra"><span>Ficha de cadastro — ${e(l.apelido || l.nome)}</span><button type="button" onclick="window.print()">🖨️ Imprimir</button><button type="button" class="sec" onclick="window.close()">Fechar</button></div>
 <div class="topo"><img src="${brasao}" alt=""><div>
   <div class="sup">Paróquia</div><div class="nome">Sagrado Coração de Jesus</div>
   <div class="contato">Diocese de Marília · Rua Etelvina Teixeira da Silva, 17 — Marília/SP · Secretaria: (14) 3425-1732</div>
@@ -1559,11 +1566,10 @@ function htmlFichaAgente(l, autoImprimir) {
   </div>
 </div>
 <div class="rodape">Paróquia Sagrado Coração de Jesus · Marília/SP</div>
-${autoImprimir === false ? '' : '<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });<\/script>'}
 </body></html>`;
 }
 
-function imprimirFichaAgente(linhaNumero) {
+function abrirFichaAgente(linhaNumero) {
   const l = linhasAgentes.find(x => x.linha === linhaNumero);
   if (!l) return;
   const janela = window.open('', '_blank');
@@ -1694,7 +1700,7 @@ function renderizarCatequese() {
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
         ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
-        <button class="btn-acao btn-editar btn-cat" data-acao="ficha" data-linha="${l.linha}" title="Imprimir a ficha já preenchida">🖨️ Ficha</button>
+        <button class="btn-acao btn-editar btn-cat" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha já preenchida (de lá dá para imprimir)">📄 Ficha</button>
         ${!concluida && !emAtendimento ? `<button class="btn-acao btn-editar btn-cat" data-acao="atendimento" data-linha="${l.linha}">▶ Em atendimento</button>` : ''}
         ${!concluida ? `<button class="btn-acao btn-resolver btn-cat" data-acao="concluir" data-linha="${l.linha}">✅ Concluir</button>` : `<button class="btn-acao btn-editar btn-cat" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
       </td>
@@ -2496,7 +2502,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const b = e.target.closest('.btn-ag');
     if (!b) return;
     const linha = Number(b.dataset.linha);
-    if (b.dataset.acao === 'ficha') imprimirFichaAgente(linha);
+    if (b.dataset.acao === 'ficha') abrirFichaAgente(linha);
     else if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
     else if (b.dataset.acao === 'reabrir') atualizarStatusAgente(linha, 'Novo');
     else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)?')) atualizarStatusAgente(linha, 'Ativo');
