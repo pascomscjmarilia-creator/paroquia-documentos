@@ -1452,6 +1452,7 @@ function renderizarAgentes() {
         <p><strong>Nome completo:</strong> ${escapeHtml(l.nome || '—')}</p>
         <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
         <p><strong>E-mail:</strong> ${l.email ? `<a href="mailto:${escapeAttr(l.email)}">${escapeHtml(l.email)}</a>` : '—'}</p>
+        <p class="no-print"><button type="button" class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha de cadastro completa, já preenchida, e imprimir">🖨️ Abrir ficha completa</button></p>
       </details>`;
 
     const tr = document.createElement('tr');
@@ -1464,12 +1465,115 @@ function renderizarAgentes() {
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
       <td data-label="Ação" class="no-print acoes-recado">
         ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+        <button class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Imprimir a ficha já preenchida">🖨️ Ficha</button>
         ${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
         ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
       </td>
     `;
     corpo.appendChild(tr);
   });
+}
+
+// Ficha de cadastro já preenchida com o que a pessoa informou no formulário (mesmo layout da ficha em branco, Ficha_Cadastro_Agente_Pascom.pdf).
+// Devolve um documento HTML completo, pronto para abrir numa janela e imprimir em A4.
+function htmlFichaAgente(l, autoImprimir) {
+  const e = escapeHtml;
+  const campo = (rot, val, cls) => `<div class="campo ${cls || ''}"><span class="l">${rot}</span><span class="v">${e(val || '')}</span></div>`;
+  const cx = (marcado, texto) => `<span><i class="cx">${marcado ? '✕' : ''}</i>${texto}</span>`;
+  // 5514997222096 -> (14) 99722-2096 (só quando tem o formato de número brasileiro; senão mostra como está)
+  const telBonito = (t) => {
+    const m = String(t || '').match(/^55(\d{2})(9?\d{4})(\d{4})$/);
+    return m ? `(${m[1]}) ${m[2]}-${m[3]}` : (t || '');
+  };
+  const crismaSim = norm(l.crisma) === 'sim';
+  const crismaNao = norm(l.crisma) === 'nao';
+  const participa = norm(l.participa) === 'sim';
+  const naoParticipa = norm(l.participa) === 'nao';
+  const dataCadastro = String(l.data || '').split(' ')[0];
+  const brasao = new URL('brasao.png', location.href).href;
+
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Ficha de cadastro — ${e(l.apelido || l.nome)}</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root { --vinho:#7a1f2b; --vinho-escuro:#591622; --dourado:#c9a24a; --creme:#faf7f0; --texto:#2b2420; --linha:#8f847a; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin:0; width:210mm; height:297mm; overflow:hidden; font-family:"Segoe UI", Arial, sans-serif; font-size:9.5pt; line-height:1.3; color:var(--texto); position:relative; }
+  .topo { background: radial-gradient(circle at 25% 30%, #8a2b32 0%, var(--vinho-escuro) 80%); color:#fff; padding:6mm 14mm; display:flex; align-items:center; gap:6mm; border-bottom:2.2mm solid var(--dourado); }
+  .topo img { height:17mm; }
+  .topo .sup { color:#e3c88a; font-size:8pt; letter-spacing:1.4px; text-transform:uppercase; }
+  .topo .nome { font-family:Georgia, serif; font-size:15pt; font-weight:700; line-height:1.15; margin:0.5mm 0 1mm; color:#f1dfae; }
+  .topo .contato { font-size:8pt; color:#eadfd2; }
+  .conteudo { padding:7mm 14mm 0; }
+  h1 { font-family:Georgia, serif; color:var(--vinho); font-size:17pt; margin:0; line-height:1.15; text-align:center; }
+  .subtitulo { text-align:center; color:#6b6055; font-size:8.5pt; margin:1mm 0 4mm; }
+  h2 { font-size:9.5pt; color:#fff; background:var(--vinho); margin:6mm 0 1mm; padding:1mm 3mm; border-radius:2px; letter-spacing:0.3px; }
+  .linha { display:flex; gap:4mm; }
+  .campo { flex:1; min-height:15mm; border-bottom:1px solid var(--linha); padding-top:1mm; }
+  .campo .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
+  .campo .v { display:block; font-size:10.5pt; font-weight:600; color:#1d1a17; margin-top:1.2mm; }
+  .campo.p2 { flex:2; } .campo.p3 { flex:3; }
+  .pergunta { margin-top:5mm; font-size:9.5pt; font-weight:600; }
+  .opcoes { display:flex; flex-wrap:wrap; gap:1.5mm 8mm; align-items:center; padding:2mm 0 1mm; font-size:9.5pt; }
+  .cx { display:inline-block; width:3.6mm; height:3.6mm; border:1px solid #4a4038; margin-right:1.8mm; vertical-align:-0.7mm; font-style:normal; font-size:9pt; line-height:3.3mm; text-align:center; font-weight:700; }
+  .qual { flex:1; min-width:70mm; border-bottom:1px solid var(--linha); height:6mm; font-size:10.5pt; font-weight:600; line-height:5.5mm; }
+  .autoriza { background:var(--creme); border-left:3px solid var(--dourado); padding:2.5mm 3.5mm; margin-top:9mm; font-size:8.5pt; line-height:1.4; border-radius:2px; }
+  .assina { display:flex; gap:8mm; margin-top:16mm; }
+  .assina .a { flex:3; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
+  .assina .d { flex:1; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
+  .uso { margin-top:12mm; border:1.2px dashed #a89a8a; border-radius:3px; padding:1.5mm 3mm 0; background:#fdfbf6; }
+  .uso .tit { font-size:7.5pt; font-weight:700; color:var(--vinho); text-transform:uppercase; letter-spacing:0.6px; }
+  .uso .campo { min-height:10mm; }
+  .rodape { position:absolute; left:0; right:0; bottom:5mm; text-align:center; font-size:7.5pt; color:#888; }
+</style></head><body>
+<div class="topo"><img src="${brasao}" alt=""><div>
+  <div class="sup">Paróquia</div><div class="nome">Sagrado Coração de Jesus</div>
+  <div class="contato">Diocese de Marília · Rua Etelvina Teixeira da Silva, 17 — Marília/SP · Secretaria: (14) 3425-1732</div>
+</div></div>
+<div class="conteudo">
+  <h1>Ficha de Cadastro — Agente da Pascom</h1>
+  <p class="subtitulo">Pastoral da Comunicação · Dados informados no cadastro pela internet. Complete à mão o que estiver em branco.</p>
+
+  <h2>Dados do agente</h2>
+  <div class="linha">${campo('Nome completo', l.nome, 'p3')}${campo('Data de nascimento', l.nascimento)}</div>
+  <div class="linha">${campo('Nome abreviado (como gosta de ser chamado(a))', l.apelido, 'p3')}${campo('Telefone / WhatsApp com DDD', telBonito(l.whatsapp), 'p2')}</div>
+  <div class="linha">${campo('E-mail', l.email)}</div>
+
+  <h2>Sacramento e participação na paróquia</h2>
+  <div class="pergunta">Já recebeu o Sacramento da Crisma?</div>
+  <div class="opcoes">${cx(crismaSim, 'Sim')}${cx(crismaNao, 'Não')}</div>
+
+  <div class="pergunta">Participa de alguma pastoral, movimento ou grupo da paróquia?</div>
+  <div class="opcoes">${cx(participa, 'Sim. Qual?')}<span class="qual">${e(participa ? l.qual : '')}</span></div>
+  <div class="opcoes" style="padding-top:0;">${cx(naoParticipa, 'Não')}</div>
+
+  <div class="autoriza"><strong>Autorização.</strong> Declaro que as informações acima são verdadeiras.
+  Autorizo a paróquia a usar estes dados <strong>somente</strong> para o cadastro e o contato da Pascom,
+  com sigilo e cuidado, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</div>
+  <div class="assina"><div class="a">Assinatura</div><div class="d">Data</div></div>
+
+  <div class="uso"><div class="tit">Uso da Pascom</div>
+    <div class="linha">${campo('Recebido por', 'Cadastro pela internet')}${campo('Data', dataCadastro)}${campo('Situação (novo / em contato / ativo)', l.status)}</div>
+    <div class="linha">${campo('Observações da equipe', '', 'p3')}</div>
+  </div>
+</div>
+<div class="rodape">Paróquia Sagrado Coração de Jesus · Marília/SP</div>
+${autoImprimir === false ? '' : '<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 300); });<\/script>'}
+</body></html>`;
+}
+
+function imprimirFichaAgente(linhaNumero) {
+  const l = linhasAgentes.find(x => x.linha === linhaNumero);
+  if (!l) return;
+  const janela = window.open('', '_blank');
+  if (!janela) {
+    alert('O navegador bloqueou a janela da ficha. Permita pop-ups para este site (ícone na barra de endereço) e tente de novo.');
+    return;
+  }
+  janela.document.open();
+  janela.document.write(htmlFichaAgente(l));
+  janela.document.close();
 }
 
 async function atualizarStatusAgente(linhaNumero, novoStatus) {
@@ -2367,6 +2471,7 @@ window.addEventListener('DOMContentLoaded', () => {
   el('filtroStatusAgentes').addEventListener('change', renderizarAgentes);
   el('btnAtualizarAgentes').addEventListener('click', carregarAgentes);
   el('btnImprimirAgentes').addEventListener('click', () => window.print());
+  el('btnFichaBrancoAgentes').addEventListener('click', () => window.open('Ficha_Cadastro_Agente_Pascom.pdf', '_blank'));
   // "?" da aba (mostra/esconde as instruções) e botão de copiar o link do formulário
   el('abaAgentes').addEventListener('click', async (e) => {
     const btnAjuda = e.target.closest('.btn-ajuda');
@@ -2391,7 +2496,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const b = e.target.closest('.btn-ag');
     if (!b) return;
     const linha = Number(b.dataset.linha);
-    if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
+    if (b.dataset.acao === 'ficha') imprimirFichaAgente(linha);
+    else if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
     else if (b.dataset.acao === 'reabrir') atualizarStatusAgente(linha, 'Novo');
     else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)?')) atualizarStatusAgente(linha, 'Ativo');
   });
