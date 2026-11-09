@@ -341,6 +341,7 @@
           </select>
           <button id="btnAtualizarAgentes" title="Recarregar dados da planilha">🔄 Atualizar</button>
           <button id="btnImprimirAgentes" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
+          <button id="btnFichaBrancoAgentes" title="Abrir a ficha de cadastro em branco (PDF) para imprimir">🖨️ Ficha em branco</button>
         </div>
 
         <div class="no-print" style="display:flex; align-items:center; gap:8px; margin:0 0 8px;">
@@ -357,7 +358,7 @@
 
           <p><strong>O que cada coluna mostra:</strong></p>
           <ul style="margin:0 0 6px; padding-left:18px;">
-            <li><strong>Agente:</strong> o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo. Em <em>Ver dados</em> aparecem nascimento e e-mail.</li>
+            <li><strong>Agente:</strong> o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo. Em <em>Ver dados</em> aparecem nascimento, e-mail e o botão <em>🖨️ Abrir ficha completa</em>.</li>
             <li><strong>Crisma:</strong> se a pessoa já recebeu o Sacramento da Crisma.</li>
             <li><strong>Pastoral / grupo:</strong> se participa de alguma pastoral, movimento ou grupo da paróquia e qual.</li>
             <li><strong>Status:</strong> <em>Novo</em> (ninguém falou com a pessoa ainda) · <em>Em contato</em> (alguém da equipe já está conversando) · <em>Ativo</em> (já faz parte da equipe).</li>
@@ -366,16 +367,19 @@
           <p><strong>Os botões de cada cadastro:</strong></p>
           <ul style="margin:0 0 6px; padding-left:18px;">
             <li><strong>💬 WhatsApp:</strong> abre a conversa com a pessoa.</li>
+            <li><strong>🖨️ Ficha:</strong> abre a ficha de cadastro <em>já preenchida</em> com o que a pessoa informou e a caixa de impressão. O mesmo vale para o botão <em>🖨️ Abrir ficha completa</em> dentro de <em>Ver dados</em>. A pessoa só precisa assinar.</li>
             <li><strong>▶ Em contato:</strong> avisa a equipe que você já está cuidando deste cadastro.</li>
             <li><strong>✅ Ativo:</strong> use quando a pessoa já estiver integrada à equipe. <strong>↩ Reabrir</strong> desfaz.</li>
           </ul>
+
+          <p><strong>Prefere o papel?</strong> O botão <em>🖨️ Ficha em branco</em> abre o PDF da ficha de cadastro para imprimir. Quem preencher no papel entrega à equipe da Pascom ou na secretaria.</p>
 
           <p><strong>Cuidados:</strong> são dados pessoais (telefone, e-mail, data de nascimento). Imprima só o necessário e clique em <em>Sair</em> ao terminar em um computador de uso comum.</p>
 
           <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. Se o cadastro continuar sem aparecer, ou se o painel avisar que a aba não existe, chame a equipe da Pascom.</p>
         </div>
 
-        <p class="modal-intro no-print" style="margin:0 0 10px;">Cadastros feitos pelo formulário <strong>agente-pascom.html</strong>. Toque em <em>Ver dados</em> para abrir nascimento e e-mail.</p>
+        <p class="modal-intro no-print" style="margin:0 0 10px;">Cadastros feitos pelo formulário <strong>agente-pascom.html</strong>. Toque em <em>Ver dados</em> para abrir nascimento e e-mail, ou em <em>🖨️ Ficha</em> para imprimir a ficha já preenchida.</p>
 
         <p id="statusMsgAgentes" class="status"></p>
 
@@ -714,6 +718,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261108a"></script>
+  <script src="app.js?v=20261108c"></script>
 </body>
 </html>
