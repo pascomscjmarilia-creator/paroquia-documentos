@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Presença na reunião da Pascom — Paróquia Sagrado Coração de Jesus</title>
+<link rel="stylesheet" href="style.css?v=20261111b">
+<style>
+  .at-card { background:#fff; border:1px solid var(--cinza-borda); border-radius:10px; padding:22px 18px; max-width:560px; margin:20px auto 0; }
+  .at-card h2 { margin:0 0 4px; font-size:1.15rem; color:var(--vinho); }
+  .at-intro { margin:0 0 14px; color:#555; font-size:0.95rem; }
+  .at-reuniao { background:#f8f4ef; border:1px solid #e7dccb; border-radius:8px; padding:10px 12px; margin:0 0 16px; font-size:0.95rem; }
+  .at-reuniao strong { color:var(--vinho); }
+  .at-reuniao div { margin:2px 0; }
+  .at-form { display:flex; flex-direction:column; gap:16px; }
+  .at-form label, .at-form .rotulo { display:block; font-weight:600; margin-bottom:4px; font-size:0.92rem; }
+  .at-form select, .at-form input[type="text"], .at-form input[type="tel"], .at-form textarea {
+    width:100%; padding:12px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff; box-sizing:border-box;
+  }
+  .at-form textarea { min-height:84px; resize:vertical; }
+  .at-dica { color:#666; font-size:0.84rem; margin:3px 0 0; font-weight:400; }
+  .at-botao { background:var(--vinho); color:#fff; border:none; padding:14px; border-radius:8px; font-size:1.05rem; font-weight:600; cursor:pointer; width:100%; }
+  .at-botao:disabled { opacity:0.55; cursor:default; }
+  .at-botao-sec { background:#fff; color:var(--vinho); border:1px solid var(--vinho); padding:10px 14px; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; }
+  .at-botao-sec:disabled { opacity:0.5; cursor:default; }
+  .at-msg { margin:0; font-weight:600; min-height:1.2em; }
+  .at-msg.erro { color:#b3261e; }
+  .at-msg.ok { color:#1b6e3a; }
+  .at-escolhas { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .at-escolha { position:relative; }
+  .at-escolha input { position:absolute; opacity:0; inset:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .at-escolha span { display:flex; align-items:center; justify-content:center; gap:6px; padding:14px 8px; border:2px solid var(--cinza-borda); border-radius:10px; font-weight:700; font-size:1rem; background:#fff; text-align:center; }
+  .at-escolha input:checked + span.presente { border-color:#1b6e3a; background:#e6f4ea; color:#14532d; }
+  .at-escolha input:checked + span.justificado { border-color:#b26a00; background:#fff4e0; color:#7a4a00; }
+  .at-escolha input:focus-visible + span { outline:3px solid #7b1e2b55; }
+  .at-assina { border:2px dashed #aaa; border-radius:10px; background:#fff; position:relative; }
+  .at-assina canvas { display:block; width:100%; height:190px; touch-action:none; border-radius:8px; cursor:crosshair; }
+  .at-assina .linha-base { position:absolute; left:14px; right:14px; bottom:44px; border-bottom:1px solid #bbb; pointer-events:none; }
+  .at-assina .marca { position:absolute; left:0; right:0; bottom:20px; text-align:center; color:#999; font-size:0.8rem; pointer-events:none; }
+  .at-assina-barra { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .at-codigo { font-size:1.6rem !important; letter-spacing:0.35em; text-align:center; font-weight:700; }
+  .at-consent { display:flex; gap:10px; align-items:flex-start; font-size:0.9rem; }
+  .at-consent input { margin-top:3px; width:20px; height:20px; flex-shrink:0; }
+  .at-consent label { font-weight:400 !important; margin:0 !important; font-size:0.9rem !important; }
+  .at-sucesso { text-align:center; }
+  .at-sucesso h2 { font-size:1.3rem; }
+  .at-lista-ok { text-align:left; background:#f8f4ef; border-radius:8px; padding:10px 12px; margin:12px 0; font-size:0.95rem; }
+  .oculto-bot { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .at-centro { text-align:center; color:#555; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-titulo">
+      <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
+      <h1>Presença na reunião da Pascom</h1>
+    </div>
+  </header>
+
+  <main>
+    <section class="at-card at-centro" id="cartaoCarregando">
+      <p>Carregando…</p>
+    </section>
+
+    <section class="at-card at-centro" id="cartaoFechado" hidden>
+      <h2>Confirmação de presença</h2>
+      <p id="msgFechado">A confirmação de presença não está aberta no momento.</p>
+      <button type="button" class="at-botao-sec" id="btnRecarregar">Atualizar</button>
+    </section>
+
+    <section class="at-card" id="cartaoPessoa" hidden>
+      <h2>Confirmar presença</h2>
+      <div class="at-reuniao" id="quadroReuniao"></div>
+
+      <form class="at-form" id="formPessoa" novalidate>
+        <div id="blocoLista">
+          <label for="selNome">Quem é você?</label>
+          <select id="selNome"></select>
+        </div>
+
+        <div id="blocoConvidado" hidden>
+          <div>
+            <label for="convNome">Nome completo</label>
+            <input type="text" id="convNome" autocomplete="name" maxlength="80">
+          </div>
+          <div style="margin-top:12px;">
+            <label for="convWhats">Seu WhatsApp (celular)</label>
+            <input type="tel" id="convWhats" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999">
+            <p class="at-dica">O código de confirmação será enviado para este número.</p>
+          </div>
+          <div style="margin-top:12px;">
+            <label for="convFuncao">Função ou convite (opcional)</label>
+            <input type="text" id="convFuncao" maxlength="60" placeholder="Ex.: convidado do Pe. Fulano">
+          </div>
+        </div>
+
+        <div class="oculto-bot" aria-hidden="true">
+          <label for="site">Não preencha este campo</label>
+          <input type="text" id="site" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="button" class="at-botao-sec" id="btnAlternar">Meu nome não está na lista</button>
+        <button type="submit" class="at-botao" id="btnCodigo">Enviar código por WhatsApp</button>
+        <p class="at-msg" id="msgPessoa" role="status"></p>
+        <p class="at-dica">Para a segurança de todos, você recebe um código de 6 dígitos no WhatsApp cadastrado e digita aqui. Assim ninguém assina por você.</p>
+      </form>
+    </section>
+
+    <section class="at-card" id="cartaoConfirma" hidden>
+      <h2>Confirme sua presença</h2>
+      <p class="at-intro" id="textoCodigoEnviado"></p>
+
+      <form class="at-form" id="formConfirma" novalidate>
+        <div>
+          <label for="codigo">Código recebido no WhatsApp</label>
+          <input type="text" id="codigo" class="at-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+          <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
+            <button type="button" class="at-botao-sec" id="btnReenviar" disabled>Reenviar código</button>
+            <button type="button" class="at-botao-sec" id="btnTrocar">Trocar de pessoa</button>
+          </div>
+        </div>
+
+        <div>
+          <span class="rotulo">Sua situação nesta reunião</span>
+          <div class="at-escolhas">
+            <label class="at-escolha"><input type="radio" name="situacao" value="Presente"><span class="presente">✅ Presente</span></label>
+            <label class="at-escolha"><input type="radio" name="situacao" value="Justificado"><span class="justificado">📝 Justificado</span></label>
+          </div>
+        </div>
+
+        <div id="blocoJustificativa" hidden>
+          <label for="justificativa">Motivo da ausência</label>
+          <textarea id="justificativa" maxlength="300" placeholder="Ex.: consulta médica, trabalho, viagem…"></textarea>
+        </div>
+
+        <div id="blocoAssinatura" hidden>
+          <span class="rotulo">Assine com o dedo (ou o mouse) no quadro</span>
+          <div class="at-assina">
+            <canvas id="quadro" aria-label="Quadro para assinatura"></canvas>
+            <div class="linha-base"></div>
+            <div class="marca">assine acima da linha</div>
+          </div>
+          <div class="at-assina-barra">
+            <span class="at-dica" id="dicaAssinatura">Ainda sem assinatura.</span>
+            <button type="button" class="at-botao-sec" id="btnLimpar">Limpar</button>
+          </div>
+        </div>
+
+        <div class="at-consent">
+          <input type="checkbox" id="consentimento">
+          <label for="consentimento">Autorizo a paróquia a guardar meu nome, telefone e assinatura apenas para o registro de presença nas reuniões da Pascom, conforme a <a href="privacidade.html" target="_blank" rel="noopener">política de privacidade</a>.</label>
+        </div>
+
+        <button type="submit" class="at-botao" id="btnConfirmar">Confirmar</button>
+        <p class="at-msg" id="msgConfirma" role="status"></p>
+      </form>
+    </section>
+
+    <section class="at-card at-sucesso" id="cartaoSucesso" hidden>
+      <h2 id="tituloSucesso">✅ Presença confirmada!</h2>
+      <p id="textoSucesso"></p>
+      <div class="at-lista-ok" id="resumoSucesso"></div>
+      <p class="at-dica">Já pode fechar esta página. Deus abençoe a sua missão! 🙏</p>
+    </section>
+  </main>
+
+<script>
+  // ============================================================
+  // CONFIGURAÇÃO
+  // ============================================================
+  const CONFIG = {
+    WEBHOOK_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/ata-pascom-presenca',
+    TEMPO_REENVIO_SEG: 30
+  };
+  // ============================================================
+
+  const el = (id) => document.getElementById(id);
+  const estado = { ata: null, participantes: [], pessoaId: '', convidado: false, ocupado: false, traços: 0, timerReenvio: null };
+
+  function mostrar(qual) {
+    ['cartaoCarregando', 'cartaoFechado', 'cartaoPessoa', 'cartaoConfirma', 'cartaoSucesso'].forEach((id) => { el(id).hidden = id !== qual; });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function msg(id, texto, tipo) { const m = el(id); m.textContent = texto || ''; m.className = 'at-msg' + (tipo ? ' ' + tipo : ''); }
+
+  async function chamar(corpo) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 25000);
+    try {
+      const resp = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo), signal: ctl.signal });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return await resp.json();
+    } finally { clearTimeout(t); }
+  }
+  const ERRO_REDE = 'Não foi possível falar com o servidor agora. Confira sua internet e tente de novo em instantes.';
+
+  // ---------- 1) carregar a reunião aberta ----------
+  async function carregar() {
+    mostrar('cartaoCarregando');
+    try {
+      const d = await chamar({ acao: 'estado' });
+      if (!d.sucesso || !d.aberta) {
+        el('msgFechado').textContent = d.mensagem || 'A confirmação de presença não está aberta no momento. Procure a coordenação da Pascom.';
+        return mostrar('cartaoFechado');
+      }
+      estado.ata = d.ata; estado.participantes = d.participantes || [];
+      desenharReuniao(); desenharLista();
+      mostrar('cartaoPessoa');
+    } catch (e) {
+      console.error(e);
+      el('msgFechado').textContent = ERRO_REDE;
+      mostrar('cartaoFechado');
+    }
+  }
+  function linhaInfo(rot, v) { return v ? '<div><strong>' + rot + ':</strong> ' + escapar(v) + '</div>' : ''; }
+  function escapar(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function desenharReuniao() {
+    const a = estado.ata;
+    el('quadroReuniao').innerHTML = linhaInfo('Ata nº', a.numero) + linhaInfo('Data', a.data) + linhaInfo('Horário', a.horario) + linhaInfo('Local', a.local) + linhaInfo('Pauta', a.pauta);
+  }
+  function desenharLista() {
+    const s = el('selNome'); s.innerHTML = '';
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione seu nome…'; s.appendChild(o0);
+    estado.participantes.forEach((p) => {
+      const o = document.createElement('option'); o.value = p.id;
+      o.textContent = p.nome + (p.funcao ? ' — ' + p.funcao : '') + (p.jaConfirmou ? '  ✔ já confirmou' : '');
+      if (p.jaConfirmou) o.disabled = true;
+      s.appendChild(o);
+    });
+    if (!estado.participantes.length) alternarConvidado(true);
+  }
+  function alternarConvidado(forcar) {
+    estado.convidado = typeof forcar === 'boolean' ? forcar : !estado.convidado;
+    el('blocoLista').hidden = estado.convidado; el('blocoConvidado').hidden = !estado.convidado;
+    el('btnAlternar').textContent = estado.convidado ? '← Voltar para a lista de nomes' : 'Meu nome não está na lista';
+    if (!estado.participantes.length) el('btnAlternar').hidden = true;
+    msg('msgPessoa', '');
+  }
+
+  // ---------- 2) pedir o código ----------
+  function dadosPessoa() {
+    if (estado.convidado) {
+      const nome = el('convNome').value.trim(); const whatsapp = el('convWhats').value.trim();
+      if (nome.length < 3 || !/\s/.test(nome)) return { erro: 'Digite seu nome completo (nome e sobrenome).' };
+      const dig = whatsapp.replace(/\D/g, '');
+      if (dig.length < 10 || dig.length > 13) return { erro: 'Confira o WhatsApp: use o DDD, por exemplo (14) 99999-9999.' };
+      return { nome, whatsapp, funcao: el('convFuncao').value.trim() };
+    }
+    if (!el('selNome').value) return { erro: 'Selecione seu nome na lista.' };
+    return { id: el('selNome').value };
+  }
+  async function pedirCodigo(reenvio) {
+    const p = dadosPessoa();
+    const alvo = reenvio ? 'msgConfirma' : 'msgPessoa';
+    if (p.erro) return msg(alvo, p.erro, 'erro');
+    if (estado.ocupado) return; estado.ocupado = true;
+    const btn = reenvio ? el('btnReenviar') : el('btnCodigo'); const rot = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Enviando…'; msg(alvo, '');
+    try {
+      const d = await chamar({ acao: 'codigo', ata: estado.ata.numero, site: el('site').value, ...p });
+      if (d.sucesso) {
+        el('textoCodigoEnviado').textContent = 'Enviamos um código de 6 dígitos para o WhatsApp ' + d.tel + '. Ele vale por ' + (d.minutos || 10) + ' minutos.';
+        if (!reenvio) { prepararConfirmacao(); mostrar('cartaoConfirma'); }
+        else msg('msgConfirma', 'Código enviado de novo. Confira o WhatsApp.', 'ok');
+        iniciarContagemReenvio();
+      } else if (d.jaRegistrado) {
+        mostrarSucesso('Presença já registrada', d.mensagem, null);
+      } else { msg(alvo, d.mensagem || 'Não foi possível enviar o código.', 'erro'); if (reenvio) iniciarContagemReenvio(); }
+    } catch (e) { console.error(e); msg(alvo, ERRO_REDE, 'erro'); if (reenvio) iniciarContagemReenvio(); }
+    finally { estado.ocupado = false; if (!reenvio) { btn.textContent = rot; btn.disabled = false; } }
+  }
+  el('formPessoa').addEventListener('submit', (e) => { e.preventDefault(); pedirCodigo(false); });
+  el('btnAlternar').addEventListener('click', () => alternarConvidado());
+  el('btnRecarregar').addEventListener('click', carregar);
+
+  // ---------- 3) conferir código + situação + assinatura ----------
+  function iniciarContagemReenvio() {
+    clearInterval(estado.timerReenvio);
+    const b = el('btnReenviar'); let s = CONFIG.TEMPO_REENVIO_SEG; b.disabled = true; b.textContent = 'Reenviar código (' + s + 's)';
+    estado.timerReenvio = setInterval(() => {
+      s -= 1;
+      if (s <= 0) { clearInterval(estado.timerReenvio); b.disabled = false; b.textContent = 'Reenviar código'; } else b.textContent = 'Reenviar código (' + s + 's)';
+    }, 1000);
+  }
+  el('btnReenviar').addEventListener('click', () => pedirCodigo(true));
+  el('btnTrocar').addEventListener('click', () => { clearInterval(estado.timerReenvio); el('codigo').value = ''; msg('msgConfirma', ''); mostrar('cartaoPessoa'); });
+
+  function situacaoEscolhida() { const r = document.querySelector('input[name="situacao"]:checked'); return r ? r.value : ''; }
+  document.querySelectorAll('input[name="situacao"]').forEach((r) => r.addEventListener('change', () => {
+    const s = situacaoEscolhida();
+    el('blocoJustificativa').hidden = s !== 'Justificado';
+    el('blocoAssinatura').hidden = s !== 'Presente';
+    if (s === 'Presente') ajustarQuadro();
+  }));
+  function prepararConfirmacao() {
+    el('codigo').value = ''; msg('msgConfirma', '');
+    document.querySelectorAll('input[name="situacao"]').forEach((r) => { r.checked = false; });
+    el('blocoJustificativa').hidden = true; el('blocoAssinatura').hidden = true; el('justificativa').value = ''; limparQuadro();
+  }
+
+  // ---------- quadro de assinatura ----------
+  const quadro = el('quadro'); const ctx = quadro.getContext('2d');
+  let desenhando = false, ultimo = null;
+  function ajustarQuadro() {
+    const r = quadro.getBoundingClientRect(); if (!r.width) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    if (quadro.width === Math.round(r.width * dpr) && quadro.height === Math.round(r.height * dpr)) return;
+    const copia = estado.traços ? quadro.toDataURL() : null;
+    quadro.width = Math.round(r.width * dpr); quadro.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#14213d';
+    if (copia) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, r.width, r.height); img.src = copia; }
+  }
+  function posicao(e) { const r = quadro.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  quadro.addEventListener('pointerdown', (e) => { e.preventDefault(); ajustarQuadro(); quadro.setPointerCapture(e.pointerId); desenhando = true; ultimo = posicao(e); ctx.beginPath(); ctx.arc(ultimo.x, ultimo.y, 1.3, 0, 7); ctx.fillStyle = '#14213d'; ctx.fill(); estado.traços += 1; atualizarDica(); });
+  quadro.addEventListener('pointermove', (e) => {
+    if (!desenhando) return; e.preventDefault();
+    const eventos = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    (eventos.length ? eventos : [e]).forEach((ev) => { const p = posicao(ev); ctx.beginPath(); ctx.moveTo(ultimo.x, ultimo.y); ctx.lineTo(p.x, p.y); ctx.stroke(); ultimo = p; estado.traços += 1; });
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => quadro.addEventListener(n, () => { desenhando = false; atualizarDica(); }));
+  function limparQuadro() { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, quadro.width, quadro.height); ctx.restore(); estado.traços = 0; atualizarDica(); }
+  function atualizarDica() { el('dicaAssinatura').textContent = estado.traços > 25 ? 'Assinatura feita ✔' : 'Ainda sem assinatura.'; }
+  el('btnLimpar').addEventListener('click', limparQuadro);
+  window.addEventListener('resize', () => { if (!el('blocoAssinatura').hidden) ajustarQuadro(); });
+
+  // PNG pequeno (largura 480) com fundo branco: leve para enviar e guardar
+  function assinaturaPng() {
+    const L = 480, A = Math.round(L * quadro.height / quadro.width);
+    const c = document.createElement('canvas'); c.width = L; c.height = A;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, L, A); x.drawImage(quadro, 0, 0, L, A);
+    return c.toDataURL('image/png');
+  }
+
+  el('formConfirma').addEventListener('submit', async (e) => {
+    e.preventDefault(); if (estado.ocupado) return;
+    const codigo = el('codigo').value.replace(/\D/g, ''); const situacao = situacaoEscolhida(); const justificativa = el('justificativa').value.trim();
+    if (codigo.length !== 6) return msg('msgConfirma', 'Digite o código de 6 dígitos que chegou no WhatsApp.', 'erro');
+    if (!situacao) return msg('msgConfirma', 'Escolha se você está presente ou justificado.', 'erro');
+    if (situacao === 'Justificado' && justificativa.length < 3) return msg('msgConfirma', 'Escreva o motivo da sua ausência.', 'erro');
+    if (situacao === 'Presente' && estado.traços <= 25) return msg('msgConfirma', 'Faça sua assinatura no quadro antes de confirmar.', 'erro');
+    if (!el('consentimento').checked) return msg('msgConfirma', 'Marque a autorização para concluir.', 'erro');
+    estado.ocupado = true; const btn = el('btnConfirmar'); btn.disabled = true; btn.textContent = 'Enviando…'; msg('msgConfirma', '');
+    try {
+      const corpo = { acao: 'confirmar', ata: estado.ata.numero, codigo, situacao, justificativa: situacao === 'Justificado' ? justificativa : '', site: el('site').value, ...dadosPessoa() };
+      if (situacao === 'Presente') corpo.assinatura = assinaturaPng();
+      const d = await chamar(corpo);
+      if (d.sucesso) mostrarSucesso(situacao === 'Presente' ? '✅ Presença confirmada!' : '📝 Justificativa registrada', d.mensagem, situacao);
+      else if (d.novoCodigo) { msg('msgConfirma', d.mensagem + ' Toque em "Reenviar código".', 'erro'); el('btnReenviar').disabled = false; el('btnReenviar').textContent = 'Reenviar código'; clearInterval(estado.timerReenvio); }
+      else msg('msgConfirma', d.mensagem || 'Não foi possível confirmar.', 'erro');
+    } catch (err) { console.error(err); msg('msgConfirma', ERRO_REDE, 'erro'); }
+    finally { estado.ocupado = false; btn.disabled = false; btn.textContent = 'Confirmar'; }
+  });
+
+  function mostrarSucesso(titulo, texto, situacao) {
+    clearInterval(estado.timerReenvio);
+    el('tituloSucesso').textContent = titulo; el('textoSucesso').textContent = texto || '';
+    el('resumoSucesso').innerHTML = (estado.ata ? linhaInfo('Reunião', 'Ata nº ' + estado.ata.numero + (estado.ata.data ? ' — ' + estado.ata.data : '')) : '') + (situacao ? linhaInfo('Situação', situacao) : '');
+    el('resumoSucesso').hidden = !el('resumoSucesso').innerHTML;
+    mostrar('cartaoSucesso');
+  }
+
+  window.addEventListener('DOMContentLoaded', carregar);
+</script>
+</body>
+</html>
