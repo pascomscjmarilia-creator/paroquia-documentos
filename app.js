@@ -44,7 +44,7 @@ const CONFIG = {
   LOJINHA_ABA: 'Lojinha',
 
   // Salas da paróquia (planilha de dados da paróquia, aba "Salas"): A Sala · B Também chamada de · C Descrição · D Ativa
-  SALAS_RANGE: 'Salas!A2:D',
+  SALAS_RANGE: 'Salas!A2:F', // A nome · B apelidos · C descrição · D ativa · E aviso ao reservar · F entra em "Todas as salas" (Sim/Não)
   // Dias da semana em que dá para reservar sala (aba "Dias de Reserva": A Dia · B Reserva liberada Sim/Não)
   DIAS_RESERVA_RANGE: "'Dias de Reserva'!A2:B",
   WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
@@ -475,6 +475,7 @@ async function excluirExtra(linhaNumero) {
 
 // ---------- Salas (aba "Salas": o menu de salas e os apelidos vêm da planilha) ----------
 let aliasSalas = {};
+let salasForaDeTodas = new Set(); // salas que um horário fixo "Todas as salas" NÃO bloqueia (ex.: Cozinha): vêm da coluna F da aba Salas
 
 function montarSalas(valores) {
   return valores
@@ -483,6 +484,7 @@ function montarSalas(valores) {
       apelidos: String(row[1] || '').split(/[;,]/).map(a => norm(a)).filter(Boolean),
       descricao: String(row[2] || '').trim(),
       ativa: norm(row[3] || 'Sim') !== 'nao',
+      entraEmTodas: norm(row[5] || 'Sim') !== 'nao', // coluna F; em branco = Sim
     }))
     .filter(s => s.nome && s.ativa);
 }
@@ -490,6 +492,8 @@ function montarSalas(valores) {
 // "sala com TV" e "Sala 05" são a mesma sala: compara sempre pelo nome oficial
 // A Igreja (Matriz) NÃO entra em "Todas as salas" (a Catequese não ocupa a igreja): só um horário fixo com a SALA = Igreja a bloqueia (as missas).
 function ehIgrejaSala(s) { return /\bigreja\b/.test(norm(canonSala(s))); }
+// "Todas as salas" não vale para a Igreja (regra antiga) nem para as salas marcadas "Não" na coluna F da aba Salas (ex.: Cozinha).
+function foraDeTodasAsSalas(s) { return ehIgrejaSala(s) || salasForaDeTodas.has(canonSala(s)); }
 function canonSala(s) {
   const n = norm(s);
   return aliasSalas[n] || n;
@@ -509,6 +513,7 @@ async function carregarSalas() {
     if (salas.length === 0) return;
     aliasSalas = {};
     salas.forEach(s => s.apelidos.forEach(a => { aliasSalas[a] = norm(s.nome); }));
+    salasForaDeTodas = new Set(salas.filter(s => !s.entraEmTodas).map(s => norm(s.nome)));
     preencherSelectSalas(el('filtroSala'), 'Todas as salas', salas);
     preencherSelectSalas(el('modalSala'), 'Selecione...', salas);
   } catch (e) { /* mantém as opções do HTML */ }
@@ -942,7 +947,7 @@ async function salvarEdicaoReserva() {
     if (fixasEstado !== 'ok') await carregarReservasFixas();
     if (fixasEstado !== 'ok') { erro('Não consegui conferir os horários fixos das salas agora. Tente de novo em instantes.'); return; }
     const fixo = reservasFixas.find(f => idxDiaSemana(f.dia) === dataAlvo.getDay() && dataValeNaSemanaDoMes(f.semanas, dataAlvo) && dataValeNoMes(f.mesesSem, dataAlvo) &&
-      ((/^todas\b/.test(norm(f.sala)) && !ehIgrejaSala(novo.sala)) || canonSala(f.sala) === canonSala(novo.sala)) && sobrepoe(minutosDeHora(f.inicio), minutosDeHora(f.fim)));
+      ((/^todas\b/.test(norm(f.sala)) && !foraDeTodasAsSalas(novo.sala)) || canonSala(f.sala) === canonSala(novo.sala)) && sobrepoe(minutosDeHora(f.inicio), minutosDeHora(f.fim)));
     if (fixo) {
       erro('Esse horário já é ocupado ' + (fixo.semanas ? descreverSemanasDoMes(fixo.semanas, fixo.dia) : 'toda semana') + ' por "' + (fixo.atividade || 'um compromisso fixo') + '" (' + fixo.inicio + ' às ' + fixo.fim + '). Escolha outro horário' + (/^todas\b/.test(norm(fixo.sala)) ? '.' : ' ou sala.'));
       return;
