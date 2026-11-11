@@ -781,3 +781,13 @@ td.texto-longo {
 #modalCatequeseResultado { margin: 0; font-weight: 600; font-size: 0.9rem; }
 #modalCatequeseResultado.erro { color: #b3261e; margin-top: 0; }
 @media (max-width: 640px) { #modalCatequese .modal-linha-dupla { flex-direction: column; } }
+
+/* ---- Aba Agentes Pascom: os botões da coluna "Ação" (WhatsApp, Ficha, Em contato, Ativo/Reabrir) ficam lado a lado, na mesma linha ---- */
+td.acoes-agente { white-space: nowrap; width: 1%; }
+td.acoes-agente .acoes-linha { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
+td.acoes-agente .acoes-linha > .btn-acao { margin: 0; flex: 0 0 auto; }
+@media (max-width: 640px) {
+  /* no celular a linha vira um cartão: os botões podem quebrar para caber */
+  td.acoes-agente { white-space: normal; width: auto; }
+  td.acoes-agente .acoes-linha { flex-wrap: wrap; justify-content: flex-end; width: 100%; }
+}
