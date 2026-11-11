@@ -2091,10 +2091,12 @@ function renderizarLojinha() {
       <td data-label="Preço">${escapeHtml(precoLojinha(l.preco))}</td>
       <td data-label="Disponibilidade"><span class="status-pill ${dispClasse}">${escapeHtml(l.disp)}</span></td>
       <td data-label="No catálogo"><span class="status-pill ${l.exibir ? 'resolvido' : 'pendente'}">${l.exibir ? 'Visível' : 'Oculto'}</span></td>
-      <td data-label="Ação" class="no-print acoes-recado">
-        <button class="btn-acao btn-editar btn-loja" data-acao="editar" data-linha="${l.linha}">✏️ Editar</button>
-        <button class="btn-acao btn-editar btn-loja" data-acao="exibir" data-linha="${l.linha}">${l.exibir ? '🙈 Ocultar' : '👁️ Mostrar'}</button>
-        <button class="btn-acao btn-excluir btn-loja" data-acao="excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+      <td data-label="Ação" class="no-print acoes-recado acoes-agente">
+        <div class="acoes-linha">
+          <button class="btn-acao btn-editar btn-loja" data-acao="editar" data-linha="${l.linha}">✏️ Editar</button>
+          <button class="btn-acao btn-editar btn-loja" data-acao="exibir" data-linha="${l.linha}">${l.exibir ? '🙈 Ocultar' : '👁️ Mostrar'}</button>
+          <button class="btn-acao btn-excluir btn-loja" data-acao="excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+        </div>
       </td>
     `;
     corpo.appendChild(tr);
