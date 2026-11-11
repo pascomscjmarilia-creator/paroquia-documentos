@@ -300,9 +300,11 @@ function renderizarExtras() {
       <td data-label="Informação" class="texto-longo">${escapeHtml(l.informacao)}</td>
       <td data-label="Válido até">${escapeHtml(l.validoAte || '—')}</td>
       <td data-label="Situação"><span class="status-pill ${classe}" title="A situação depende do 'Válido até'. Para mudar, clique em Editar.">${rotulo}</span></td>
-      <td data-label="Ação" class="no-print acoes-recado">
-        <button class="btn-acao btn-editar" data-linha="${l.linha}">✏️ Editar</button>
-        <button class="btn-acao btn-excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+      <td data-label="Ação" class="no-print acoes-recado acoes-agente">
+        <div class="acoes-linha">
+          <button class="btn-acao btn-editar" data-linha="${l.linha}">✏️ Editar</button>
+          <button class="btn-acao btn-excluir" data-linha="${l.linha}">🗑️ Excluir</button>
+        </div>
       </td>
     `;
     corpo.appendChild(tr);
@@ -1142,10 +1144,12 @@ function renderizarRecados() {
       <td data-label="WhatsApp">${escapeHtml(rotuloContato(l.whatsapp))}</td>
       <td data-label="Assunto">${escapeHtml(l.assunto)}</td>
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status || 'Pendente')}</span></td>
-      <td data-label="Ação" class="no-print acoes-recado">
-        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao${jaResolvido ? '' : ' btn-whatsapp-auto'}" data-linha="${l.linha}">${rotuloBotaoContato(l.whatsapp)}</a>` : ''}
-        ${jaResolvido ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✅ Marcar Resolvido</button>`}
-        ${jaResolvido ? `<button class="btn-acao btn-excluir btn-excluir-recado" data-linha="${l.linha}" title="Apagar este recado da planilha">🗑️ Excluir</button>` : ''}
+      <td data-label="Ação" class="no-print acoes-recado acoes-agente">
+        <div class="acoes-linha">
+          ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao${jaResolvido ? '' : ' btn-whatsapp-auto'}" data-linha="${l.linha}">${rotuloBotaoContato(l.whatsapp)}</a>` : ''}
+          ${jaResolvido ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✅ Marcar Resolvido</button>`}
+          ${jaResolvido ? `<button class="btn-acao btn-excluir btn-excluir-recado" data-linha="${l.linha}" title="Apagar este recado da planilha">🗑️ Excluir</button>` : ''}
+        </div>
       </td>
     `;
     corpo.appendChild(tr);
@@ -1193,11 +1197,11 @@ function renderizarReservas() {
       <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
       <td data-label="Atividade">${escapeHtml(l.atividade)}</td>
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(statusReservaExibido(l))}</span></td>
-      <td data-label="Ação" class="no-print" style="vertical-align:middle;">
-        <div style="display:flex;flex-direction:column;gap:6px;width:112px;">
-          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-editar-reserva" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;background:var(--dourado);color:var(--vinho-escuro);" title="Corrigir sala, data, horário ou dados desta reserva">✏️ Editar</button>`}
-          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;">✖ Cancelar</button>`}
-          ${podeExcluirReserva(l) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="display:block;width:100%;margin:0;text-align:center;background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para reservas canceladas ou de datas que já passaram)">🗑 Excluir</button>` : ''}
+      <td data-label="Ação" class="no-print acoes-agente" style="vertical-align:middle;">
+        <div class="acoes-linha">
+          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-editar-reserva" data-linha="${l.linha}" style="background:var(--dourado);color:var(--vinho-escuro);" title="Corrigir sala, data, horário ou dados desta reserva">✏️ Editar</button>`}
+          ${(cancelado || reservaJaPassou(l.data)) ? '' : `<button class="btn-acao btn-resolver" data-linha="${l.linha}">✖ Cancelar</button>`}
+          ${podeExcluirReserva(l) ? `<button class="btn-acao btn-excluir-reserva" data-linha="${l.linha}" style="background:#b3261e;color:#fff;" title="Apagar esta linha da planilha (só aparece para reservas canceladas ou de datas que já passaram)">🗑 Excluir</button>` : ''}
         </div>
       </td>
     `;
