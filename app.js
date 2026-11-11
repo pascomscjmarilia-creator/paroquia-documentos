@@ -1468,11 +1468,13 @@ function renderizarAgentes() {
       <td data-label="Crisma"><span class="status-pill ${crismado ? 'resolvido' : 'pendente'}">${escapeHtml(l.crisma || '—')}</span></td>
       <td data-label="Pastoral / grupo">${participa ? escapeHtml(l.qual || 'Sim') : (norm(l.participa) === 'nao' ? 'Não participa' : '—')}</td>
       <td data-label="Status"><span class="status-pill ${statusClasse}">${escapeHtml(l.status)}</span></td>
-      <td data-label="Ação" class="no-print acoes-recado">
-        ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
-        <button class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha já preenchida (de lá dá para imprimir)">📄 Ficha</button>
-        ${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
-        ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
+      <td data-label="Ação" class="no-print acoes-recado acoes-agente">
+        <div class="acoes-linha">
+          ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
+          <button class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha já preenchida (de lá dá para imprimir)">📄 Ficha</button>
+          ${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
+          ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
+        </div>
       </td>
     `;
     corpo.appendChild(tr);
