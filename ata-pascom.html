@@ -4,69 +4,50 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Atas da Pascom — Paróquia Sagrado Coração de Jesus</title>
+<title>Presença na reunião da Pascom — Paróquia Sagrado Coração de Jesus</title>
 <link rel="stylesheet" href="style.css?v=20261111b">
 <style>
-  .at-card { background:#fff; border:1px solid var(--cinza-borda); border-radius:10px; padding:20px 18px; max-width:760px; margin:20px auto 0; }
+  .at-card { background:#fff; border:1px solid var(--cinza-borda); border-radius:10px; padding:22px 18px; max-width:560px; margin:20px auto 0; }
   .at-card h2 { margin:0 0 4px; font-size:1.15rem; color:var(--vinho); }
   .at-intro { margin:0 0 14px; color:#555; font-size:0.95rem; }
-  .at-form { display:flex; flex-direction:column; gap:14px; }
-  .at-form label, .at-form .rotulo { display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem; }
-  .at-form select, .at-form input[type="text"], .at-form input[type="date"], .at-form input[type="time"], .at-form input[type="tel"], .at-form textarea {
-    width:100%; padding:11px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff; box-sizing:border-box;
+  .at-reuniao { background:#f8f4ef; border:1px solid #e7dccb; border-radius:8px; padding:10px 12px; margin:0 0 16px; font-size:0.95rem; }
+  .at-reuniao strong { color:var(--vinho); }
+  .at-reuniao div { margin:2px 0; }
+  .at-form { display:flex; flex-direction:column; gap:16px; }
+  .at-form label, .at-form .rotulo { display:block; font-weight:600; margin-bottom:4px; font-size:0.92rem; }
+  .at-form select, .at-form input[type="text"], .at-form input[type="tel"], .at-form textarea {
+    width:100%; padding:12px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff; box-sizing:border-box;
   }
-  .at-form textarea { min-height:90px; resize:vertical; line-height:1.4; }
-  .at-form textarea.grande { min-height:200px; }
+  .at-form textarea { min-height:84px; resize:vertical; }
   .at-dica { color:#666; font-size:0.84rem; margin:3px 0 0; font-weight:400; }
-  .at-grade { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .at-grade3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-  @media (max-width:560px) { .at-grade3 { grid-template-columns:1fr 1fr; } }
-  .at-botao { background:var(--vinho); color:#fff; border:none; padding:13px 16px; border-radius:8px; font-size:1.02rem; font-weight:600; cursor:pointer; }
+  .at-botao { background:var(--vinho); color:#fff; border:none; padding:14px; border-radius:8px; font-size:1.05rem; font-weight:600; cursor:pointer; width:100%; }
   .at-botao:disabled { opacity:0.55; cursor:default; }
-  .at-botao-sec { background:#fff; color:var(--vinho); border:1px solid var(--vinho); padding:9px 12px; border-radius:8px; font-size:0.92rem; font-weight:600; cursor:pointer; }
+  .at-botao-sec { background:#fff; color:var(--vinho); border:1px solid var(--vinho); padding:10px 14px; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer; }
   .at-botao-sec:disabled { opacity:0.5; cursor:default; }
-  .at-botao-perigo { background:#fff; color:#b3261e; border:1px solid #b3261e; padding:9px 12px; border-radius:8px; font-size:0.92rem; font-weight:600; cursor:pointer; }
   .at-msg { margin:0; font-weight:600; min-height:1.2em; }
-  .at-msg.erro { color:#b3261e; } .at-msg.ok { color:#1b6e3a; }
-  .at-topo { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-  .at-lista { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-  .at-item { border:1px solid var(--cinza-borda); border-radius:10px; padding:12px; background:#fcfaf7; }
-  .at-item h3 { margin:0 0 4px; font-size:1.02rem; color:var(--vinho); }
-  .at-item .sub { color:#555; font-size:0.9rem; margin-bottom:8px; }
-  .at-item .botoes { display:flex; gap:8px; flex-wrap:wrap; }
-  .selo { display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.78rem; font-weight:700; margin-left:6px; vertical-align:middle; }
-  .selo.aberta { background:#e6f4ea; color:#14532d; } .selo.encerrada { background:#eee; color:#555; } .selo.semtexto { background:#fff4e0; color:#7a4a00; }
-  .at-link-presenca { background:#f8f4ef; border:1px solid #e7dccb; border-radius:8px; padding:10px 12px; margin:10px 0; font-size:0.88rem; word-break:break-all; }
-  .linha-decisao { display:grid; grid-template-columns:3fr 1.4fr 1fr auto; gap:8px; align-items:start; margin-bottom:8px; }
-  @media (max-width:560px) { .linha-decisao { grid-template-columns:1fr 1fr; } .linha-decisao .texto { grid-column:1 / -1; } }
-  .at-centro { text-align:center; color:#555; }
+  .at-msg.erro { color:#b3261e; }
+  .at-msg.ok { color:#1b6e3a; }
+  .at-escolhas { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .at-escolha { position:relative; }
+  .at-escolha input { position:absolute; opacity:0; inset:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .at-escolha span { display:flex; align-items:center; justify-content:center; gap:6px; padding:14px 8px; border:2px solid var(--cinza-borda); border-radius:10px; font-weight:700; font-size:1rem; background:#fff; text-align:center; }
+  .at-escolha input:checked + span.presente { border-color:#1b6e3a; background:#e6f4ea; color:#14532d; }
+  .at-escolha input:checked + span.justificado { border-color:#b26a00; background:#fff4e0; color:#7a4a00; }
+  .at-escolha input:focus-visible + span { outline:3px solid #7b1e2b55; }
+  .at-assina { border:2px dashed #aaa; border-radius:10px; background:#fff; position:relative; }
+  .at-assina canvas { display:block; width:100%; height:190px; touch-action:none; border-radius:8px; cursor:crosshair; }
+  .at-assina .linha-base { position:absolute; left:14px; right:14px; bottom:44px; border-bottom:1px solid #bbb; pointer-events:none; }
+  .at-assina .marca { position:absolute; left:0; right:0; bottom:20px; text-align:center; color:#999; font-size:0.8rem; pointer-events:none; }
+  .at-assina-barra { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .at-codigo { font-size:1.6rem !important; letter-spacing:0.35em; text-align:center; font-weight:700; }
+  .at-consent { display:flex; gap:10px; align-items:flex-start; font-size:0.9rem; }
+  .at-consent input { margin-top:3px; width:20px; height:20px; flex-shrink:0; }
+  .at-consent label { font-weight:400 !important; margin:0 !important; font-size:0.9rem !important; }
+  .at-sucesso { text-align:center; }
+  .at-sucesso h2 { font-size:1.3rem; }
+  .at-lista-ok { text-align:left; background:#f8f4ef; border-radius:8px; padding:10px 12px; margin:12px 0; font-size:0.95rem; }
   .oculto-bot { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
-  .at-codigo { font-size:1.5rem !important; letter-spacing:0.35em; text-align:center; font-weight:700; }
-
-  /* ---------- a ata para ler / imprimir ---------- */
-  .folha { background:#fff; color:#111; max-width:794px; margin:16px auto; padding:34px 38px; border:1px solid #ddd; font-family:Arial, Helvetica, sans-serif; font-size:13px; line-height:1.45; }
-  .folha h1 { text-align:center; margin:0; font-size:16px; color:#7B1E2B; }
-  .folha .sub { text-align:center; margin:0; font-size:12px; color:#555; }
-  .folha .tit { text-align:center; margin:8px 0 12px; padding-top:8px; border-top:3px solid #7B1E2B; font-size:17px; font-weight:700; }
-  .folha table { width:100%; border-collapse:collapse; margin:4px 0 8px; }
-  .folha td, .folha th { border:1px solid #999; padding:5px 7px; vertical-align:middle; text-align:left; }
-  .folha th { background:#7B1E2B; color:#fff; font-size:12px; }
-  .folha td.rot { background:#f3efea; font-weight:700; width:15%; color:#444; font-size:12px; }
-  .folha .faixa { background:#7B1E2B; color:#fff; font-weight:700; padding:4px 8px; margin:14px 0 6px; text-transform:uppercase; font-size:12px; page-break-after:avoid; }
-  .folha .texto { white-space:pre-wrap; margin:0 0 6px; }
-  .folha .vazio { color:#888; font-style:italic; }
-  .folha .quebra { page-break-before:always; }
-  .folha img.assin { max-height:46px; max-width:100%; display:block; }
-  .folha .assinaturas { display:flex; justify-content:space-between; gap:40px; margin-top:46px; page-break-inside:avoid; }
-  .folha .assinaturas div { flex:1; text-align:center; border-top:1px solid #333; padding-top:4px; font-size:12px; }
-  .folha tr { page-break-inside:avoid; }
-  @media print {
-    @page { size:A4; margin:14mm; }
-    body { background:#fff !important; }
-    .topbar, main > section:not(#cartaoVer), .noprint { display:none !important; }
-    #cartaoVer { border:none !important; padding:0 !important; margin:0 !important; max-width:none !important; box-shadow:none !important; }
-    .folha { border:none; margin:0; padding:0; max-width:none; }
-  }
+  .at-centro { text-align:center; color:#555; }
 </style>
 </head>
 <body>
@@ -74,283 +55,313 @@
   <header class="topbar">
     <div class="topbar-titulo">
       <img src="brasao.png" alt="Brasão da Paróquia" class="brasao">
-      <h1>Atas da Pascom</h1>
+      <h1>Presença na reunião da Pascom</h1>
     </div>
   </header>
 
   <main>
-    <!-- 1) entrar -->
-    <section class="at-card" id="cartaoEntrar" hidden>
-      <h2>Entrar</h2>
-      <p class="at-intro">Só a coordenação e quem redige as atas pode entrar. Escolha seu nome: você recebe um código de 6 dígitos no WhatsApp.</p>
-      <form class="at-form" id="formEntrar" novalidate>
-        <div>
-          <label for="selRedator">Quem é você?</label>
-          <select id="selRedator"></select>
+    <section class="at-card at-centro" id="cartaoCarregando">
+      <p>Carregando…</p>
+    </section>
+
+    <section class="at-card at-centro" id="cartaoFechado" hidden>
+      <h2>Confirmação de presença</h2>
+      <p id="msgFechado">A confirmação de presença não está aberta no momento.</p>
+      <button type="button" class="at-botao-sec" id="btnRecarregar">Atualizar</button>
+    </section>
+
+    <section class="at-card" id="cartaoPessoa" hidden>
+      <h2>Confirmar presença</h2>
+      <div class="at-reuniao" id="quadroReuniao"></div>
+
+      <form class="at-form" id="formPessoa" novalidate>
+        <div id="blocoLista">
+          <label for="selNome">Quem é você?</label>
+          <select id="selNome"></select>
         </div>
-        <div class="oculto-bot" aria-hidden="true"><label for="site">Não preencha</label><input type="text" id="site" tabindex="-1" autocomplete="off"></div>
-        <button type="submit" class="at-botao" id="btnPedirCodigo">Enviar código por WhatsApp</button>
-        <div id="blocoCodigo" hidden>
-          <label for="codigo">Código recebido</label>
+
+        <div id="blocoConvidado" hidden>
+          <div>
+            <label for="convNome">Nome completo</label>
+            <input type="text" id="convNome" autocomplete="name" maxlength="80">
+          </div>
+          <div style="margin-top:12px;">
+            <label for="convWhats">Seu WhatsApp (celular)</label>
+            <input type="tel" id="convWhats" inputmode="tel" autocomplete="tel" placeholder="(14) 99999-9999">
+            <p class="at-dica">O código de confirmação será enviado para este número.</p>
+          </div>
+          <div style="margin-top:12px;">
+            <label for="convFuncao">Função ou convite (opcional)</label>
+            <input type="text" id="convFuncao" maxlength="60" placeholder="Ex.: convidado do Pe. Fulano">
+          </div>
+        </div>
+
+        <div class="oculto-bot" aria-hidden="true">
+          <label for="site">Não preencha este campo</label>
+          <input type="text" id="site" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button type="button" class="at-botao-sec" id="btnAlternar">Meu nome não está na lista</button>
+        <button type="submit" class="at-botao" id="btnCodigo">Enviar código por WhatsApp</button>
+        <p class="at-msg" id="msgPessoa" role="status"></p>
+        <p class="at-dica">Para a segurança de todos, você recebe um código de 6 dígitos no WhatsApp cadastrado e digita aqui. Assim ninguém assina por você.</p>
+      </form>
+    </section>
+
+    <section class="at-card" id="cartaoConfirma" hidden>
+      <h2>Confirme sua presença</h2>
+      <p class="at-intro" id="textoCodigoEnviado"></p>
+
+      <form class="at-form" id="formConfirma" novalidate>
+        <div>
+          <label for="codigo">Código recebido no WhatsApp</label>
           <input type="text" id="codigo" class="at-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
-          <p class="at-dica" id="textoCodigo"></p>
-          <button type="button" class="at-botao" id="btnEntrar" style="margin-top:10px; width:100%;">Entrar</button>
+          <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
+            <button type="button" class="at-botao-sec" id="btnReenviar" disabled>Reenviar código</button>
+            <button type="button" class="at-botao-sec" id="btnTrocar">Trocar de pessoa</button>
+          </div>
         </div>
-        <p class="at-msg" id="msgEntrar" role="status"></p>
-      </form>
-    </section>
 
-    <section class="at-card at-centro" id="cartaoCarregando"><p>Carregando…</p></section>
-
-    <!-- 2) lista de atas -->
-    <section class="at-card" id="cartaoLista" hidden>
-      <div class="at-topo">
-        <div><h2>Atas da Pascom</h2><p class="at-intro" style="margin:0;" id="saudacao"></p></div>
-        <div style="display:flex; gap:8px;"><button type="button" class="at-botao" id="btnNova">➕ Nova ata</button><button type="button" class="at-botao-sec" id="btnSair">Sair</button></div>
-      </div>
-      <div class="at-link-presenca">📲 <strong>Link da presença</strong> (QR Code / WhatsApp do grupo):<br><span id="linkPresenca"></span> <button type="button" class="at-botao-sec" id="btnCopiar" style="margin-left:6px;">Copiar</button></div>
-      <p class="at-msg" id="msgLista" role="status"></p>
-      <div class="at-lista" id="listaAtas"></div>
-    </section>
-
-    <!-- 3) editor -->
-    <section class="at-card" id="cartaoEditor" hidden>
-      <h2 id="tituloEditor">Ata</h2>
-      <form class="at-form" id="formAta" novalidate>
-        <div class="at-grade3">
-          <div><label for="fNumero">Nº da ata</label><input type="text" id="fNumero" maxlength="12"></div>
-          <div><label for="fData">Data</label><input type="date" id="fData"></div>
-          <div><label for="fTipo">Tipo</label><select id="fTipo"><option>Ordinária</option><option>Extraordinária</option></select></div>
-        </div>
-        <div class="at-grade">
-          <div><label for="fInicio">Início</label><input type="time" id="fInicio"></div>
-          <div><label for="fTermino">Término</label><input type="time" id="fTermino"></div>
-        </div>
-        <div><label for="fLocal">Local</label><input type="text" id="fLocal" maxlength="120" placeholder="Ex.: Sala 05"></div>
-        <div class="at-grade">
-          <div><label for="fCoord">Coordenação</label><input type="text" id="fCoord" maxlength="80"></div>
-          <div><label for="fSecr">Secretário(a) da ata</label><input type="text" id="fSecr" maxlength="80"></div>
-        </div>
-        <div><label for="fOracao">Oração de abertura conduzida por</label><input type="text" id="fOracao" maxlength="120"></div>
-        <div><label for="fPauta">Pauta</label><textarea id="fPauta" maxlength="1500" placeholder="Um item por linha"></textarea></div>
-        <div><label for="fAssuntos">Assuntos tratados</label><textarea id="fAssuntos" class="grande" maxlength="8000" placeholder="Escreva o que foi conversado na reunião."></textarea></div>
         <div>
-          <span class="rotulo">Decisões e encaminhamentos</span>
-          <div id="listaDecisoes"></div>
-          <button type="button" class="at-botao-sec" id="btnMaisDecisao">➕ Adicionar decisão</button>
+          <span class="rotulo">Sua situação nesta reunião</span>
+          <div class="at-escolhas">
+            <label class="at-escolha"><input type="radio" name="situacao" value="Presente"><span class="presente">✅ Presente</span></label>
+            <label class="at-escolha"><input type="radio" name="situacao" value="Justificado"><span class="justificado">📝 Justificado</span></label>
+          </div>
         </div>
-        <div><label for="fAvisos">Avisos gerais</label><textarea id="fAvisos" maxlength="2000"></textarea></div>
-        <div><label for="fProxima">Próxima reunião</label><input type="text" id="fProxima" maxlength="200" placeholder="Ex.: 04/12/2026 às 19h30, Sala 05"></div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="submit" class="at-botao" id="btnSalvar">💾 Salvar ata</button>
-          <button type="button" class="at-botao-sec" id="btnVoltarLista">← Voltar</button>
+
+        <div id="blocoJustificativa" hidden>
+          <label for="justificativa">Motivo da ausência</label>
+          <textarea id="justificativa" maxlength="300" placeholder="Ex.: consulta médica, trabalho, viagem…"></textarea>
         </div>
-        <p class="at-msg" id="msgAta" role="status"></p>
-        <p class="at-dica">Os participantes e as assinaturas vêm sozinhos da confirmação de presença e entram na ata quando você abrir "Ver / imprimir".</p>
+
+        <div id="blocoAssinatura" hidden>
+          <span class="rotulo">Assine com o dedo (ou o mouse) no quadro</span>
+          <div class="at-assina">
+            <canvas id="quadro" aria-label="Quadro para assinatura"></canvas>
+            <div class="linha-base"></div>
+            <div class="marca">assine acima da linha</div>
+          </div>
+          <div class="at-assina-barra">
+            <span class="at-dica" id="dicaAssinatura">Ainda sem assinatura.</span>
+            <button type="button" class="at-botao-sec" id="btnLimpar">Limpar</button>
+          </div>
+        </div>
+
+        <div class="at-consent">
+          <input type="checkbox" id="consentimento">
+          <label for="consentimento">Autorizo a paróquia a guardar meu nome, telefone e assinatura apenas para o registro de presença nas reuniões da Pascom, conforme a <a href="privacidade.html" target="_blank" rel="noopener">política de privacidade</a>.</label>
+        </div>
+
+        <button type="submit" class="at-botao" id="btnConfirmar">Confirmar</button>
+        <p class="at-msg" id="msgConfirma" role="status"></p>
       </form>
     </section>
 
-    <!-- 4) ata para ler / imprimir -->
-    <section class="at-card" id="cartaoVer" hidden>
-      <div class="at-topo noprint">
-        <h2>Ata pronta</h2>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;"><button type="button" class="at-botao" id="btnImprimir">🖨️ Imprimir / Salvar em PDF</button><button type="button" class="at-botao-sec" id="btnVoltarLista2">← Voltar</button></div>
-      </div>
-      <p class="at-dica noprint">Na janela de impressão, escolha "Salvar como PDF" para guardar no computador ou no celular.</p>
-      <div class="folha" id="folha"></div>
+    <section class="at-card at-sucesso" id="cartaoSucesso" hidden>
+      <h2 id="tituloSucesso">✅ Presença confirmada!</h2>
+      <p id="textoSucesso"></p>
+      <div class="at-lista-ok" id="resumoSucesso"></div>
+      <p class="at-dica">Já pode fechar esta página. Deus abençoe a sua missão! 🙏</p>
     </section>
   </main>
 
 <script>
-  const CONFIG = { WEBHOOK_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/ata-pascom-presenca' };
+  // ============================================================
+  // CONFIGURAÇÃO
+  // ============================================================
+  const CONFIG = {
+    WEBHOOK_URL: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/ata-pascom-presenca',
+    TEMPO_REENVIO_SEG: 30
+  };
+  // ============================================================
 
   const el = (id) => document.getElementById(id);
-  const S = { token: '', nome: '', ocupado: false, atas: [], proximo: '1', numeroAtual: '' };
-  const guardar = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) { /* sem armazenamento: segue */ } };
-  const ler = (k) => { try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; } };
-  const escapar = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const estado = { ata: null, participantes: [], pessoaId: '', convidado: false, ocupado: false, traços: 0, timerReenvio: null };
 
   function mostrar(qual) {
-    ['cartaoEntrar', 'cartaoCarregando', 'cartaoLista', 'cartaoEditor', 'cartaoVer'].forEach((id) => { el(id).hidden = id !== qual; });
-    window.scrollTo({ top: 0 });
+    ['cartaoCarregando', 'cartaoFechado', 'cartaoPessoa', 'cartaoConfirma', 'cartaoSucesso'].forEach((id) => { el(id).hidden = id !== qual; });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function msg(id, texto, tipo) { const m = el(id); m.textContent = texto || ''; m.className = 'at-msg' + (tipo ? ' ' + tipo : ''); }
 
-  async function chamar(corpo, comToken) {
-    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 45000);
+  async function chamar(corpo) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 25000);
     try {
-      const resp = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(comToken === false ? corpo : { token: S.token, ...corpo }), signal: ctl.signal });
+      const resp = await fetch(CONFIG.WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo), signal: ctl.signal });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const d = await resp.json();
-      if (d && d.sessaoExpirada) { sair(true); }
-      return d;
+      return await resp.json();
     } finally { clearTimeout(t); }
   }
-  const ERRO_REDE = 'Não foi possível falar com o servidor agora. Confira a internet e tente de novo.';
+  const ERRO_REDE = 'Não foi possível falar com o servidor agora. Confira sua internet e tente de novo em instantes.';
 
-  // ---------- conversão de data e hora ----------
-  const dataParaIso = (br) => { const m = String(br || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : ''; };
-  const isoParaData = (iso) => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; };
-  const horaParaInput = (h) => { const m = String(h || '').match(/^(\d{1,2})\s*(?:h|:)\s*(\d{0,2})$/i); return m ? m[1].padStart(2, '0') + ':' + (m[2] || '00').padStart(2, '0') : ''; };
-  const inputParaHora = (v) => { const m = String(v || '').match(/^(\d{2}):(\d{2})$/); return m ? (m[2] === '00' ? Number(m[1]) + 'h' : Number(m[1]) + 'h' + m[2]) : ''; };
-
-  // ---------- entrar ----------
-  async function iniciar() {
-    S.token = ler('ataToken'); S.nome = ler('ataNome');
-    if (S.token) {
-      try { const d = await chamar({ acao: 'ata_lista' }); if (d.sucesso) { S.atas = d.atas; S.proximo = d.proximoNumero; return desenharLista(); } } catch (e) { /* cai para o login */ }
-    }
-    return abrirEntrar();
-  }
-  async function abrirEntrar() {
+  // ---------- 1) carregar a reunião aberta ----------
+  async function carregar() {
     mostrar('cartaoCarregando');
     try {
-      const d = await chamar({ acao: 'redatores' }, false);
-      const s = el('selRedator'); s.innerHTML = '<option value="">Selecione seu nome…</option>';
-      (d.redatores || []).forEach((p) => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.nome + (p.funcao ? ' — ' + p.funcao : ''); s.appendChild(o); });
-      el('blocoCodigo').hidden = true; el('codigo').value = ''; msg('msgEntrar', (d.redatores || []).length ? '' : 'Ninguém está cadastrado para redigir atas. Peça à coordenação.', (d.redatores || []).length ? '' : 'erro');
-      mostrar('cartaoEntrar');
-    } catch (e) { console.error(e); mostrar('cartaoEntrar'); msg('msgEntrar', ERRO_REDE, 'erro'); }
-  }
-  el('formEntrar').addEventListener('submit', async (e) => {
-    e.preventDefault(); if (S.ocupado) return;
-    if (!el('selRedator').value) return msg('msgEntrar', 'Selecione seu nome.', 'erro');
-    S.ocupado = true; const b = el('btnPedirCodigo'); b.disabled = true; msg('msgEntrar', '');
-    try {
-      const d = await chamar({ acao: 'redator_codigo', id: el('selRedator').value, site: el('site').value }, false);
-      if (d.sucesso) { el('blocoCodigo').hidden = false; el('textoCodigo').textContent = 'Enviamos um código para o WhatsApp ' + d.tel + '. Vale por ' + d.minutos + ' minutos.'; el('codigo').focus(); b.textContent = 'Reenviar código'; }
-      else msg('msgEntrar', d.mensagem || 'Não foi possível enviar o código.', 'erro');
-    } catch (err) { console.error(err); msg('msgEntrar', ERRO_REDE, 'erro'); }
-    finally { S.ocupado = false; b.disabled = false; }
-  });
-  el('btnEntrar').addEventListener('click', async () => {
-    if (S.ocupado) return; const codigo = el('codigo').value.replace(/\D/g, '');
-    if (codigo.length !== 6) return msg('msgEntrar', 'Digite o código de 6 dígitos.', 'erro');
-    S.ocupado = true; msg('msgEntrar', '');
-    try {
-      const d = await chamar({ acao: 'redator_entrar', id: el('selRedator').value, codigo }, false);
-      if (d.sucesso) { S.token = d.token; S.nome = d.nome; guardar('ataToken', d.token); guardar('ataNome', d.nome); S.atas = d.atas; S.proximo = d.proximoNumero; desenharLista(); }
-      else msg('msgEntrar', d.mensagem || 'Não foi possível entrar.', 'erro');
-    } catch (err) { console.error(err); msg('msgEntrar', ERRO_REDE, 'erro'); }
-    finally { S.ocupado = false; }
-  });
-  function sair(expirou) {
-    S.token = ''; S.nome = ''; guardar('ataToken', null); guardar('ataNome', null);
-    abrirEntrar().then(() => { if (expirou) msg('msgEntrar', 'Sua sessão terminou. Entre de novo com o código do WhatsApp.', 'erro'); });
-  }
-  el('btnSair').addEventListener('click', () => sair(false));
-
-  // ---------- lista ----------
-  function desenharLista() {
-    el('saudacao').textContent = 'Olá, ' + (S.nome || '').split(' ')[0] + '!';
-    el('linkPresenca').textContent = new URL('ata-pascom.html', location.href).href;
-    msg('msgLista', '');
-    const box = el('listaAtas'); box.innerHTML = '';
-    if (!S.atas.length) box.innerHTML = '<p class="at-intro">Ainda não há atas. Toque em "Nova ata".</p>';
-    S.atas.forEach((a) => {
-      const aberta = a.presenca === 'Aberta';
-      const d = document.createElement('div'); d.className = 'at-item';
-      d.innerHTML = '<h3>Ata nº ' + escapar(a.numero) + '<span class="selo ' + (aberta ? 'aberta' : 'encerrada') + '">Presença ' + (aberta ? 'aberta' : 'encerrada') + '</span>' + (a.temTexto ? '' : '<span class="selo semtexto">sem texto</span>') + '</h3>'
-        + '<div class="sub">' + escapar([a.data, a.horario, a.local].filter(Boolean).join(' · ')) + '</div>'
-        + '<div class="botoes"><button class="at-botao-sec" data-a="editar">✏️ ' + (a.temTexto ? 'Editar' : 'Escrever') + '</button>'
-        + '<button class="at-botao-sec" data-a="presenca">' + (aberta ? '🔒 Encerrar presença' : '🔓 Abrir presença') + '</button>'
-        + (a.temTexto ? '<button class="at-botao-sec" data-a="ver">📄 Ver / imprimir</button>' : '') + '</div>';
-      d.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => acaoDaLista(b.dataset.a, a, b)));
-      box.appendChild(d);
-    });
-    mostrar('cartaoLista');
-  }
-  async function acaoDaLista(qual, a, botao) {
-    if (S.ocupado) return;
-    if (qual === 'editar') return abrirEditor(a.numero);
-    S.ocupado = true; botao.disabled = true; msg('msgLista', '');
-    try {
-      if (qual === 'presenca') {
-        const d = await chamar({ acao: 'presenca_definir', numero: a.numero, situacao: a.presenca === 'Aberta' ? 'Encerrada' : 'Aberta' });
-        if (d.sucesso) { const l = await chamar({ acao: 'ata_lista' }); if (l.sucesso) { S.atas = l.atas; S.proximo = l.proximoNumero; } desenharLista(); msg('msgLista', d.mensagem, 'ok'); }
-        else msg('msgLista', d.mensagem || 'Não foi possível alterar.', 'erro');
-      } else if (qual === 'ver') {
-        msg('msgLista', 'Montando a ata…');
-        const d = await chamar({ acao: 'ata_ver', numero: a.numero });
-        if (d.sucesso) { montarFolha(d.ata, d.presencas); mostrar('cartaoVer'); } else msg('msgLista', d.mensagem || 'Não foi possível abrir a ata.', 'erro');
+      const d = await chamar({ acao: 'estado' });
+      if (!d.sucesso || !d.aberta) {
+        el('msgFechado').textContent = d.mensagem || 'A confirmação de presença não está aberta no momento. Procure a coordenação da Pascom.';
+        return mostrar('cartaoFechado');
       }
-    } catch (e) { console.error(e); msg('msgLista', ERRO_REDE, 'erro'); }
-    finally { S.ocupado = false; botao.disabled = false; }
+      estado.ata = d.ata; estado.participantes = d.participantes || [];
+      desenharReuniao(); desenharLista();
+      mostrar('cartaoPessoa');
+    } catch (e) {
+      console.error(e);
+      el('msgFechado').textContent = ERRO_REDE;
+      mostrar('cartaoFechado');
+    }
   }
-  el('btnNova').addEventListener('click', () => abrirEditor(''));
-  el('btnVoltarLista').addEventListener('click', () => desenharLista());
-  el('btnVoltarLista2').addEventListener('click', () => desenharLista());
-  el('btnCopiar').addEventListener('click', async () => { try { await navigator.clipboard.writeText(el('linkPresenca').textContent); msg('msgLista', 'Link copiado.', 'ok'); } catch (e) { msg('msgLista', 'Copie o link manualmente.', 'erro'); } });
+  function linhaInfo(rot, v) { return v ? '<div><strong>' + rot + ':</strong> ' + escapar(v) + '</div>' : ''; }
+  function escapar(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function desenharReuniao() {
+    const a = estado.ata;
+    el('quadroReuniao').innerHTML = linhaInfo('Ata nº', a.numero) + linhaInfo('Data', a.data) + linhaInfo('Horário', a.horario) + linhaInfo('Local', a.local) + linhaInfo('Pauta', a.pauta);
+  }
+  function desenharLista() {
+    const s = el('selNome'); s.innerHTML = '';
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Selecione seu nome…'; s.appendChild(o0);
+    estado.participantes.forEach((p) => {
+      const o = document.createElement('option'); o.value = p.id;
+      o.textContent = p.nome + (p.funcao ? ' — ' + p.funcao : '') + (p.jaConfirmou ? '  ✔ já confirmou' : '');
+      if (p.jaConfirmou) o.disabled = true;
+      s.appendChild(o);
+    });
+    if (!estado.participantes.length) alternarConvidado(true);
+  }
+  function alternarConvidado(forcar) {
+    estado.convidado = typeof forcar === 'boolean' ? forcar : !estado.convidado;
+    el('blocoLista').hidden = estado.convidado; el('blocoConvidado').hidden = !estado.convidado;
+    el('btnAlternar').textContent = estado.convidado ? '← Voltar para a lista de nomes' : 'Meu nome não está na lista';
+    if (!estado.participantes.length) el('btnAlternar').hidden = true;
+    msg('msgPessoa', '');
+  }
 
-  // ---------- editor ----------
-  function linhaDecisao(d = {}) {
-    const div = document.createElement('div'); div.className = 'linha-decisao';
-    div.innerHTML = '<input type="text" class="texto" maxlength="400" placeholder="Decisão / encaminhamento"><input type="text" class="resp" maxlength="80" placeholder="Responsável"><input type="text" class="prazo" maxlength="40" placeholder="Prazo"><button type="button" class="at-botao-perigo" title="Remover">✕</button>';
-    div.querySelector('.texto').value = d.texto || ''; div.querySelector('.resp').value = d.resp || ''; div.querySelector('.prazo').value = d.prazo || '';
-    div.querySelector('button').addEventListener('click', () => div.remove());
-    el('listaDecisoes').appendChild(div);
+  // ---------- 2) pedir o código ----------
+  function dadosPessoa() {
+    if (estado.convidado) {
+      const nome = el('convNome').value.trim(); const whatsapp = el('convWhats').value.trim();
+      if (nome.length < 3 || !/\s/.test(nome)) return { erro: 'Digite seu nome completo (nome e sobrenome).' };
+      const dig = whatsapp.replace(/\D/g, '');
+      if (dig.length < 10 || dig.length > 13) return { erro: 'Confira o WhatsApp: use o DDD, por exemplo (14) 99999-9999.' };
+      return { nome, whatsapp, funcao: el('convFuncao').value.trim() };
+    }
+    if (!el('selNome').value) return { erro: 'Selecione seu nome na lista.' };
+    return { id: el('selNome').value };
   }
-  el('btnMaisDecisao').addEventListener('click', () => linhaDecisao());
-  async function abrirEditor(numero) {
-    mostrar('cartaoCarregando'); msg('msgAta', '');
+  async function pedirCodigo(reenvio) {
+    const p = dadosPessoa();
+    const alvo = reenvio ? 'msgConfirma' : 'msgPessoa';
+    if (p.erro) return msg(alvo, p.erro, 'erro');
+    if (estado.ocupado) return; estado.ocupado = true;
+    const btn = reenvio ? el('btnReenviar') : el('btnCodigo'); const rot = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Enviando…'; msg(alvo, '');
     try {
-      let a = { numero: S.proximo, data: '', inicio: '', termino: '', local: '', tipo: 'Ordinária', coordenacao: '', secretario: S.nome, oracao: '', pauta: '', assuntos: '', decisoes: [], avisos: '', proxima: '' };
-      if (numero) { const d = await chamar({ acao: 'ata_carregar', numero }); if (!d.sucesso) { desenharLista(); return msg('msgLista', d.mensagem || 'Não foi possível abrir.', 'erro'); } a = d.ata; }
-      S.numeroAtual = numero;
-      el('tituloEditor').textContent = numero ? 'Ata nº ' + numero : 'Nova ata';
-      el('fNumero').value = a.numero; el('fNumero').readOnly = !!numero;
-      el('fData').value = dataParaIso(a.data); el('fInicio').value = horaParaInput(a.inicio); el('fTermino').value = horaParaInput(a.termino);
-      el('fTipo').value = a.tipo === 'Extraordinária' ? 'Extraordinária' : 'Ordinária'; el('fLocal').value = a.local || ''; el('fCoord').value = a.coordenacao || ''; el('fSecr').value = a.secretario || '';
-      el('fOracao').value = a.oracao || ''; el('fPauta').value = a.pauta || ''; el('fAssuntos').value = a.assuntos || ''; el('fAvisos').value = a.avisos || ''; el('fProxima').value = a.proxima || '';
-      el('listaDecisoes').innerHTML = ''; (a.decisoes && a.decisoes.length ? a.decisoes : [{}, {}]).forEach(linhaDecisao);
-      mostrar('cartaoEditor');
-    } catch (e) { console.error(e); desenharLista(); msg('msgLista', ERRO_REDE, 'erro'); }
+      const d = await chamar({ acao: 'codigo', ata: estado.ata.numero, site: el('site').value, ...p });
+      if (d.sucesso) {
+        el('textoCodigoEnviado').textContent = 'Enviamos um código de 6 dígitos para o WhatsApp ' + d.tel + '. Ele vale por ' + (d.minutos || 10) + ' minutos.';
+        if (!reenvio) { prepararConfirmacao(); mostrar('cartaoConfirma'); }
+        else msg('msgConfirma', 'Código enviado de novo. Confira o WhatsApp.', 'ok');
+        iniciarContagemReenvio();
+      } else if (d.jaRegistrado) {
+        mostrarSucesso('Presença já registrada', d.mensagem, null);
+      } else { msg(alvo, d.mensagem || 'Não foi possível enviar o código.', 'erro'); if (reenvio) iniciarContagemReenvio(); }
+    } catch (e) { console.error(e); msg(alvo, ERRO_REDE, 'erro'); if (reenvio) iniciarContagemReenvio(); }
+    finally { estado.ocupado = false; if (!reenvio) { btn.textContent = rot; btn.disabled = false; } }
   }
-  el('formAta').addEventListener('submit', async (e) => {
-    e.preventDefault(); if (S.ocupado) return;
-    const numero = el('fNumero').value.trim(); const data = isoParaData(el('fData').value);
-    if (!numero) return msg('msgAta', 'Informe o número da ata.', 'erro');
-    if (!/^[0-9A-Za-z][0-9A-Za-z\-\/]{0,11}$/.test(numero)) return msg('msgAta', 'O número da ata só pode ter letras, números, - ou /.', 'erro');
-    if (!data) return msg('msgAta', 'Informe a data da reunião.', 'erro');
-    const decisoes = [...el('listaDecisoes').children].map((d) => ({ texto: d.querySelector('.texto').value.trim(), resp: d.querySelector('.resp').value.trim(), prazo: d.querySelector('.prazo').value.trim() })).filter((d) => d.texto);
-    const ata = { numero, data, inicio: inputParaHora(el('fInicio').value), termino: inputParaHora(el('fTermino').value), local: el('fLocal').value.trim(), tipo: el('fTipo').value, coordenacao: el('fCoord').value.trim(), secretario: el('fSecr').value.trim(), oracao: el('fOracao').value.trim(), pauta: el('fPauta').value, assuntos: el('fAssuntos').value, decisoes, avisos: el('fAvisos').value, proxima: el('fProxima').value.trim() };
-    S.ocupado = true; const b = el('btnSalvar'); b.disabled = true; b.textContent = 'Salvando…'; msg('msgAta', '');
+  el('formPessoa').addEventListener('submit', (e) => { e.preventDefault(); pedirCodigo(false); });
+  el('btnAlternar').addEventListener('click', () => alternarConvidado());
+  el('btnRecarregar').addEventListener('click', carregar);
+
+  // ---------- 3) conferir código + situação + assinatura ----------
+  function iniciarContagemReenvio() {
+    clearInterval(estado.timerReenvio);
+    const b = el('btnReenviar'); let s = CONFIG.TEMPO_REENVIO_SEG; b.disabled = true; b.textContent = 'Reenviar código (' + s + 's)';
+    estado.timerReenvio = setInterval(() => {
+      s -= 1;
+      if (s <= 0) { clearInterval(estado.timerReenvio); b.disabled = false; b.textContent = 'Reenviar código'; } else b.textContent = 'Reenviar código (' + s + 's)';
+    }, 1000);
+  }
+  el('btnReenviar').addEventListener('click', () => pedirCodigo(true));
+  el('btnTrocar').addEventListener('click', () => { clearInterval(estado.timerReenvio); el('codigo').value = ''; msg('msgConfirma', ''); mostrar('cartaoPessoa'); });
+
+  function situacaoEscolhida() { const r = document.querySelector('input[name="situacao"]:checked'); return r ? r.value : ''; }
+  document.querySelectorAll('input[name="situacao"]').forEach((r) => r.addEventListener('change', () => {
+    const s = situacaoEscolhida();
+    el('blocoJustificativa').hidden = s !== 'Justificado';
+    el('blocoAssinatura').hidden = s !== 'Presente';
+    if (s === 'Presente') ajustarQuadro();
+  }));
+  function prepararConfirmacao() {
+    el('codigo').value = ''; msg('msgConfirma', '');
+    document.querySelectorAll('input[name="situacao"]').forEach((r) => { r.checked = false; });
+    el('blocoJustificativa').hidden = true; el('blocoAssinatura').hidden = true; el('justificativa').value = ''; limparQuadro();
+  }
+
+  // ---------- quadro de assinatura ----------
+  const quadro = el('quadro'); const ctx = quadro.getContext('2d');
+  let desenhando = false, ultimo = null;
+  function ajustarQuadro() {
+    const r = quadro.getBoundingClientRect(); if (!r.width) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    if (quadro.width === Math.round(r.width * dpr) && quadro.height === Math.round(r.height * dpr)) return;
+    const copia = estado.traços ? quadro.toDataURL() : null;
+    quadro.width = Math.round(r.width * dpr); quadro.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#14213d';
+    if (copia) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, r.width, r.height); img.src = copia; }
+  }
+  function posicao(e) { const r = quadro.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  quadro.addEventListener('pointerdown', (e) => { e.preventDefault(); ajustarQuadro(); quadro.setPointerCapture(e.pointerId); desenhando = true; ultimo = posicao(e); ctx.beginPath(); ctx.arc(ultimo.x, ultimo.y, 1.3, 0, 7); ctx.fillStyle = '#14213d'; ctx.fill(); estado.traços += 1; atualizarDica(); });
+  quadro.addEventListener('pointermove', (e) => {
+    if (!desenhando) return; e.preventDefault();
+    const eventos = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    (eventos.length ? eventos : [e]).forEach((ev) => { const p = posicao(ev); ctx.beginPath(); ctx.moveTo(ultimo.x, ultimo.y); ctx.lineTo(p.x, p.y); ctx.stroke(); ultimo = p; estado.traços += 1; });
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => quadro.addEventListener(n, () => { desenhando = false; atualizarDica(); }));
+  function limparQuadro() { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, quadro.width, quadro.height); ctx.restore(); estado.traços = 0; atualizarDica(); }
+  function atualizarDica() { el('dicaAssinatura').textContent = estado.traços > 25 ? 'Assinatura feita ✔' : 'Ainda sem assinatura.'; }
+  el('btnLimpar').addEventListener('click', limparQuadro);
+  window.addEventListener('resize', () => { if (!el('blocoAssinatura').hidden) ajustarQuadro(); });
+
+  // PNG pequeno (largura 480) com fundo branco: leve para enviar e guardar
+  function assinaturaPng() {
+    const L = 480, A = Math.round(L * quadro.height / quadro.width);
+    const c = document.createElement('canvas'); c.width = L; c.height = A;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, L, A); x.drawImage(quadro, 0, 0, L, A);
+    return c.toDataURL('image/png');
+  }
+
+  el('formConfirma').addEventListener('submit', async (e) => {
+    e.preventDefault(); if (estado.ocupado) return;
+    const codigo = el('codigo').value.replace(/\D/g, ''); const situacao = situacaoEscolhida(); const justificativa = el('justificativa').value.trim();
+    if (codigo.length !== 6) return msg('msgConfirma', 'Digite o código de 6 dígitos que chegou no WhatsApp.', 'erro');
+    if (!situacao) return msg('msgConfirma', 'Escolha se você está presente ou justificado.', 'erro');
+    if (situacao === 'Justificado' && justificativa.length < 3) return msg('msgConfirma', 'Escreva o motivo da sua ausência.', 'erro');
+    if (situacao === 'Presente' && estado.traços <= 25) return msg('msgConfirma', 'Faça sua assinatura no quadro antes de confirmar.', 'erro');
+    if (!el('consentimento').checked) return msg('msgConfirma', 'Marque a autorização para concluir.', 'erro');
+    estado.ocupado = true; const btn = el('btnConfirmar'); btn.disabled = true; btn.textContent = 'Enviando…'; msg('msgConfirma', '');
     try {
-      const d = await chamar({ acao: 'ata_salvar', ata });
-      if (d.sucesso) { S.atas = d.atas; S.proximo = d.proximoNumero; S.numeroAtual = numero; el('fNumero').readOnly = true; el('tituloEditor').textContent = 'Ata nº ' + numero; msg('msgAta', '✅ ' + d.mensagem, 'ok'); }
-      else msg('msgAta', d.mensagem || 'Não foi possível salvar.', 'erro');
-    } catch (err) { console.error(err); msg('msgAta', ERRO_REDE, 'erro'); }
-    finally { S.ocupado = false; b.disabled = false; b.textContent = '💾 Salvar ata'; }
+      const corpo = { acao: 'confirmar', ata: estado.ata.numero, codigo, situacao, justificativa: situacao === 'Justificado' ? justificativa : '', site: el('site').value, ...dadosPessoa() };
+      if (situacao === 'Presente') corpo.assinatura = assinaturaPng();
+      const d = await chamar(corpo);
+      if (d.sucesso) mostrarSucesso(situacao === 'Presente' ? '✅ Presença confirmada!' : '📝 Justificativa registrada', d.mensagem, situacao);
+      else if (d.novoCodigo) { msg('msgConfirma', d.mensagem + ' Toque em "Reenviar código".', 'erro'); el('btnReenviar').disabled = false; el('btnReenviar').textContent = 'Reenviar código'; clearInterval(estado.timerReenvio); }
+      else msg('msgConfirma', d.mensagem || 'Não foi possível confirmar.', 'erro');
+    } catch (err) { console.error(err); msg('msgConfirma', ERRO_REDE, 'erro'); }
+    finally { estado.ocupado = false; btn.disabled = false; btn.textContent = 'Confirmar'; }
   });
 
-  // ---------- a ata pronta (leitura e impressão) ----------
-  function montarFolha(a, presencas) {
-    const bloco = (t) => t ? '<p class="texto">' + escapar(t) + '</p>' : '<p class="texto vazio">—</p>';
-    const pauta = String(a.pauta || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => (i + 1) + '. ' + l.replace(/^\d+[\.\)]\s*/, '')).join('\n');
-    const decis = (a.decisoes || []).map((d, i) => '<tr><td style="text-align:center;width:6%">' + (i + 1) + '</td><td>' + escapar(d.texto) + '</td><td style="width:20%">' + escapar(d.resp) + '</td><td style="width:14%">' + escapar(d.prazo) + '</td></tr>').join('');
-    const pres = (presencas || []).map((p, i) => '<tr><td style="text-align:center;width:6%">' + (i + 1) + '</td><td>' + escapar(p.nome) + '</td><td style="width:20%">' + escapar(p.funcao) + '</td><td style="width:34%">'
-      + (p.situacao === 'Presente' ? (p.assinatura ? '<img class="assin" src="' + escapar(p.assinatura) + '" alt="Assinatura de ' + escapar(p.nome) + '">' : '<span class="vazio">presente (assinatura indisponível)</span>') : '<strong>Justificado</strong><br>' + escapar(p.justificativa)) + '</td></tr>').join('');
-    const horario = [a.inicio, a.termino].filter(Boolean).join(' às ');
-    el('folha').innerHTML =
-      '<h1>PARÓQUIA SAGRADO CORAÇÃO DE JESUS</h1><p class="sub">Marília – SP</p><p class="sub" style="font-weight:700;color:#000;font-size:13px;">PASTORAL DA COMUNICAÇÃO – PASCOM</p>'
-      + '<div class="tit">ATA DE REUNIÃO Nº ' + escapar(a.numero) + ' / ' + escapar((a.data.match(/\d{4}$/) || [''])[0]) + '</div>'
-      + '<table><tr><td class="rot">Data</td><td>' + escapar(a.data) + '</td><td class="rot">Horário</td><td>' + escapar(horario) + '</td></tr>'
-      + '<tr><td class="rot">Local</td><td>' + escapar(a.local) + '</td><td class="rot">Tipo</td><td>' + escapar(a.tipo) + '</td></tr>'
-      + '<tr><td class="rot">Coordenação</td><td>' + escapar(a.coordenacao) + '</td><td class="rot">Secretário(a)</td><td>' + escapar(a.secretario) + '</td></tr></table>'
-      + '<div class="faixa">1. Abertura</div><p class="texto">Abertura com oração' + (a.oracao ? ' conduzida por ' + escapar(a.oracao) : '') + '.</p>'
-      + '<div class="faixa">2. Pauta</div>' + bloco(pauta)
-      + '<div class="faixa">3. Assuntos tratados</div>' + bloco(a.assuntos)
-      + '<div class="faixa">4. Decisões e encaminhamentos</div>' + (decis ? '<table><tr><th>Nº</th><th>Decisão / encaminhamento</th><th>Responsável</th><th>Prazo</th></tr>' + decis + '</table>' : '<p class="texto vazio">—</p>')
-      + '<div class="faixa">5. Avisos gerais</div>' + bloco(a.avisos)
-      + (a.proxima ? '<p class="texto"><strong>Próxima reunião:</strong> ' + escapar(a.proxima) + '</p>' : '')
-      + '<p class="texto" style="text-align:justify;margin-top:12px;">Nada mais havendo a tratar, a reunião foi encerrada' + (a.termino ? ' às ' + escapar(a.termino) : '') + ', com oração final. Eu, ' + (a.secretario ? escapar(a.secretario) : '______________________') + ', secretário(a), lavrei a presente ata que, depois de lida e aprovada, vai assinada por mim, pela coordenação e pelos participantes presentes, listados a seguir.</p>'
-      + '<div class="quebra"></div><div class="faixa">6. Participantes – confirmação de presença</div>'
-      + (pres ? '<table><tr><th>Nº</th><th>Nome</th><th>Função / equipe</th><th>Assinatura / justificativa</th></tr>' + pres + '</table>' : '<p class="texto vazio">Nenhuma presença registrada pelo celular.</p>')
-      + '<div class="assinaturas"><div>Coordenação da Pascom</div><div>Secretário(a) da ata</div></div>';
+  function mostrarSucesso(titulo, texto, situacao) {
+    clearInterval(estado.timerReenvio);
+    el('tituloSucesso').textContent = titulo; el('textoSucesso').textContent = texto || '';
+    el('resumoSucesso').innerHTML = (estado.ata ? linhaInfo('Reunião', 'Ata nº ' + estado.ata.numero + (estado.ata.data ? ' — ' + estado.ata.data : '')) : '') + (situacao ? linhaInfo('Situação', situacao) : '');
+    el('resumoSucesso').hidden = !el('resumoSucesso').innerHTML;
+    mostrar('cartaoSucesso');
   }
-  el('btnImprimir').addEventListener('click', () => window.print());
 
-  window.addEventListener('DOMContentLoaded', iniciar);
+  window.addEventListener('DOMContentLoaded', carregar);
 </script>
 </body>
 </html>
