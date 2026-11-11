@@ -32,6 +32,10 @@
   #resultadoAg.erro { color:#b3261e; }
   .ag-sucesso { text-align:center; padding:8px 0; }
   .ag-sucesso h2 { font-size:1.3rem; }
+  .ag-encontro { background:#fff7e0; border:1px solid #f1d98a; border-radius:8px; padding:12px 14px; margin:12px 0; text-align:left; }
+  .ag-encontro p { margin:6px 0 0; }
+  .ag-encontro-titulo { font-weight:700; }
+  .ag-encontro-obs { font-size:0.9rem; color:#555; }
   .oculto-bot { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
   .ag-fechado { text-align:center; color:#555; }
 </style>
@@ -123,7 +127,13 @@
     <section class="ag-card ag-sucesso" id="cartaoSucesso" hidden>
       <h2>✅ Cadastro recebido!</h2>
       <p id="sucessoNome"></p>
-      <p style="color:#555; font-size:0.92rem;">A equipe da Pascom vai entrar em contato pelo WhatsApp informado. Deus abençoe!</p>
+      <div class="ag-encontro" id="sucessoEncontro" hidden>
+        <strong>📌 Reserve na sua agenda</strong>
+        <p class="ag-encontro-titulo">Primeiro encontro — participação obrigatória</p>
+        <p id="sucessoEncontroQuando"></p>
+        <p class="ag-encontro-obs">Caso não possa comparecer, será preciso justificar depois à coordenação. Em breve criaremos um grupo de WhatsApp com todos os inscritos para enviar as orientações perto da data.</p>
+      </div>
+      <p style="color:#555; font-size:0.92rem;">A equipe da Pascom vai entrar em contato pelo WhatsApp informado. Deus abençoe a sua missão! 🙏</p>
     </section>
   </main>
 
@@ -136,7 +146,11 @@
 
     // Para fechar o cadastro, troque para false (a página passa a mostrar a mensagem abaixo).
     CADASTRO_ABERTO: true,
-    MENSAGEM_FECHADA: 'O cadastro de agentes da Pascom não está aberto no momento. Procure a equipe da Pascom ou a secretaria da paróquia.'
+    MENSAGEM_FECHADA: 'O cadastro de agentes da Pascom não está aberto no momento. Procure a equipe da Pascom ou a secretaria da paróquia.',
+
+    // Primeiro encontro (participação obrigatória): aparece na tela de "Cadastro recebido" até o dia do encontro.
+    // Para o próximo encontro, mude só estas 3 linhas (e as mesmas 3 no nó "💬 Montar WhatsApp da Pascom" do n8n).
+    ENCONTRO: { dataIso: '2027-01-16', hora: '16h', local: 'Igreja Matriz' }
   };
   // ============================================================
 
@@ -164,7 +178,23 @@
     el('cartaoFormulario').hidden = true;
     el('cartaoSucesso').hidden = false;
     el('sucessoNome').textContent = 'Obrigado, ' + apelido + '! Seu cadastro como agente da Pascom foi enviado.';
+    mostrarConviteEncontro();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Convite para o primeiro encontro: data por extenso com o dia da semana; some depois do dia do encontro.
+  function mostrarConviteEncontro() {
+    const enc = CONFIG.ENCONTRO || {};
+    const m = String(enc.dataIso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return;
+    const agora = new Date();
+    const hojeIso = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
+    if (hojeIso > enc.dataIso) return;
+    const DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+    const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const dia = DIAS[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).getUTCDay()];
+    el('sucessoEncontroQuando').textContent = '🗓️ ' + dia.charAt(0).toUpperCase() + dia.slice(1) + ', ' + Number(m[3]) + ' de ' + MESES[+m[2] - 1] + ' de ' + m[1] + ' · 🕓 ' + enc.hora + ' · ⛪ ' + enc.local;
+    el('sucessoEncontro').hidden = false;
   }
 
   form.addEventListener('submit', async (e) => {
