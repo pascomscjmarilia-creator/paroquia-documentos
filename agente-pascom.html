@@ -38,6 +38,13 @@
   .ag-encontro-obs { font-size:0.9rem; color:#555; }
   .oculto-bot { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
   .ag-fechado { text-align:center; color:#555; }
+  #formAgente input[type="month"] { width:100%; padding:11px; border:1px solid var(--cinza-borda); border-radius:6px; font-size:1rem; font-family:inherit; background:#fff; box-sizing:border-box; }
+  .ag-foto { display:flex; gap:14px; align-items:center; }
+  .ag-foto-previa { width:96px; height:96px; flex:0 0 96px; border-radius:50%; border:2px dashed #b9a98f; background:#f8f4ef center/cover no-repeat; display:flex; align-items:center; justify-content:center; font-size:2rem; color:#8a7a62; overflow:hidden; }
+  .ag-foto-previa.com-foto { border-style:solid; border-color:var(--vinho); font-size:0; }
+  .ag-foto-acoes { flex:1; }
+  #formAgente label.ag-botao-foto { display:inline-block; background:#fff; color:var(--vinho); border:1px solid var(--vinho); padding:10px 14px; border-radius:8px; font-weight:600; font-size:0.95rem; cursor:pointer; margin:0 0 6px; }
+  .ag-link { background:none; border:none; color:#b3261e; text-decoration:underline; cursor:pointer; font-size:0.9rem; padding:6px 0 0; display:block; }
 </style>
 </head>
 <body>
@@ -102,6 +109,38 @@
         <div id="blocoQual" hidden>
           <label for="qual">Qual?</label>
           <input type="text" id="qual" maxlength="200" autocomplete="off" placeholder="Ex.: Liturgia, Jovens, Catequese…">
+        </div>
+
+        <div>
+          <span class="rotulo">Você já é agente da Pascom?</span>
+          <div class="ag-opcoes">
+            <label><input type="radio" name="situacao" value="Novo agente"> Sou novo(a) agente</label>
+            <label><input type="radio" name="situacao" value="Já é agente"> Já sou agente</label>
+          </div>
+        </div>
+
+        <div id="blocoDesde" hidden>
+          <label for="desde">Desde quando você é agente da Pascom?</label>
+          <input type="month" id="desde" min="1980-01" placeholder="aaaa-mm">
+          <p class="ag-dica">Informe o mês e o ano em que você entrou na Pascom (pode ser aproximado).</p>
+        </div>
+
+        <div id="blocoFoto">
+          <span class="rotulo">Sua foto <span style="font-weight:400;color:#666;">(opcional)</span></span>
+          <div class="ag-foto">
+            <div class="ag-foto-previa" id="fotoPrevia" aria-hidden="true">📷</div>
+            <div class="ag-foto-acoes">
+              <label class="ag-botao-foto" for="foto">Tirar foto ou escolher da galeria</label>
+              <input type="file" id="foto" accept="image/*" class="oculto-bot" tabindex="-1">
+              <button type="button" id="btnRemoverFoto" class="ag-link" hidden>Remover foto</button>
+              <p class="ag-dica" id="dicaFoto">Foto de rosto, com boa luz. Os outros agentes vão ver para te reconhecer.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ag-consent" id="blocoConsentFoto" hidden>
+          <input type="checkbox" id="consentimentoFoto">
+          <label for="consentimentoFoto">Autorizo a paróquia a guardar a minha foto e mostrá-la aos agentes da Pascom no painel de cadastros, apenas para me reconhecerem na pastoral.</label>
         </div>
 
         <div class="oculto-bot" aria-hidden="true">
@@ -169,6 +208,64 @@
     return d + '/' + m + '/' + a;
   }
 
+  // ---------- Foto: reduz no próprio aparelho (miniatura quadrada para a planilha + foto maior para o Drive) ----------
+  const FOTO = { miniatura: '', grande: '' };
+  async function carregarImagem(arquivo) {
+    if (window.createImageBitmap) {
+      try { return await createImageBitmap(arquivo, { imageOrientation: 'from-image' }); } catch (e) { /* tenta pelo <img> */ }
+    }
+    return new Promise((ok, falha) => {
+      const url = URL.createObjectURL(arquivo); const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); ok(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); falha(new Error('imagem ilegível')); };
+      img.src = url;
+    });
+  }
+  // Gera um JPEG com no máximo "maxChars" caracteres (baixa a qualidade até caber).
+  function gerarJpeg(img, largura, altura, recorte, maxChars) {
+    const c = document.createElement('canvas'); c.width = largura; c.height = altura;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, largura, altura);
+    x.drawImage(img, recorte.sx, recorte.sy, recorte.sw, recorte.sh, 0, 0, largura, altura);
+    let q = 0.82, url = c.toDataURL('image/jpeg', q);
+    while (url.length > maxChars && q > 0.35) { q -= 0.08; url = c.toDataURL('image/jpeg', q); }
+    return url;
+  }
+  async function processarFoto(arquivo) {
+    const img = await carregarImagem(arquivo);
+    const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+    if (!w || !h) throw new Error('imagem vazia');
+    const lado = Math.min(w, h);
+    const miniatura = gerarJpeg(img, 300, 300, { sx: Math.round((w - lado) / 2), sy: Math.round((h - lado) / 2), sw: lado, sh: lado }, 44000);
+    const f = Math.min(1, 800 / Math.max(w, h));
+    const grande = gerarJpeg(img, Math.round(w * f), Math.round(h * f), { sx: 0, sy: 0, sw: w, sh: h }, 560000);
+    if (img.close) img.close();
+    return { miniatura, grande };
+  }
+  function mostrarPrevia() {
+    const prev = el('fotoPrevia'); const tem = !!FOTO.miniatura;
+    prev.classList.toggle('com-foto', tem);
+    prev.style.backgroundImage = tem ? 'url(' + FOTO.miniatura + ')' : '';
+    el('btnRemoverFoto').hidden = !tem; el('blocoConsentFoto').hidden = !tem;
+    if (!tem) el('consentimentoFoto').checked = false;
+  }
+  function limparFoto() { FOTO.miniatura = ''; FOTO.grande = ''; el('foto').value = ''; mostrarPrevia(); }
+  async function aoEscolherFoto() {
+    const arquivo = el('foto').files && el('foto').files[0];
+    if (!arquivo) return;
+    el('dicaFoto').className = 'ag-dica'; el('dicaFoto').textContent = 'Preparando a foto…';
+    try {
+      if (!/^image\//.test(arquivo.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(arquivo.name || '')) throw new Error('tipo');
+      if (arquivo.size > 30 * 1024 * 1024) throw new Error('grande');
+      const r = await processarFoto(arquivo);
+      FOTO.miniatura = r.miniatura; FOTO.grande = r.grande; mostrarPrevia();
+      el('dicaFoto').textContent = 'Foto pronta ✔ Se quiser trocar, escolha outra.';
+    } catch (e) {
+      console.error(e); limparFoto();
+      el('dicaFoto').className = 'ag-dica'; el('dicaFoto').style.color = '#b3261e';
+      el('dicaFoto').textContent = 'Não consegui ler essa foto. Tente outra (de preferência JPG ou PNG) ou envie o cadastro sem foto.';
+    }
+  }
+
   function mostrarErro(msg) {
     resultado.className = 'erro';
     resultado.textContent = '⚠️ ' + msg;
@@ -210,9 +307,22 @@
     const email = el('email').value.trim();
     const participa = marcado('participa');
     const qual = el('qual').value.trim();
+    const situacao = marcado('situacao');
+    const desdeIso = el('desde').value; // aaaa-mm
 
     if (!nome || !apelido || !nascimento || !crisma || !whatsapp || !email || !participa) {
       return mostrarErro('Preencha todos os campos obrigatórios.');
+    }
+    if (!situacao) {
+      return mostrarErro('Informe se você é novo(a) agente ou já é agente da Pascom.');
+    }
+    if (situacao === 'Já é agente') {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(desdeIso)) return mostrarErro('Informe desde quando você é agente da Pascom (mês e ano).');
+      const agoraIso = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
+      if (desdeIso > agoraIso || desdeIso < '1980-01') return mostrarErro('Confira o mês e o ano em que você entrou na Pascom.');
+    }
+    if (FOTO.miniatura && !el('consentimentoFoto').checked) {
+      return mostrarErro('Marque a autorização para usar a sua foto (ou remova a foto).');
     }
     if (nome.length < 3 || !/\s/.test(nome)) {
       return mostrarErro('Confira o nome completo (nome e sobrenome).');
@@ -248,8 +358,11 @@
         participa,
         qual: participa === 'Sim' ? qual : '',
         consentimento: true,
+        situacao,
+        desde: situacao === 'Já é agente' ? desdeIso.slice(5, 7) + '/' + desdeIso.slice(0, 4) : '',
         site: el('site').value
       };
+      if (FOTO.miniatura) { payload.miniatura = FOTO.miniatura; payload.foto = FOTO.grande; payload.consentimentoFoto = true; }
 
       const resp = await fetch(CONFIG.WEBHOOK_URL, {
         method: 'POST',
@@ -283,6 +396,13 @@
       el('blocoQual').hidden = marcado('participa') !== 'Sim';
       if (marcado('participa') !== 'Sim') el('qual').value = '';
     }));
+    form.querySelectorAll('input[name="situacao"]').forEach(r => r.addEventListener('change', () => {
+      el('blocoDesde').hidden = marcado('situacao') !== 'Já é agente';
+      if (marcado('situacao') !== 'Já é agente') el('desde').value = '';
+    }));
+    const hoje = new Date(); el('desde').max = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+    el('foto').addEventListener('change', aoEscolherFoto);
+    el('btnRemoverFoto').addEventListener('click', () => { limparFoto(); el('dicaFoto').style.color = ''; el('dicaFoto').textContent = 'Foto de rosto, com boa luz. Os outros agentes vão ver para te reconhecer.'; });
   });
 </script>
 </body>
