@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="style.css?v=20261111b">
+<link rel="stylesheet" href="style.css?v=20261116a">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -339,6 +339,12 @@
             <option value="Em contato">Em contato</option>
             <option value="Ativo">Ativo</option>
           </select>
+          <select id="filtroSituacaoAgentes" title="Filtrar por novo agente ou quem já é agente">
+            <option value="">Situação: todos</option>
+            <option value="novo agente">🆕 Novo agente</option>
+            <option value="ja e agente">⭐ Já é agente</option>
+            <option value="sem">Sem informação</option>
+          </select>
           <button id="btnAtualizarAgentes" title="Recarregar dados da planilha">🔄 Atualizar</button>
           <button id="btnImprimirAgentes" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
           <button id="btnFichaBrancoAgentes" title="Abrir a ficha de cadastro em branco (PDF) para imprimir">🖨️ Ficha em branco</button>
@@ -358,7 +364,7 @@
 
           <p><strong>O que cada coluna mostra:</strong></p>
           <ul style="margin:0 0 6px; padding-left:18px;">
-            <li><strong>Agente:</strong> o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo. Em <em>Ver dados</em> aparecem nascimento, e-mail e o botão <em>📄 Abrir ficha completa</em>.</li>
+            <li><strong>Agente:</strong> a <em>foto</em> (toque nela para ampliar), o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo. A etiqueta mostra se é <em>🆕 Novo agente</em> ou <em>⭐ Já é agente · desde mm/aaaa</em>. Em <em>Ver dados</em> aparecem nascimento, e-mail e o botão <em>📄 Abrir ficha completa</em>. Use o filtro <em>Situação</em> para ver só os novos ou só quem já é agente.</li>
             <li><strong>Crisma:</strong> se a pessoa já recebeu o Sacramento da Crisma.</li>
             <li><strong>Pastoral / grupo:</strong> se participa de alguma pastoral, movimento ou grupo da paróquia e qual.</li>
             <li><strong>Status:</strong> <em>Novo</em> (ninguém falou com a pessoa ainda) · <em>Em contato</em> (alguém da equipe já está conversando) · <em>Ativo</em> (já faz parte da equipe).</li>
@@ -369,7 +375,7 @@
             <li><strong>💬 WhatsApp:</strong> abre a conversa com a pessoa.</li>
             <li><strong>📄 Ficha:</strong> abre a ficha de cadastro <em>já preenchida</em> com o que a pessoa informou, para você conferir. Para imprimir, use o botão <em>🖨️ Imprimir</em> que fica no alto da própria ficha (ele não sai no papel). O mesmo vale para o botão <em>📄 Abrir ficha completa</em> dentro de <em>Ver dados</em>. A pessoa só precisa assinar.</li>
             <li><strong>▶ Em contato:</strong> avisa a equipe que você já está cuidando deste cadastro.</li>
-            <li><strong>✅ Ativo:</strong> use quando a pessoa já estiver integrada à equipe. <strong>↩ Reabrir</strong> desfaz.</li>
+            <li><strong>✅ Ativo:</strong> use quando a pessoa já estiver integrada à equipe. Quem estava como <em>Novo agente</em> passa a <em>Já é agente</em>, com <em>desde</em> o mês atual. <strong>↩ Reabrir</strong> volta o status para <em>Novo</em> (a situação e a data ficam).</li>
           </ul>
 
           <p><strong>Prefere o papel?</strong> O botão <em>🖨️ Ficha em branco</em> abre o PDF da ficha de cadastro para imprimir. Quem preencher no papel entrega à equipe da Pascom ou na secretaria.</p>
@@ -718,6 +724,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261111d"></script>
+  <script src="app.js?v=20261116a"></script>
 </body>
 </html>
