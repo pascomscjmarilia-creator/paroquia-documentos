@@ -48,6 +48,7 @@ const CONFIG = {
   // Dias da semana em que dá para reservar sala (aba "Dias de Reserva": A Dia · B Reserva liberada Sim/Não)
   DIAS_RESERVA_RANGE: "'Dias de Reserva'!A2:B",
   WEBHOOK_LOJINHA_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/lojinha-foto',
+  WEBHOOK_AGENTES_FOTO: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/agentes-foto',
   URL_LOJINHA: 'https://pascomscjmarilia-creator.github.io/paroquia-documentos/lojinha.html',
 
   // E-mails autorizados a usar o app (checagem de UX — a segurança
@@ -1393,7 +1394,7 @@ function renderizarAssuntos() {
 // K Situação na Pascom (Novo agente · Já é agente) · L Agente desde (mm/aaaa) · M Foto (miniatura JPEG em data URL) · N Foto (link do Drive)
 
 // Só aceita como foto um JPEG em data URL (é o que o formulário grava); qualquer outra coisa na célula é ignorada.
-function fotoSegura(v) {
+function fotoMiniaturaSegura(v) {
   const s = String(v || '').trim();
   return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s) ? s : '';
 }
@@ -1412,7 +1413,7 @@ function htmlAvatarAgente(l) {
   const nome = escapeAttr(l.apelido || l.nome);
   return l.foto
     ? `<img class="ag-foto-mini" src="${escapeAttr(l.foto)}" alt="Foto de ${nome}" title="Toque para ampliar" data-acao="foto" data-linha="${l.linha}" loading="lazy">`
-    : `<span class="ag-foto-vazia" title="Sem foto" aria-hidden="true">👤</span>`;
+    : `<button type="button" class="ag-foto-vazia no-print" title="Sem foto — toque para adicionar" aria-label="Adicionar foto de ${nome}" data-acao="foto-nova" data-linha="${l.linha}">📷</button>`;
 }
 // Foto ampliada (sem biblioteca): fundo escuro; toque em qualquer lugar ou Esc para fechar.
 function abrirFotoAgente(linhaNumero) {
@@ -1421,12 +1422,126 @@ function abrirFotoAgente(linhaNumero) {
   const fundo = document.createElement('div');
   fundo.id = 'lightboxFotoAgente';
   fundo.setAttribute('role', 'dialog'); fundo.setAttribute('aria-label', 'Foto de ' + (l.apelido || l.nome));
-  fundo.innerHTML = `<figure><img src="${escapeAttr(l.foto)}" alt="Foto de ${escapeAttr(l.apelido || l.nome)}"><figcaption><strong>${escapeHtml(l.apelido || l.nome)}</strong>${l.apelido && l.nome ? '<br>' + escapeHtml(l.nome) : ''}${situacaoAgenteInfo(l) ? '<br>' + escapeHtml(situacaoAgenteInfo(l).texto) : ''}${l.fotoLink ? `<br><a href="${escapeAttr(l.fotoLink)}" target="_blank" rel="noopener">Abrir foto maior (Drive)</a>` : ''}</figcaption></figure>`;
+  fundo.innerHTML = `<figure><img src="${escapeAttr(l.foto)}" alt="Foto de ${escapeAttr(l.apelido || l.nome)}"><figcaption><strong>${escapeHtml(l.apelido || l.nome)}</strong>${l.apelido && l.nome ? '<br>' + escapeHtml(l.nome) : ''}${situacaoAgenteInfo(l) ? '<br>' + escapeHtml(situacaoAgenteInfo(l).texto) : ''}${l.fotoLink ? `<br><a href="${escapeAttr(l.fotoLink)}" target="_blank" rel="noopener">Abrir foto maior (Drive)</a>` : ''}<div class="lb-acoes"><button type="button" data-lb="trocar">📷 Trocar foto</button><button type="button" data-lb="remover">🗑️ Remover foto</button></div></figcaption></figure>`;
   const fechar = () => { fundo.remove(); document.removeEventListener('keydown', aoTecla); };
   const aoTecla = (e) => { if (e.key === 'Escape') fechar(); };
-  fundo.addEventListener('click', (e) => { if (e.target.tagName !== 'A') fechar(); });
+  fundo.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-lb]');
+    if (b) { fechar(); if (b.dataset.lb === 'trocar') abrirModalFotoAgente(linhaNumero); else removerFotoAgente(linhaNumero); return; }
+    if (e.target.tagName !== 'A') fechar();
+  });
   document.addEventListener('keydown', aoTecla);
   document.body.appendChild(fundo);
+}
+
+// ---------- Foto do agente enviada pelo painel (mesmo caminho da Lojinha) ----------
+// O arquivo é reduzido aqui no navegador; a miniatura (300x300) vai direto para a célula M da planilha (com o login Google do painel) e a foto maior (800 px)
+// vai para o Drive pelo n8n (que confere o login Google antes de guardar) — o link fica na célula N. Se a cópia no Drive falhar, a miniatura continua valendo.
+async function lerImagemAgente(arquivo) {
+  if (window.createImageBitmap) {
+    try { return await createImageBitmap(arquivo, { imageOrientation: 'from-image' }); } catch (e) { /* tenta pelo <img> */ }
+  }
+  return new Promise((ok, falha) => {
+    const url = URL.createObjectURL(arquivo); const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); ok(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error('Não consegui abrir essa imagem. Tente outra foto (JPG ou PNG).')); };
+    img.src = url;
+  });
+}
+function jpegAgente(img, largura, altura, rec, maxChars) {
+  const c = document.createElement('canvas'); c.width = largura; c.height = altura;
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, largura, altura);
+  x.drawImage(img, rec.sx, rec.sy, rec.sw, rec.sh, 0, 0, largura, altura);
+  let q = 0.82, url = c.toDataURL('image/jpeg', q);
+  while (url.length > maxChars && q > 0.35) { q -= 0.08; url = c.toDataURL('image/jpeg', q); }
+  return url;
+}
+async function prepararFotoAgente(arquivo) {
+  if (!/^image\//.test(arquivo.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(arquivo.name || '')) throw new Error('Esse arquivo não parece uma foto. Escolha uma imagem (JPG ou PNG).');
+  if (arquivo.size > 30 * 1024 * 1024) throw new Error('A foto é grande demais. Escolha uma menor.');
+  const img = await lerImagemAgente(arquivo);
+  const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+  if (!w || !h) throw new Error('Não consegui abrir essa imagem. Tente outra foto (JPG ou PNG).');
+  const lado = Math.min(w, h);
+  const miniatura = jpegAgente(img, 300, 300, { sx: Math.round((w - lado) / 2), sy: Math.round((h - lado) / 2), sw: lado, sh: lado }, 44000);
+  const f = Math.min(1, 800 / Math.max(w, h));
+  const grande = jpegAgente(img, Math.round(w * f), Math.round(h * f), { sx: 0, sy: 0, sw: w, sh: h }, 560000);
+  if (img.close) img.close();
+  return { miniatura, grandeBase64: grande.split(',')[1] };
+}
+async function enviarFotoAgenteDrive(grandeBase64, nome) {
+  let resp;
+  try {
+    resp = await fetch(CONFIG.WEBHOOK_AGENTES_FOTO, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: accessToken, nome, mime: 'image/jpeg', base64: grandeBase64 }) });
+  } catch (e) { throw new Error('sem conexão com o n8n'); }
+  let dados = {}; try { dados = await resp.json(); } catch (e) { /* sem JSON */ }
+  if (!dados.sucesso || !/^https:\/\/drive\.google\.com\//.test(String(dados.url || ''))) throw new Error(dados.mensagem || 'o n8n não guardou a foto');
+  return dados.url;
+}
+async function gravarFotoAgenteNaPlanilha(linhaNumero, miniatura, link) {
+  const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchUpdate`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ valueInputOption: 'RAW', data: [{ range: `${CONFIG.AGENTES_ABA}!M${linhaNumero}:N${linhaNumero}`, values: [[miniatura, link]] }] }),
+  });
+  if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
+}
+function abrirModalFotoAgente(linhaNumero) {
+  const l = linhasAgentes.find(x => x.linha === linhaNumero);
+  if (!l) return;
+  const antigo = document.getElementById('modalFotoAgente'); if (antigo) antigo.remove();
+  const nome = l.apelido || l.nome;
+  const fundo = document.createElement('div');
+  fundo.id = 'modalFotoAgente'; fundo.className = 'modal-foto-agente no-print';
+  fundo.setAttribute('role', 'dialog'); fundo.setAttribute('aria-label', 'Foto de ' + nome);
+  fundo.innerHTML = `<div class="mfa-caixa">
+    <h3>📷 Foto de ${escapeHtml(nome)}</h3>
+    <p class="mfa-dica">Escolha uma foto de rosto, com boa luz. Ela aparece para os outros agentes reconhecerem a pessoa.</p>
+    <div class="mfa-previa" id="mfaPrevia">${l.foto ? `<img src="${escapeAttr(l.foto)}" alt="">` : '<span>👤</span>'}</div>
+    <p><input type="file" id="mfaArquivo" accept="image/*"></p>
+    <p class="mfa-msg" id="mfaMsg" role="status"></p>
+    <div class="mfa-botoes"><button type="button" class="btn-acao btn-resolver" id="mfaSalvar" disabled>Salvar foto</button><button type="button" class="btn-acao btn-editar" id="mfaCancelar">Cancelar</button></div>
+  </div>`;
+  document.body.appendChild(fundo);
+  let pronto = null;
+  const msg = (t, erro) => { const m = document.getElementById('mfaMsg'); m.textContent = t || ''; m.className = 'mfa-msg' + (erro ? ' erro' : ''); };
+  const fechar = () => { fundo.remove(); };
+  fundo.addEventListener('click', (e) => { if (e.target === fundo) fechar(); });
+  document.getElementById('mfaCancelar').addEventListener('click', fechar);
+  document.getElementById('mfaArquivo').addEventListener('change', async (e) => {
+    const arq = e.target.files && e.target.files[0]; pronto = null; document.getElementById('mfaSalvar').disabled = true;
+    if (!arq) return;
+    msg('Preparando a foto…');
+    try {
+      pronto = await prepararFotoAgente(arq);
+      document.getElementById('mfaPrevia').innerHTML = `<img src="${escapeAttr(pronto.miniatura)}" alt="Prévia">`;
+      msg('Foto pronta. Toque em "Salvar foto".'); document.getElementById('mfaSalvar').disabled = false;
+    } catch (err) { console.error(err); msg(err.message || 'Não consegui ler essa foto.', true); }
+  });
+  document.getElementById('mfaSalvar').addEventListener('click', async () => {
+    if (!pronto) return;
+    const botao = document.getElementById('mfaSalvar'); botao.disabled = true;
+    let link = '', avisoDrive = '';
+    try {
+      msg('Enviando a foto para o Drive…');
+      try { link = await enviarFotoAgenteDrive(pronto.grandeBase64, nome); }
+      catch (e) { console.error('Drive:', e); avisoDrive = ' (A cópia maior no Drive não foi enviada, mas a foto já aparece no painel.)'; }
+      msg('Salvando na planilha…');
+      await gravarFotoAgenteNaPlanilha(linhaNumero, pronto.miniatura, link);
+      msg('✅ Foto salva.' + avisoDrive);
+      await carregarAgentes();
+      setTimeout(fechar, avisoDrive ? 2500 : 900);
+    } catch (err) {
+      console.error(err); botao.disabled = false;
+      msg(err.status ? mensagemErroGravacao(err, CONFIG.AGENTES_ABA, 'planilha Pascom_Controle') : (err.message || 'Não foi possível salvar a foto.'), true);
+    }
+  });
+}
+async function removerFotoAgente(linhaNumero) {
+  const l = linhasAgentes.find(x => x.linha === linhaNumero);
+  if (!l || !confirm('Remover a foto de ' + (l.apelido || l.nome) + ' do painel? (A cópia que está no Drive não é apagada.)')) return;
+  try { await gravarFotoAgenteNaPlanilha(linhaNumero, '', ''); await carregarAgentes(); }
+  catch (e) { alert(mensagemErroGravacao(e, CONFIG.AGENTES_ABA, 'planilha Pascom_Controle')); }
 }
 
 async function carregarAgentes() {
@@ -1452,7 +1567,7 @@ async function carregarAgentes() {
         status: (row[9] || '').trim() || 'Novo',
         situacao: (row[10] || '').trim(),
         desde: (row[11] || '').trim(),
-        foto: fotoSegura(row[12]),
+        foto: fotoMiniaturaSegura(row[12]),
         fotoLink: /^https:\/\/drive\.google\.com\//.test(String(row[13] || '').trim()) ? String(row[13]).trim() : '',
       }))
       .filter(l => l.nome || l.apelido);
@@ -1505,7 +1620,7 @@ function renderizarAgentes() {
         <p><strong>Nome completo:</strong> ${escapeHtml(l.nome || '—')}</p>
         <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
         <p><strong>E-mail:</strong> ${l.email ? `<a href="mailto:${escapeAttr(l.email)}">${escapeHtml(l.email)}</a>` : '—'}</p>
-        <p class="no-print"><button type="button" class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha de cadastro completa, já preenchida (de lá dá para imprimir)">📄 Abrir ficha completa</button></p>
+        <p class="no-print"><button type="button" class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha de cadastro completa, já preenchida (de lá dá para imprimir)">📄 Abrir ficha completa</button> <button type="button" class="btn-acao btn-editar btn-ag" data-acao="foto-modal" data-linha="${l.linha}" title="Adicionar ou trocar a foto deste agente">📷 ${l.foto ? 'Trocar foto' : 'Adicionar foto'}</button></p>
       </details>`;
 
     const tr = document.createElement('tr');
@@ -2586,10 +2701,13 @@ window.addEventListener('DOMContentLoaded', () => {
   el('tabelaAgentesCorpo').addEventListener('click', (e) => {
     const foto = e.target.closest('img[data-acao="foto"]');
     if (foto) { abrirFotoAgente(Number(foto.dataset.linha)); return; }
+    const nova = e.target.closest('button[data-acao="foto-nova"]');
+    if (nova) { abrirModalFotoAgente(Number(nova.dataset.linha)); return; }
     const b = e.target.closest('.btn-ag');
     if (!b) return;
     const linha = Number(b.dataset.linha);
     if (b.dataset.acao === 'ficha') abrirFichaAgente(linha);
+    else if (b.dataset.acao === 'foto-modal') abrirModalFotoAgente(linha);
     else if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
     else if (b.dataset.acao === 'reabrir') atualizarStatusAgente(linha, 'Novo');
     else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)? Se a pessoa ainda estiver como "Novo agente", ela passa a "Já é agente" desde este mês.')) atualizarStatusAgente(linha, 'Ativo');
