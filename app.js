@@ -36,7 +36,7 @@ const CONFIG = {
   ],
 
   // Cadastro de agentes da Pascom (planilha Pascom_Controle) — gravado pelo formulário agente-pascom.html via n8n
-  AGENTES_RANGE: 'Agentes_Pascom!A2:J',
+  AGENTES_RANGE: 'Agentes_Pascom!A2:N',
   AGENTES_ABA: 'Agentes_Pascom',
 
   // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
@@ -1389,7 +1389,45 @@ function renderizarAssuntos() {
 
 // ---------- Agentes da Pascom (cadastros feitos pelo formulário agente-pascom.html) ----------
 // Colunas da aba: A Data/Hora · B Nome Completo · C Nome Abreviado · D Nascimento · E Crismado(a) · F WhatsApp ·
-// G E-mail · H Participa de Pastoral/Grupo · I Qual Pastoral/Grupo · J Status (Novo · Em contato · Ativo)
+// G E-mail · H Participa de Pastoral/Grupo · I Qual Pastoral/Grupo · J Status (Novo · Em contato · Ativo) ·
+// K Situação na Pascom (Novo agente · Já é agente) · L Agente desde (mm/aaaa) · M Foto (miniatura JPEG em data URL) · N Foto (link do Drive)
+
+// Só aceita como foto um JPEG em data URL (é o que o formulário grava); qualquer outra coisa na célula é ignorada.
+function fotoSegura(v) {
+  const s = String(v || '').trim();
+  return /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(s) ? s : '';
+}
+// Etiqueta da situação: "🆕 Novo agente" ou "⭐ Já é agente · desde 03/2023" (cadastros antigos, sem a informação, não mostram nada).
+function situacaoAgenteInfo(l) {
+  const s = norm(l.situacao);
+  if (s === 'ja e agente') return { classe: 'ja', rotulo: '⭐ Já é agente', detalhe: l.desde ? 'desde ' + l.desde : '', texto: '⭐ Já é agente' + (l.desde ? ' · desde ' + l.desde : '') };
+  if (s === 'novo agente') return { classe: 'novo', rotulo: '🆕 Novo agente', detalhe: '', texto: '🆕 Novo agente' };
+  return null;
+}
+function htmlSeloAgente(l) {
+  const i = situacaoAgenteInfo(l);
+  return i ? `<span class="selo-agente ${i.classe}">${escapeHtml(i.rotulo)}${i.detalhe ? `<small>${escapeHtml(i.detalhe)}</small>` : ''}</span>` : '';
+}
+function htmlAvatarAgente(l) {
+  const nome = escapeAttr(l.apelido || l.nome);
+  return l.foto
+    ? `<img class="ag-foto-mini" src="${escapeAttr(l.foto)}" alt="Foto de ${nome}" title="Toque para ampliar" data-acao="foto" data-linha="${l.linha}" loading="lazy">`
+    : `<span class="ag-foto-vazia" title="Sem foto" aria-hidden="true">👤</span>`;
+}
+// Foto ampliada (sem biblioteca): fundo escuro; toque em qualquer lugar ou Esc para fechar.
+function abrirFotoAgente(linhaNumero) {
+  const l = linhasAgentes.find(x => x.linha === linhaNumero);
+  if (!l || !l.foto) return;
+  const fundo = document.createElement('div');
+  fundo.id = 'lightboxFotoAgente';
+  fundo.setAttribute('role', 'dialog'); fundo.setAttribute('aria-label', 'Foto de ' + (l.apelido || l.nome));
+  fundo.innerHTML = `<figure><img src="${escapeAttr(l.foto)}" alt="Foto de ${escapeAttr(l.apelido || l.nome)}"><figcaption><strong>${escapeHtml(l.apelido || l.nome)}</strong>${l.apelido && l.nome ? '<br>' + escapeHtml(l.nome) : ''}${situacaoAgenteInfo(l) ? '<br>' + escapeHtml(situacaoAgenteInfo(l).texto) : ''}${l.fotoLink ? `<br><a href="${escapeAttr(l.fotoLink)}" target="_blank" rel="noopener">Abrir foto maior (Drive)</a>` : ''}</figcaption></figure>`;
+  const fechar = () => { fundo.remove(); document.removeEventListener('keydown', aoTecla); };
+  const aoTecla = (e) => { if (e.key === 'Escape') fechar(); };
+  fundo.addEventListener('click', (e) => { if (e.target.tagName !== 'A') fechar(); });
+  document.addEventListener('keydown', aoTecla);
+  document.body.appendChild(fundo);
+}
 
 async function carregarAgentes() {
   const statusMsg = el('statusMsgAgentes');
@@ -1412,6 +1450,10 @@ async function carregarAgentes() {
         participa: row[7] || '',
         qual: row[8] || '',
         status: (row[9] || '').trim() || 'Novo',
+        situacao: (row[10] || '').trim(),
+        desde: (row[11] || '').trim(),
+        foto: fotoSegura(row[12]),
+        fotoLink: /^https:\/\/drive\.google\.com\//.test(String(row[13] || '').trim()) ? String(row[13]).trim() : '',
       }))
       .filter(l => l.nome || l.apelido);
 
@@ -1430,12 +1472,14 @@ function renderizarAgentes() {
   const termo = norm(el('buscaAgentes').value.trim());
   const crismaFiltro = el('filtroCrismaAgentes').value;
   const statusFiltro = norm(el('filtroStatusAgentes').value);
+  const situacaoFiltro = el('filtroSituacaoAgentes') ? el('filtroSituacaoAgentes').value : '';
 
   const filtrados = linhasAgentes.filter(l => {
-    const bateTexto = !termo || norm(l.nome + ' ' + l.apelido + ' ' + l.whatsapp + ' ' + l.email + ' ' + l.qual).includes(termo);
+    const bateTexto = !termo || norm(l.nome + ' ' + l.apelido + ' ' + l.whatsapp + ' ' + l.email + ' ' + l.qual + ' ' + l.situacao + ' ' + l.desde).includes(termo);
     const bateCrisma = !crismaFiltro || norm(l.crisma) === crismaFiltro;
     const bateStatus = !statusFiltro || norm(l.status) === statusFiltro;
-    return bateTexto && bateCrisma && bateStatus;
+    const bateSituacao = !situacaoFiltro || (situacaoFiltro === 'sem' ? !norm(l.situacao) : norm(l.situacao) === situacaoFiltro);
+    return bateTexto && bateCrisma && bateStatus && bateSituacao;
   }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo
 
   const corpo = el('tabelaAgentesCorpo');
@@ -1467,7 +1511,7 @@ function renderizarAgentes() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Data">${escapeHtml(l.data)}</td>
-      <td data-label="Agente"><strong>${escapeHtml(nomeCurto)}</strong>${l.apelido && l.nome ? `<br><small>${escapeHtml(l.nome)}</small>` : ''}${detalhes}</td>
+      <td data-label="Agente"><div class="ag-celula">${htmlAvatarAgente(l)}<div class="ag-celula-texto"><strong>${escapeHtml(nomeCurto)}</strong>${l.apelido && l.nome ? `<br><small>${escapeHtml(l.nome)}</small>` : ''}${situacaoAgenteInfo(l) ? '<br>' + htmlSeloAgente(l) : ''}${detalhes}</div></div></td>
       <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
       <td data-label="Crisma"><span class="status-pill ${crismado ? 'resolvido' : 'pendente'}">${escapeHtml(l.crisma || '—')}</span></td>
       <td data-label="Pastoral / grupo">${participa ? escapeHtml(l.qual || 'Sim') : (norm(l.participa) === 'nao' ? 'Não participa' : '—')}</td>
@@ -1530,15 +1574,19 @@ function htmlFichaAgente(l) {
   .campo .l { display:block; font-size:7pt; color:#7a6f66; text-transform:uppercase; letter-spacing:0.3px; }
   .campo .v { display:block; font-size:10.5pt; font-weight:600; color:#1d1a17; margin-top:1.2mm; }
   .campo.p2 { flex:2; } .campo.p3 { flex:3; }
+  .dados-foto { display:flex; gap:5mm; align-items:flex-start; }
+  .dados-campos { flex:1; min-width:0; }
+  .foto-ficha { flex:0 0 30mm; width:30mm; height:38mm; margin-top:1mm; border:1px solid var(--linha); border-radius:2px; background:#fdfbf6; display:flex; align-items:center; justify-content:center; overflow:hidden; text-align:center; font-size:7pt; color:#9a8f84; text-transform:uppercase; }
+  .foto-ficha img { width:100%; height:100%; object-fit:cover; }
   .pergunta { margin-top:5mm; font-size:9.5pt; font-weight:600; }
   .opcoes { display:flex; flex-wrap:wrap; gap:1.5mm 8mm; align-items:center; padding:2mm 0 1mm; font-size:9.5pt; }
   .cx { display:inline-block; width:3.6mm; height:3.6mm; border:1px solid #4a4038; margin-right:1.8mm; vertical-align:-0.7mm; font-style:normal; font-size:9pt; line-height:3.3mm; text-align:center; font-weight:700; }
   .qual { flex:1; min-width:70mm; border-bottom:1px solid var(--linha); height:6mm; font-size:10.5pt; font-weight:600; line-height:5.5mm; }
-  .autoriza { background:var(--creme); border-left:3px solid var(--dourado); padding:2.5mm 3.5mm; margin-top:9mm; font-size:8.5pt; line-height:1.4; border-radius:2px; }
-  .assina { display:flex; gap:8mm; margin-top:16mm; }
+  .autoriza { background:var(--creme); border-left:3px solid var(--dourado); padding:2.5mm 3.5mm; margin-top:6mm; font-size:8.5pt; line-height:1.4; border-radius:2px; }
+  .assina { display:flex; gap:8mm; margin-top:12mm; }
   .assina .a { flex:3; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
   .assina .d { flex:1; border-top:1px solid var(--linha); padding-top:1mm; font-size:7.5pt; color:#7a6f66; text-align:center; }
-  .uso { margin-top:12mm; border:1.2px dashed #a89a8a; border-radius:3px; padding:1.5mm 3mm 0; background:#fdfbf6; }
+  .uso { margin-top:8mm; border:1.2px dashed #a89a8a; border-radius:3px; padding:1.5mm 3mm 0; background:#fdfbf6; }
   .uso .tit { font-size:7.5pt; font-weight:700; color:var(--vinho); text-transform:uppercase; letter-spacing:0.6px; }
   .uso .campo { min-height:10mm; }
   .rodape { position:absolute; left:0; right:0; bottom:5mm; text-align:center; font-size:7.5pt; color:#888; }
@@ -1565,9 +1613,14 @@ function htmlFichaAgente(l) {
   </div>
 
   <h2>Dados do agente</h2>
-  <div class="linha">${campo('Nome completo', l.nome, 'p3')}${campo('Data de nascimento', l.nascimento)}</div>
-  <div class="linha">${campo('Nome abreviado (como gosta de ser chamado(a))', l.apelido, 'p3')}${campo('Telefone / WhatsApp com DDD', telBonito(l.whatsapp), 'p2')}</div>
-  <div class="linha">${campo('E-mail', l.email)}</div>
+  <div class="dados-foto">
+    <div class="dados-campos">
+      <div class="linha">${campo('Nome completo', l.nome, 'p3')}${campo('Data de nascimento', l.nascimento)}</div>
+      <div class="linha">${campo('Nome abreviado (como gosta de ser chamado(a))', l.apelido, 'p3')}${campo('Telefone / WhatsApp com DDD', telBonito(l.whatsapp), 'p2')}</div>
+      <div class="linha">${campo('E-mail', l.email, 'p3')}${campo('Situação na Pascom', (situacaoAgenteInfo(l) || { texto: '' }).texto.replace(/^[^\p{L}]+/u, '').split(' · ')[0], 'p2')}${campo('Agente desde', l.desde)}</div>
+    </div>
+    <div class="foto-ficha">${l.foto ? `<img src="${e(l.foto)}" alt="Foto">` : '<span>Foto<br>3×4</span>'}</div>
+  </div>
 
   <h2>Sacramento e participação na paróquia</h2>
   <div class="pergunta">Já recebeu o Sacramento da Crisma?</div>
@@ -1605,14 +1658,21 @@ function abrirFichaAgente(linhaNumero) {
 }
 
 async function atualizarStatusAgente(linhaNumero, novoStatus) {
-  const range = `${CONFIG.AGENTES_ABA}!J${linhaNumero}`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`;
+  // Marcar como "Ativo" também registra "Já é agente" e "Agente desde" (mês/ano de hoje, se a pessoa ainda não tinha informado), nas colunas K e L.
+  const l = linhasAgentes.find(x => x.linha === linhaNumero);
+  const dados = [{ range: `${CONFIG.AGENTES_ABA}!J${linhaNumero}`, values: [[novoStatus]] }];
+  if (novoStatus === 'Ativo' && l && norm(l.situacao) !== 'ja e agente') {
+    const hoje = new Date();
+    const mesAno = String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+    dados.push({ range: `${CONFIG.AGENTES_ABA}!K${linhaNumero}:L${linhaNumero}`, values: [['Já é agente', l.desde || mesAno]] });
+  }
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchUpdate`;
 
   try {
     const resp = await fetch(url, {
-      method: 'PUT',
+      method: 'POST',
       headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: [[novoStatus]] }),
+      body: JSON.stringify({ valueInputOption: 'RAW', data: dados }),
     });
     if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
     await carregarAgentes();
@@ -2522,14 +2582,17 @@ window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { msg.textContent = ''; }, 3000);
     }
   });
+  el('filtroSituacaoAgentes').addEventListener('change', renderizarAgentes);
   el('tabelaAgentesCorpo').addEventListener('click', (e) => {
+    const foto = e.target.closest('img[data-acao="foto"]');
+    if (foto) { abrirFotoAgente(Number(foto.dataset.linha)); return; }
     const b = e.target.closest('.btn-ag');
     if (!b) return;
     const linha = Number(b.dataset.linha);
     if (b.dataset.acao === 'ficha') abrirFichaAgente(linha);
     else if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
     else if (b.dataset.acao === 'reabrir') atualizarStatusAgente(linha, 'Novo');
-    else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)?')) atualizarStatusAgente(linha, 'Ativo');
+    else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)? Se a pessoa ainda estiver como "Novo agente", ela passa a "Já é agente" desde este mês.')) atualizarStatusAgente(linha, 'Ativo');
   });
 
   // Lojinha
