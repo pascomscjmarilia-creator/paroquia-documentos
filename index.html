@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://pascomscjmarilia-creator.github.io/paroquia-documentos/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="stylesheet" href="style.css?v=20261116b">
+<link rel="stylesheet" href="style.css?v=20261120a">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -280,7 +280,7 @@
           <p><strong>O que cada coluna mostra:</strong></p>
           <ul style="margin:0 0 6px; padding-left:18px;">
             <li><strong>Documentos:</strong> <em>Completos</em> quando o fiel mandou tudo que é necessário, ou <em>Faltam: …</em> dizendo o que ainda não chegou.</li>
-            <li><strong>Status:</strong> <em>Nova</em> (ninguém cuidou ainda) · <em>Em atendimento</em> (alguém já está cuidando) · <em>Concluída</em> (inscrição resolvida).</li>
+            <li><strong>Status:</strong> nos <em>Novos agentes</em>: <em>Novo</em> (ninguém falou com a pessoa ainda) · <em>Em contato</em> · <em>Ativo</em> (já faz parte da equipe). Nos <em>Agentes ativos</em>: <em>Ativo</em> (atuando) ou <em>Afastado</em> (não está atuando no momento).</li>
             <li><strong>Ver dados e documentos:</strong> abre a ficha com os dados e os links dos arquivos enviados.</li>
           </ul>
 
@@ -326,8 +326,12 @@
 
       <!-- ABA: AGENTES DA PASCOM -->
       <div id="abaAgentes" class="conteudo-aba" hidden>
+        <div class="sub-abas-agentes no-print" role="group" aria-label="Grupo de agentes">
+          <button type="button" id="btnSubAgNovos" class="sub-aba-ag ativa" aria-pressed="true">🆕 Novos agentes</button>
+          <button type="button" id="btnSubAgAtivos" class="sub-aba-ag" aria-pressed="false">⭐ Agentes ativos</button>
+        </div>
         <div class="filtros">
-          <input type="text" id="buscaAgentes" placeholder="Buscar por nome, WhatsApp, e-mail ou pastoral...">
+          <input type="text" id="buscaAgentes" placeholder="Buscar por nome, WhatsApp, e-mail, área ou função...">
           <select id="filtroCrismaAgentes">
             <option value="">Crisma: todos</option>
             <option value="sim">Já recebeu a Crisma</option>
@@ -339,13 +343,7 @@
             <option value="Em contato">Em contato</option>
             <option value="Ativo">Ativo</option>
           </select>
-          <select id="filtroSituacaoAgentes" title="Filtrar por novo agente ou quem já é agente">
-            <option value="">Situação: todos</option>
-            <option value="novo agente">🆕 Novo agente</option>
-            <option value="ja e agente">⭐ Já é agente</option>
-            <option value="sem">Sem informação</option>
-          </select>
-          <button id="btnAtualizarAgentes" title="Recarregar dados da planilha">🔄 Atualizar</button>
+                    <button id="btnAtualizarAgentes" title="Recarregar dados da planilha">🔄 Atualizar</button>
           <button id="btnImprimirAgentes" title="Imprimir lista filtrada">🖨️ Imprimir lista</button>
           <button id="btnFichaBrancoAgentes" title="Abrir a ficha de cadastro em branco (PDF) para imprimir">🖨️ Ficha em branco</button>
         </div>
@@ -358,13 +356,17 @@
         <div id="ajudaAgentes" class="ajuda-texto no-print" hidden style="margin-bottom:12px;">
           <p><strong>O que é esta aba:</strong> aqui aparecem, sozinhos, os cadastros de quem quer ser <em>agente da Pascom</em>. Ninguém precisa digitar nada: a pessoa preenche o formulário e o cadastro cai aqui.</p>
 
-          <p><strong>Como a pessoa se cadastra:</strong> é só enviar o link do formulário (pelo WhatsApp, por exemplo):</p>
+          <p><strong>Dois cadastros, dois links:</strong> quem quer entrar e quem já serve na Pascom usam formulários separados. Cada um cai na sua sub-aba:</p>
+          <p><strong>🆕 Novos agentes</strong> (quem quer entrar na Pascom):</p>
           <p class="exemplo" id="linkFormAgentes">https://pascomscjmarilia-creator.github.io/paroquia-documentos/agente-pascom.html</p>
-          <p><button type="button" class="btn-acao btn-editar" id="btnCopiarLinkAgentes">📋 Copiar link do formulário</button> <span id="msgCopiarLinkAgentes" style="color:#276e35; font-weight:600;"></span></p>
+          <p><button type="button" class="btn-acao btn-editar btn-copiar-link-ag" data-alvo="linkFormAgentes">📋 Copiar link dos novos agentes</button></p>
+          <p><strong>⭐ Agentes ativos</strong> (quem já é agente):</p>
+          <p class="exemplo" id="linkFormAgentesAtivos">https://pascomscjmarilia-creator.github.io/paroquia-documentos/agente-pascom-ativo.html</p>
+          <p><button type="button" class="btn-acao btn-editar btn-copiar-link-ag" data-alvo="linkFormAgentesAtivos">📋 Copiar link dos agentes ativos</button> <span id="msgCopiarLinkAgentes" style="color:#276e35; font-weight:600;"></span></p>
 
           <p><strong>O que cada coluna mostra:</strong></p>
           <ul style="margin:0 0 6px; padding-left:18px;">
-            <li><strong>Agente:</strong> a <em>foto</em> (toque nela para ampliar), o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo. A etiqueta mostra se é <em>🆕 Novo agente</em> ou <em>⭐ Já é agente · desde mm/aaaa</em>. Em <em>Ver dados</em> aparecem nascimento, e-mail e o botão <em>📄 Abrir ficha completa</em>. Use o filtro <em>Situação</em> para ver só os novos ou só quem já é agente.</li>
+            <li><strong>Agente:</strong> a <em>foto</em> (toque nela para ampliar), o nome abreviado (como a pessoa gosta de ser chamada) e, embaixo, o nome completo, a etiqueta (<em>🆕 Novo agente</em> ou <em>⭐ Já é agente · desde mm/aaaa</em>) e, nos ativos, a função. Em <em>Ver dados</em> aparecem nascimento, e-mail, comunidade, áreas de interesse ou função, equipamentos, disponibilidade e o botão <em>📄 Abrir ficha completa</em>.</li>
             <li><strong>Crisma:</strong> se a pessoa já recebeu o Sacramento da Crisma.</li>
             <li><strong>Pastoral / grupo:</strong> se participa de alguma pastoral, movimento ou grupo da paróquia e qual.</li>
             <li><strong>Status:</strong> <em>Novo</em> (ninguém falou com a pessoa ainda) · <em>Em contato</em> (alguém da equipe já está conversando) · <em>Ativo</em> (já faz parte da equipe).</li>
@@ -375,7 +377,7 @@
             <li><strong>💬 WhatsApp:</strong> abre a conversa com a pessoa.</li>
             <li><strong>📄 Ficha:</strong> abre a ficha de cadastro <em>já preenchida</em> com o que a pessoa informou, para você conferir. Para imprimir, use o botão <em>🖨️ Imprimir</em> que fica no alto da própria ficha (ele não sai no papel). O mesmo vale para o botão <em>📄 Abrir ficha completa</em> dentro de <em>Ver dados</em>. A pessoa só precisa assinar.</li>
             <li><strong>▶ Em contato:</strong> avisa a equipe que você já está cuidando deste cadastro.</li>
-            <li><strong>✅ Ativo:</strong> use quando a pessoa já estiver integrada à equipe. Quem estava como <em>Novo agente</em> passa a <em>Já é agente</em>, com <em>desde</em> o mês atual. <strong>↩ Reabrir</strong> volta o status para <em>Novo</em> (a situação e a data ficam).</li>
+            <li><strong>✅ Ativo</strong> (novos): use quando a pessoa já estiver integrada à equipe. Quem estava como <em>Novo agente</em> passa a <em>Já é agente</em>, com <em>desde</em> o mês atual. <strong>↩ Reabrir</strong> volta o status para <em>Novo</em>. Nos agentes ativos os botões são <strong>⏸ Afastado(a)</strong> e <strong>↩ Voltou a atuar</strong>.</li>
           </ul>
 
           <p><strong>Prefere o papel?</strong> O botão <em>🖨️ Ficha em branco</em> abre o PDF da ficha de cadastro para imprimir. Quem preencher no papel entrega à equipe da Pascom ou na secretaria.</p>
@@ -385,7 +387,8 @@
           <p><strong>Se algo não aparecer:</strong> clique em <em>🔄 Atualizar</em>. Se o cadastro continuar sem aparecer, ou se o painel avisar que a aba não existe, chame a equipe da Pascom.</p>
         </div>
 
-        <p class="modal-intro no-print" style="margin:0 0 10px;">Cadastros feitos pelo formulário <strong>agente-pascom.html</strong>. Toque em <em>Ver dados</em> para abrir nascimento e e-mail, ou em <em>📄 Ficha</em> para abrir a ficha já preenchida e imprimir.</p>
+        <p id="introAgentesNovos" class="modal-intro no-print" style="margin:0 0 10px;">Cadastros feitos pelo formulário <strong>agente-pascom.html</strong> (quem quer entrar na Pascom). Toque em <em>Ver dados</em> para abrir nascimento, e-mail, interesses e disponibilidade, ou em <em>📄 Ficha</em> para abrir a ficha já preenchida e imprimir.</p>
+        <p id="introAgentesAtivos" class="modal-intro no-print" style="margin:0 0 10px;" hidden>Cadastros feitos pelo formulário <strong>agente-pascom-ativo.html</strong> (quem já é agente da Pascom): função, onde atua, disponibilidade, equipamentos e camiseta. Toque em <em>Ver dados</em> para abrir tudo, ou em <em>📄 Ficha</em> para a ficha preenchida.</p>
 
         <p id="statusMsgAgentes" class="status"></p>
 
@@ -724,6 +727,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261116b"></script>
+  <script src="app.js?v=20261120a"></script>
 </body>
 </html>
