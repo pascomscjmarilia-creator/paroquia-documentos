@@ -148,29 +148,6 @@
         </div>
 
         <div>
-          <span class="rotulo">O que você tem para ajudar a Pascom? <span style="font-weight:400;color:#666;">(marque o que tiver)</span></span>
-          <div class="ag-lista" id="listaEquipamentos">
-            <label><input type="checkbox" name="equipamentos" value="Celular com boa câmera"> Celular com boa câmera</label>
-            <label><input type="checkbox" name="equipamentos" value="Câmera fotográfica ou filmadora"> Câmera fotográfica ou filmadora</label>
-            <label><input type="checkbox" name="equipamentos" value="Computador / notebook"> Computador / notebook</label>
-            <label><input type="checkbox" name="equipamentos" value="Tripé"> Tripé</label>
-            <label><input type="checkbox" name="equipamentos" value="Microfone"> Microfone</label>
-            <label><input type="checkbox" name="equipamentos" value="Nenhum por enquanto"> Nenhum por enquanto</label>
-          </div>
-        </div>
-
-        <div>
-          <span class="rotulo">Quando você pode ajudar? <span style="font-weight:400;color:#666;">(marque quantas quiser)</span></span>
-          <div class="ag-lista" id="listaDisponibilidade">
-            <label><input type="checkbox" name="disponibilidade" value="Sábado à noite"> Sábado à noite</label>
-            <label><input type="checkbox" name="disponibilidade" value="Domingo de manhã"> Domingo de manhã</label>
-            <label><input type="checkbox" name="disponibilidade" value="Domingo à noite"> Domingo à noite</label>
-            <label><input type="checkbox" name="disponibilidade" value="Durante a semana"> Durante a semana</label>
-            <label><input type="checkbox" name="disponibilidade" value="Em eventos especiais"> Em eventos especiais</label>
-          </div>
-        </div>
-
-        <div>
           <label for="motivacao">Por que você quer ser agente da Pascom? <span style="font-weight:400;color:#666;">(opcional)</span></label>
           <textarea id="motivacao" maxlength="300" placeholder="Escreva em poucas linhas"></textarea>
         </div>
@@ -408,16 +385,14 @@
     e.preventDefault();
     resultado.textContent = ''; resultado.className = '';
     const base = lerBase(); if (!base) return;
-    const areas = marcados('areas'), equipamentos = marcados('equipamentos'), disponibilidade = marcados('disponibilidade');
+    const areas = marcados('areas');
     const experiencia = marcado('experiencia'), experienciaTexto = el('experienciaTexto').value.trim();
     if (!areas.length) return mostrarErro('Marque pelo menos uma área em que gostaria de ajudar.');
     if (!experiencia) return mostrarErro('Informe se você já tem experiência.');
-    if (!equipamentos.length) return mostrarErro('Marque o que você tem para ajudar (ou "Nenhum por enquanto").');
-    if (!disponibilidade.length) return mostrarErro('Marque quando você pode ajudar.');
     if (encontroValido() && !el('confirmaEncontro').checked) return mostrarErro('Confirme que está ciente do primeiro encontro obrigatório.');
     const payload = Object.assign(base, {
       situacao: 'Novo agente',
-      areas, equipamentos, disponibilidade,
+      areas,
       experiencia: experiencia === 'Sim' ? (experienciaTexto ? 'Sim: ' + experienciaTexto : 'Sim') : 'Não',
       motivacao: el('motivacao').value.trim(),
       confirmouEncontro: !!encontroValido() && el('confirmaEncontro').checked
