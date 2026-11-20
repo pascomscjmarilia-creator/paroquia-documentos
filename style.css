@@ -824,3 +824,8 @@ button.ag-foto-vazia:hover { background: #efe6d6; border-color: var(--vinho, #7a
 .modal-foto-agente .mfa-msg.erro { color: #b3261e; }
 .modal-foto-agente .mfa-botoes { display: flex; gap: 8px; justify-content: flex-end; }
 @media print { .modal-foto-agente { display: none !important; } }
+
+/* Agentes Pascom: sub-abas Novos agentes / Agentes ativos */
+.sub-abas-agentes { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+.sub-aba-ag { padding: 9px 16px; border-radius: 20px; border: 1px solid var(--vinho, #7a1f2b); background: #fff; color: var(--vinho, #7a1f2b); font-weight: 700; font-size: 0.92rem; cursor: pointer; }
+.sub-aba-ag.ativa { background: var(--vinho, #7a1f2b); color: #fff; }
