@@ -5,14 +5,14 @@ const CONFIG = {
   // Client ID OAuth criado no Google Cloud Console (tela "Credenciais")
   CLIENT_ID: '172692599350-9ssc0ir4r4j4rtn3v7ksd5i6un41damc.apps.googleusercontent.com',
 
-  // Planilha "Pascom_Controle" — usada pelas duas abas (Índice de Documentos e Recados)
+  // Planilha "Paroquia_Controle" — usada pelas duas abas (Índice de Documentos e Recados)
   SHEET_ID: '1-9ZRasNVZK3qX3j51QffsZjOzI59axMkh4pCZxxhFws',
   DOCS_RANGE: 'Índice de Documentos!A2:F',
   RECADOS_RANGE: 'Recados!A2:G',
   RECADOS_ABA: 'Recados', // nome exato da aba, usado ao gravar o status de volta
 
   RESERVAS_RANGE: 'Reservas_Salas!A2:I',
-  // Documentos por assunto (planilha Pascom_Controle): uma aba por assunto, colunas A Data/Hora · B Contato · C Número · D Tipo · E Arquivo · F Link
+  // Documentos por assunto (planilha Paroquia_Controle): uma aba por assunto, colunas A Data/Hora · B Contato · C Número · D Tipo · E Arquivo · F Link
   ASSUNTOS_ABAS: [['Casamento', 'Casamento!A2:F'], ['Batizado', 'Batizado!A2:F'], ['Catequese', 'Catequese_Docs!A2:F']],
   RESERVAS_ABA: 'Reservas_Salas',
   WEBHOOK_RESERVA: 'https://paroquia-scjm-n8n-paroquia.ndjgby.easypanel.host/webhook/reserva-sala',
@@ -23,7 +23,7 @@ const CONFIG = {
   EXTRAS_ABA: 'Informacoes_Extras',
   EXTRAS_GID: 1895112022, // id numérico da aba (para apagar a linha inteira, não só o conteúdo)
 
-  // Inscrições da catequese (planilha Pascom_Controle) — gravadas pelo formulário catequese.html via n8n
+  // Inscrições da catequese (planilha Paroquia_Controle) — gravadas pelo formulário catequese.html via n8n
   CATEQUESE_RANGE: 'Catequese_Inscricoes!A2:L',
   CATEQUESE_ABA: 'Catequese_Inscricoes',
   // Ficha preenchida pela secretaria (botão "➕ Nova inscrição"): manter IGUAL ao CONFIG de catequese.html (etapas e documentos).
@@ -35,9 +35,14 @@ const CONFIG = {
     { tipo: 'outro', rotulo: 'Outro documento', exigido: false },
   ],
 
-  // Cadastro de agentes da Pascom (planilha Pascom_Controle) — gravado pelo formulário agente-pascom.html via n8n
-  AGENTES_RANGE: 'Agentes_Pascom!A2:N',
+  // Cadastro de agentes da Pascom (planilha Pascom_Cadastros_e_Atas) — gravado pelo formulário agente-pascom.html via n8n
+  // NOVOS agentes: aba Agentes_Pascom (colunas A–U), gravada por agente-pascom.html. AGENTES ATIVOS: aba Agentes_Ativos (A–T), gravada por agente-pascom-ativo.html.
+  AGENTES_RANGE: 'Agentes_Pascom!A2:U',
   AGENTES_ABA: 'Agentes_Pascom',
+  AGENTES_ATIVOS_RANGE: 'Agentes_Ativos!A2:T',
+  AGENTES_ATIVOS_ABA: 'Agentes_Ativos',
+  // As duas abas acima ficam na planilha SÓ DA PASCOM (Pascom_Cadastros_e_Atas), junto com as atas. A SHEET_ID de cima (agora Paroquia_Controle) é só dos assuntos da paróquia.
+  AGENTES_SHEET_ID: '1x3Tq-t8P4QSgpAMVzGKcLpaYDlEyngv9Dzbz5fQpLyw',
 
   // Lojinha Paroquial — produtos na planilha de dados da paróquia; fotos enviadas ao Drive pelo n8n
   LOJINHA_RANGE: 'Lojinha!A2:H',
@@ -64,6 +69,8 @@ let linhasReservas = [];
 let linhasExtras = [];
 let linhasCatequese = [];
 let linhasAgentes = [];
+let grupoAgentes = 'novos'; // sub-aba aberta: 'novos' | 'ativos'
+let abaAtivosAusente = false;
 let linhasAssuntos = [];
 let linhasLojinha = [];
 let produtoEditandoLinha = null;
@@ -1278,7 +1285,7 @@ async function excluirRecado(linhaNumero) {
     await carregarRecados();
   } catch (e) {
     console.error('Erro ao excluir recado:', e);
-    alert(mensagemErroGravacao(e, CONFIG.RECADOS_ABA, 'planilha de controle (Pascom_Controle)'));
+    alert(mensagemErroGravacao(e, CONFIG.RECADOS_ABA, 'planilha de controle (Paroquia_Controle)'));
   }
 }
 
@@ -1353,7 +1360,7 @@ async function carregarAssuntos() {
   }
   renderizarAssuntos();
   if (semPermissao) statusMsg.textContent = 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.';
-  else if (faltando.length) statusMsg.textContent = (linhasAssuntos.length ? el('statusMsgAssuntos').textContent + ' ' : '') + 'Aba(s) ainda não criada(s) na planilha Pascom_Controle: ' + faltando.join(', ') + '. Crie com os cabeçalhos: Data/Hora, Contato, Número, Tipo, Arquivo, Link.';
+  else if (faltando.length) statusMsg.textContent = (linhasAssuntos.length ? el('statusMsgAssuntos').textContent + ' ' : '') + 'Aba(s) ainda não criada(s) na planilha Paroquia_Controle: ' + faltando.join(', ') + '. Crie com os cabeçalhos: Data/Hora, Contato, Número, Tipo, Arquivo, Link.';
 }
 
 function renderizarAssuntos() {
@@ -1479,10 +1486,13 @@ async function enviarFotoAgenteDrive(grandeBase64, nome) {
   return dados.url;
 }
 async function gravarFotoAgenteNaPlanilha(linhaNumero, miniatura, link) {
-  const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchUpdate`, {
+  const l = linhasAgentes.find(x => x.linha === linhaNumero);
+  if (!l) throw new Error('cadastro não encontrado');
+  const cols = l.grupo === 'ativos' ? 'S' : 'M', colf = l.grupo === 'ativos' ? 'T' : 'N';
+  const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.AGENTES_SHEET_ID}/values:batchUpdate`, {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ valueInputOption: 'RAW', data: [{ range: `${CONFIG.AGENTES_ABA}!M${linhaNumero}:N${linhaNumero}`, values: [[miniatura, link]] }] }),
+    body: JSON.stringify({ valueInputOption: 'RAW', data: [{ range: `${l.aba}!${cols}${l.linhaReal}:${colf}${l.linhaReal}`, values: [[miniatura, link]] }] }),
   });
   if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
 }
@@ -1533,7 +1543,7 @@ function abrirModalFotoAgente(linhaNumero) {
       setTimeout(fechar, avisoDrive ? 2500 : 900);
     } catch (err) {
       console.error(err); botao.disabled = false;
-      msg(err.status ? mensagemErroGravacao(err, CONFIG.AGENTES_ABA, 'planilha Pascom_Controle') : (err.message || 'Não foi possível salvar a foto.'), true);
+      msg(err.status ? mensagemErroGravacao(err, CONFIG.AGENTES_ABA, 'planilha Pascom_Cadastros_e_Atas') : (err.message || 'Não foi possível salvar a foto.'), true);
     }
   });
 }
@@ -1541,7 +1551,34 @@ async function removerFotoAgente(linhaNumero) {
   const l = linhasAgentes.find(x => x.linha === linhaNumero);
   if (!l || !confirm('Remover a foto de ' + (l.apelido || l.nome) + ' do painel? (A cópia que está no Drive não é apagada.)')) return;
   try { await gravarFotoAgenteNaPlanilha(linhaNumero, '', ''); await carregarAgentes(); }
-  catch (e) { alert(mensagemErroGravacao(e, CONFIG.AGENTES_ABA, 'planilha Pascom_Controle')); }
+  catch (e) { alert(mensagemErroGravacao(e, CONFIG.AGENTES_ABA, 'planilha Pascom_Cadastros_e_Atas')); }
+}
+
+// "linha" é a CHAVE única do cadastro no painel (novos: número da linha; ativos: 100000 + número da linha). "linhaReal" é a linha da planilha, "aba" a aba onde ela está.
+const AG_CHAVE_ATIVOS = 100000;
+function lerAgenteNovo(row, idx) {
+  return {
+    grupo: 'novos', aba: CONFIG.AGENTES_ABA, linhaReal: idx + 2, linha: idx + 2, ordem: idx,
+    data: row[0] || '', nome: row[1] || '', apelido: row[2] || '', nascimento: row[3] || '', crisma: row[4] || '',
+    whatsapp: limparNumero(row[5]), email: row[6] || '', participa: row[7] || '', qual: row[8] || '',
+    status: (row[9] || '').trim() || 'Novo', situacao: (row[10] || '').trim(), desde: (row[11] || '').trim(),
+    foto: fotoMiniaturaSegura(row[12]),
+    fotoLink: /^https:\/\/drive\.google\.com\//.test(String(row[13] || '').trim()) ? String(row[13]).trim() : '',
+    comunidade: row[14] || '', areas: row[15] || '', experiencia: row[16] || '', equipamentos: row[17] || '',
+    disponibilidade: row[18] || '', motivacao: row[19] || '', confirmouEncontro: row[20] || '',
+  };
+}
+function lerAgenteAtivo(row, idx) {
+  return {
+    grupo: 'ativos', aba: CONFIG.AGENTES_ATIVOS_ABA, linhaReal: idx + 2, linha: AG_CHAVE_ATIVOS + idx + 2, ordem: idx,
+    data: row[0] || '', nome: row[1] || '', apelido: row[2] || '', nascimento: row[3] || '', crisma: row[4] || '',
+    whatsapp: limparNumero(row[5]), email: row[6] || '', participa: row[7] || '', qual: row[8] || '',
+    status: (row[9] || '').trim() || 'Ativo', situacao: 'Já é agente', desde: (row[10] || '').trim(),
+    funcao: row[11] || '', atuaEm: row[12] || '', disponibilidade: row[13] || '', equipamentos: row[14] || '',
+    camiseta: row[15] || '', formar: row[16] || '', comunidade: row[17] || '',
+    foto: fotoMiniaturaSegura(row[18]),
+    fotoLink: /^https:\/\/drive\.google\.com\//.test(String(row[19] || '').trim()) ? String(row[19]).trim() : '',
+  };
 }
 
 async function carregarAgentes() {
@@ -1549,53 +1586,72 @@ async function carregarAgentes() {
   statusMsg.textContent = 'Carregando cadastros...';
 
   try {
-    const valores = await buscarValoresSheet(CONFIG.AGENTES_RANGE);
-    // Guarda a linha real da planilha (o range começa em A2) para gravar o status na célula certa.
-    linhasAgentes = valores
-      .map((row, idx) => ({
-        linha: idx + 2,
-        ordem: idx,
-        data: row[0] || '',
-        nome: row[1] || '',
-        apelido: row[2] || '',
-        nascimento: row[3] || '',
-        crisma: row[4] || '',
-        whatsapp: limparNumero(row[5]),
-        email: row[6] || '',
-        participa: row[7] || '',
-        qual: row[8] || '',
-        status: (row[9] || '').trim() || 'Novo',
-        situacao: (row[10] || '').trim(),
-        desde: (row[11] || '').trim(),
-        foto: fotoMiniaturaSegura(row[12]),
-        fotoLink: /^https:\/\/drive\.google\.com\//.test(String(row[13] || '').trim()) ? String(row[13]).trim() : '',
-      }))
-      .filter(l => l.nome || l.apelido);
-
-    statusMsg.textContent = linhasAgentes.length + ' cadastro(s) encontrado(s).';
+    const valoresNovos = await buscarValoresSheet(CONFIG.AGENTES_RANGE, CONFIG.AGENTES_SHEET_ID);
+    // A aba dos ativos pode ainda não existir: isso não impede de ver os novos.
+    let valoresAtivos = []; abaAtivosAusente = false;
+    try { valoresAtivos = await buscarValoresSheet(CONFIG.AGENTES_ATIVOS_RANGE, CONFIG.AGENTES_SHEET_ID); }
+    catch (e) { if (e.message === 'STATUS_400') abaAtivosAusente = true; else throw e; }
+    linhasAgentes = [
+      ...valoresNovos.map(lerAgenteNovo),
+      ...valoresAtivos.map(lerAgenteAtivo),
+    ].filter(l => l.nome || l.apelido);
     renderizarAgentes();
   } catch (e) {
     statusMsg.textContent = e.message === 'SEM_PERMISSAO'
       ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
       : e.message === 'STATUS_400'
-        ? 'A aba "' + CONFIG.AGENTES_ABA + '" ainda não existe na planilha Pascom_Controle. Crie a aba (veja as instruções) e clique em Atualizar.'
+        ? 'A aba "' + CONFIG.AGENTES_ABA + '" ainda não existe na planilha Pascom_Cadastros_e_Atas. Crie a aba (veja as instruções) e clique em Atualizar.'
         : 'Erro ao carregar os cadastros.';
   }
+}
+
+// Sub-abas "Novos agentes" / "Agentes ativos": cada uma mostra só o seu grupo, com a sua contagem e os seus status.
+function trocarGrupoAgentes(grupo) {
+  grupoAgentes = grupo === 'ativos' ? 'ativos' : 'novos';
+  const filtro = el('filtroStatusAgentes'); filtro.value = '';
+  filtro.innerHTML = grupoAgentes === 'ativos'
+    ? '<option value="">Todos os status</option><option value="Ativo">Ativo</option><option value="Afastado">Afastado</option>'
+    : '<option value="">Todos os status</option><option value="Novo">Novo</option><option value="Em contato">Em contato</option><option value="Ativo">Ativo</option>';
+  renderizarAgentes();
+}
+
+// Linhas "rótulo: valor" que aparecem em "Ver dados" (só o que foi preenchido)
+function dadosExtrasAgente(l) {
+  const campos = l.grupo === 'ativos'
+    ? [['Comunidade', l.comunidade], ['Função atual', l.funcao], ['Atua em', l.atuaEm], ['Disponibilidade', l.disponibilidade], ['Equipamentos', l.equipamentos], ['Camiseta', l.camiseta], ['Pode ajudar a formar novos', l.formar]]
+    : [['Comunidade', l.comunidade], ['Áreas de interesse', l.areas], ['Experiência anterior', l.experiencia], ['Equipamentos', l.equipamentos], ['Disponibilidade', l.disponibilidade], ['Por que quer ser agente', l.motivacao], ['Confirmou o 1º encontro', l.confirmouEncontro]];
+  return campos.filter(([, v]) => String(v || '').trim());
 }
 
 function renderizarAgentes() {
   const termo = norm(el('buscaAgentes').value.trim());
   const crismaFiltro = el('filtroCrismaAgentes').value;
   const statusFiltro = norm(el('filtroStatusAgentes').value);
-  const situacaoFiltro = el('filtroSituacaoAgentes') ? el('filtroSituacaoAgentes').value : '';
 
-  const filtrados = linhasAgentes.filter(l => {
-    const bateTexto = !termo || norm(l.nome + ' ' + l.apelido + ' ' + l.whatsapp + ' ' + l.email + ' ' + l.qual + ' ' + l.situacao + ' ' + l.desde).includes(termo);
+  // contagem nas sub-abas e destaque da aba aberta
+  const nNovos = linhasAgentes.filter(l => l.grupo === 'novos').length, nAtivos = linhasAgentes.filter(l => l.grupo === 'ativos').length;
+  el('btnSubAgNovos').textContent = '🆕 Novos agentes (' + nNovos + ')';
+  el('btnSubAgAtivos').textContent = '⭐ Agentes ativos (' + nAtivos + ')';
+  el('btnSubAgNovos').classList.toggle('ativa', grupoAgentes === 'novos');
+  el('btnSubAgAtivos').classList.toggle('ativa', grupoAgentes === 'ativos');
+  el('btnSubAgNovos').setAttribute('aria-pressed', String(grupoAgentes === 'novos'));
+  el('btnSubAgAtivos').setAttribute('aria-pressed', String(grupoAgentes === 'ativos'));
+  el('introAgentesNovos').hidden = grupoAgentes !== 'novos';
+  el('introAgentesAtivos').hidden = grupoAgentes !== 'ativos';
+
+  const statusMsg = el('statusMsgAgentes');
+  const doGrupo = linhasAgentes.filter(l => l.grupo === grupoAgentes);
+
+  const filtrados = doGrupo.filter(l => {
+    const bateTexto = !termo || norm([l.nome, l.apelido, l.whatsapp, l.email, l.qual, l.desde, l.comunidade, l.areas, l.funcao, l.atuaEm, l.equipamentos, l.disponibilidade].join(' ')).includes(termo);
     const bateCrisma = !crismaFiltro || norm(l.crisma) === crismaFiltro;
     const bateStatus = !statusFiltro || norm(l.status) === statusFiltro;
-    const bateSituacao = !situacaoFiltro || (situacaoFiltro === 'sem' ? !norm(l.situacao) : norm(l.situacao) === situacaoFiltro);
-    return bateTexto && bateCrisma && bateStatus && bateSituacao;
+    return bateTexto && bateCrisma && bateStatus;
   }).sort((a, b) => (valorDataHora(b.data) - valorDataHora(a.data)) || (b.ordem - a.ordem)); // mais novos no topo
+
+  statusMsg.textContent = grupoAgentes === 'ativos' && abaAtivosAusente
+    ? 'A aba "' + CONFIG.AGENTES_ATIVOS_ABA + '" ainda não existe na planilha Pascom_Cadastros_e_Atas. Crie a aba (veja as instruções) e clique em Atualizar.'
+    : doGrupo.length + ' cadastro(s) encontrado(s)' + (filtrados.length !== doGrupo.length ? ' · ' + filtrados.length + ' no filtro.' : '.');
 
   const corpo = el('tabelaAgentesCorpo');
   corpo.innerHTML = '';
@@ -1606,13 +1662,16 @@ function renderizarAgentes() {
   }
 
   filtrados.forEach(l => {
+    const ehAtivos = l.grupo === 'ativos';
     const ativo = norm(l.status) === 'ativo';
+    const afastado = norm(l.status) === 'afastado';
     const emContato = norm(l.status).startsWith('em contato');
-    const statusClasse = ativo ? 'resolvido' : (emContato ? 'andamento' : 'pendente');
+    const statusClasse = ativo ? 'resolvido' : (emContato || afastado ? 'andamento' : 'pendente');
     const crismado = norm(l.crisma) === 'sim';
     const participa = norm(l.participa) === 'sim';
     const wa = linkWhatsApp(l.whatsapp);
     const nomeCurto = l.apelido || l.nome;
+    const extras = dadosExtrasAgente(l).map(([r, v]) => `<p><strong>${escapeHtml(r)}:</strong> ${escapeHtml(v)}</p>`).join('');
 
     const detalhes = `
       <details class="detalhes-cat">
@@ -1620,13 +1679,19 @@ function renderizarAgentes() {
         <p><strong>Nome completo:</strong> ${escapeHtml(l.nome || '—')}</p>
         <p><strong>Nascimento:</strong> ${escapeHtml(l.nascimento || '—')}</p>
         <p><strong>E-mail:</strong> ${l.email ? `<a href="mailto:${escapeAttr(l.email)}">${escapeHtml(l.email)}</a>` : '—'}</p>
+        ${extras}
         <p class="no-print"><button type="button" class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha de cadastro completa, já preenchida (de lá dá para imprimir)">📄 Abrir ficha completa</button> <button type="button" class="btn-acao btn-editar btn-ag" data-acao="foto-modal" data-linha="${l.linha}" title="Adicionar ou trocar a foto deste agente">📷 ${l.foto ? 'Trocar foto' : 'Adicionar foto'}</button></p>
       </details>`;
+
+    const botoesStatus = ehAtivos
+      ? (afastado ? `<button class="btn-acao btn-resolver btn-ag" data-acao="reativar" data-linha="${l.linha}">↩ Voltou a atuar</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="afastar" data-linha="${l.linha}">⏸ Afastado(a)</button>`)
+      : `${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
+          ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}`;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Data">${escapeHtml(l.data)}</td>
-      <td data-label="Agente"><div class="ag-celula">${htmlAvatarAgente(l)}<div class="ag-celula-texto"><strong>${escapeHtml(nomeCurto)}</strong>${l.apelido && l.nome ? `<br><small>${escapeHtml(l.nome)}</small>` : ''}${situacaoAgenteInfo(l) ? '<br>' + htmlSeloAgente(l) : ''}${detalhes}</div></div></td>
+      <td data-label="Agente"><div class="ag-celula">${htmlAvatarAgente(l)}<div class="ag-celula-texto"><strong>${escapeHtml(nomeCurto)}</strong>${l.apelido && l.nome ? `<br><small>${escapeHtml(l.nome)}</small>` : ''}${situacaoAgenteInfo(l) ? '<br>' + htmlSeloAgente(l) : ''}${ehAtivos && l.funcao ? `<br><small>🎯 ${escapeHtml(l.funcao)}</small>` : ''}${detalhes}</div></div></td>
       <td data-label="WhatsApp">${escapeHtml(l.whatsapp)}</td>
       <td data-label="Crisma"><span class="status-pill ${crismado ? 'resolvido' : 'pendente'}">${escapeHtml(l.crisma || '—')}</span></td>
       <td data-label="Pastoral / grupo">${participa ? escapeHtml(l.qual || 'Sim') : (norm(l.participa) === 'nao' ? 'Não participa' : '—')}</td>
@@ -1635,8 +1700,7 @@ function renderizarAgentes() {
         <div class="acoes-linha">
           ${wa ? `<a href="${escapeAttr(wa)}" target="_blank" rel="noopener" class="btn-acao">💬 WhatsApp</a>` : ''}
           <button class="btn-acao btn-editar btn-ag" data-acao="ficha" data-linha="${l.linha}" title="Abrir a ficha já preenchida (de lá dá para imprimir)">📄 Ficha</button>
-          ${!ativo && !emContato ? `<button class="btn-acao btn-editar btn-ag" data-acao="contato" data-linha="${l.linha}">▶ Em contato</button>` : ''}
-          ${!ativo ? `<button class="btn-acao btn-resolver btn-ag" data-acao="ativar" data-linha="${l.linha}">✅ Ativo</button>` : `<button class="btn-acao btn-editar btn-ag" data-acao="reabrir" data-linha="${l.linha}">↩ Reabrir</button>`}
+          ${botoesStatus}
         </div>
       </td>
     `;
@@ -1662,6 +1726,9 @@ function htmlFichaAgente(l) {
   const naoParticipa = norm(l.participa) === 'nao';
   const dataCadastro = String(l.data || '').split(' ')[0];
   const brasao = new URL('brasao.png', location.href).href;
+  const ehAtivos = l.grupo === 'ativos';
+  const tituloFicha = ehAtivos ? 'Ficha de Cadastro — Agente Ativo da Pascom' : 'Ficha de Cadastro — Novo Agente da Pascom';
+  const extrasFicha = dadosExtrasAgente(l).filter(([r]) => r !== 'Confirmou o 1º encontro').map(([r, v]) => [r, String(v).length > 170 ? String(v).slice(0, 167) + '…' : v]);
 
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Ficha de cadastro — ${e(l.apelido || l.nome)}</title>
@@ -1693,6 +1760,18 @@ function htmlFichaAgente(l) {
   .dados-campos { flex:1; min-width:0; }
   .foto-ficha { flex:0 0 30mm; width:30mm; height:38mm; margin-top:1mm; border:1px solid var(--linha); border-radius:2px; background:#fdfbf6; display:flex; align-items:center; justify-content:center; overflow:hidden; text-align:center; font-size:7pt; color:#9a8f84; text-transform:uppercase; }
   .foto-ficha img { width:100%; height:100%; object-fit:cover; }
+  .extras-ficha { font-size:8.2pt; line-height:1.28; margin:1mm 0 0; }
+  .extras-ficha p { margin:0 0 0.8mm; }
+  body.compacta h2 { margin-top:3mm; }
+  body.compacta .aviso { padding:1.6mm 3mm; font-size:8.2pt; line-height:1.3; }
+  body.compacta .aviso p { margin-bottom:1mm; }
+  body.compacta .campo { min-height:12mm; }
+  body.compacta .pergunta { margin-top:2.5mm; }
+  body.compacta .opcoes { padding:1mm 0 0.5mm; }
+  body.compacta .autoriza { margin-top:3mm; font-size:8pt; }
+  body.compacta .assina { margin-top:7mm; }
+  body.compacta .uso { margin-top:4mm; }
+  body.compacta .conteudo { padding-top:5mm; }
   .pergunta { margin-top:5mm; font-size:9.5pt; font-weight:600; }
   .opcoes { display:flex; flex-wrap:wrap; gap:1.5mm 8mm; align-items:center; padding:2mm 0 1mm; font-size:9.5pt; }
   .cx { display:inline-block; width:3.6mm; height:3.6mm; border:1px solid #4a4038; margin-right:1.8mm; vertical-align:-0.7mm; font-style:normal; font-size:9pt; line-height:3.3mm; text-align:center; font-weight:700; }
@@ -1710,23 +1789,24 @@ function htmlFichaAgente(l) {
   .barra button.sec { background:#eadfd2; }
   @media screen { html { background:#d9d4cc; } body { margin:62px auto 20px; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.3); } }
   @media print { .barra { display:none !important; } }
-</style></head><body>
+</style></head><body class="${extrasFicha.length ? 'compacta' : ''}">
 <div class="barra"><span>Ficha de cadastro — ${e(l.apelido || l.nome)}</span><button type="button" onclick="window.print()">🖨️ Imprimir</button><button type="button" class="sec" onclick="window.close()">Fechar</button></div>
 <div class="topo"><img src="${brasao}" alt=""><div>
   <div class="sup">Paróquia</div><div class="nome">Sagrado Coração de Jesus</div>
   <div class="contato">Diocese de Marília · Rua Etelvina Teixeira da Silva, 17 — Marília/SP · Secretaria: (14) 3425-1732</div>
 </div></div>
 <div class="conteudo">
-  <h1>Ficha de Cadastro — Agente da Pascom</h1>
+  <h1>${tituloFicha}</h1>
   <p class="subtitulo">Pastoral da Comunicação · Dados informados no cadastro pela internet. Complete à mão o que estiver em branco.</p>
 
-  <div class="aviso">
+${ehAtivos ? '' : `  <div class="aviso">
     <div class="t">INSCRIÇÕES PASCOM | 23/11 a 10/01</div>
     <p>O primeiro encontro, de participação obrigatória, será no dia 16 de janeiro, às 16h, na Igreja Matriz. Pedimos que reservem essa data em suas agendas. Caso não possam comparecer, deverão justificar posteriormente à coordenação.</p>
     <p>Será criado um grupo de WhatsApp com os inscritos para o envio de orientações e informações próximas à data do encontro.</p>
     <p>Esperamos por vocês!</p>
   </div>
 
+`}
   <h2>Dados do agente</h2>
   <div class="dados-foto">
     <div class="dados-campos">
@@ -1744,6 +1824,9 @@ function htmlFichaAgente(l) {
   <div class="pergunta">Participa de alguma pastoral, movimento ou grupo da paróquia?</div>
   <div class="opcoes">${cx(participa, 'Sim. Qual?')}<span class="qual">${e(participa ? l.qual : '')}</span></div>
   <div class="opcoes" style="padding-top:0;">${cx(naoParticipa, 'Não')}</div>
+
+  ${extrasFicha.length ? `<h2>${ehAtivos ? 'Atuação na Pascom' : 'Interesse e disponibilidade'}</h2>
+  <div class="extras-ficha">${extrasFicha.map(([r, v]) => `<p><b>${e(r)}:</b> ${e(v)}</p>`).join('')}</div>` : ''}
 
   <div class="autoriza"><strong>Autorização.</strong> Declaro que as informações acima são verdadeiras.
   Autorizo a paróquia a usar estes dados <strong>somente</strong> para o cadastro e o contato da Pascom,
@@ -1772,16 +1855,17 @@ function abrirFichaAgente(linhaNumero) {
   janela.document.close();
 }
 
-async function atualizarStatusAgente(linhaNumero, novoStatus) {
-  // Marcar como "Ativo" também registra "Já é agente" e "Agente desde" (mês/ano de hoje, se a pessoa ainda não tinha informado), nas colunas K e L.
-  const l = linhasAgentes.find(x => x.linha === linhaNumero);
-  const dados = [{ range: `${CONFIG.AGENTES_ABA}!J${linhaNumero}`, values: [[novoStatus]] }];
-  if (novoStatus === 'Ativo' && l && norm(l.situacao) !== 'ja e agente') {
+async function atualizarStatusAgente(chave, novoStatus) {
+  const l = linhasAgentes.find(x => x.linha === chave);
+  if (!l) return;
+  const dados = [{ range: `${l.aba}!J${l.linhaReal}`, values: [[novoStatus]] }];
+  // NOVOS: marcar como "Ativo" também registra "Já é agente" e "Agente desde" (mês/ano de hoje, se a pessoa ainda não tinha informado), nas colunas K e L.
+  if (l.grupo === 'novos' && novoStatus === 'Ativo' && norm(l.situacao) !== 'ja e agente') {
     const hoje = new Date();
     const mesAno = String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
-    dados.push({ range: `${CONFIG.AGENTES_ABA}!K${linhaNumero}:L${linhaNumero}`, values: [['Já é agente', l.desde || mesAno]] });
+    dados.push({ range: `${l.aba}!K${l.linhaReal}:L${l.linhaReal}`, values: [['Já é agente', l.desde || mesAno]] });
   }
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchUpdate`;
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.AGENTES_SHEET_ID}/values:batchUpdate`;
 
   try {
     const resp = await fetch(url, {
@@ -1792,7 +1876,7 @@ async function atualizarStatusAgente(linhaNumero, novoStatus) {
     if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
     await carregarAgentes();
   } catch (e) {
-    alert(mensagemErroGravacao(e, CONFIG.AGENTES_ABA, 'planilha Pascom_Controle'));
+    alert(mensagemErroGravacao(e, l.aba, 'planilha Pascom_Cadastros_e_Atas'));
   }
 }
 
@@ -1832,7 +1916,7 @@ async function carregarCatequese() {
     statusMsg.textContent = e.message === 'SEM_PERMISSAO'
       ? 'Sua conta Google não tem permissão de acesso a esta planilha. Peça para compartilhá-la com você.'
       : e.message === 'STATUS_400'
-        ? 'A aba "' + CONFIG.CATEQUESE_ABA + '" ainda não existe na planilha Pascom_Controle. Crie a aba (veja as instruções) e clique em Atualizar.'
+        ? 'A aba "' + CONFIG.CATEQUESE_ABA + '" ainda não existe na planilha Paroquia_Controle. Crie a aba (veja as instruções) e clique em Atualizar.'
         : 'Erro ao carregar as inscrições.';
   }
 }
@@ -2034,12 +2118,12 @@ async function atualizarStatusCatequese(linhaNumero, novoStatus) {
     if (!resp.ok) { const err = new Error('status ' + resp.status); err.status = resp.status; throw err; }
     await carregarCatequese();
   } catch (e) {
-    alert(mensagemErroGravacao(e, CONFIG.CATEQUESE_ABA, 'planilha Pascom_Controle'));
+    alert(mensagemErroGravacao(e, CONFIG.CATEQUESE_ABA, 'planilha Paroquia_Controle'));
   }
 }
 
 // ---------- Nova inscrição preenchida pela secretaria ----------
-// Grava direto na aba Catequese_Inscricoes (planilha Pascom_Controle), nas MESMAS 12 colunas que o n8n usa para as inscrições feitas pelo
+// Grava direto na aba Catequese_Inscricoes (planilha Paroquia_Controle), nas MESMAS 12 colunas que o n8n usa para as inscrições feitas pelo
 // formulário da internet: por isso a inscrição aparece na lista, nos filtros e na ficha impressa igual às outras.
 // Colunas: A Data/Hora · B Catequizando · C Nascimento · D Responsável · E WhatsApp · F Etapa · G Batizado · H Paróquia do Batismo ·
 //          I Observações · J Situação dos Documentos · K Links dos Documentos · L Status
@@ -2170,7 +2254,7 @@ async function salvarInscricaoCatequese(e) {
     const quer = confirm('✅ Inscrição de ' + d.catequizando + ' salva (documentos: ' + situacao + ').\n\nImprimir a ficha agora?');
     if (quer && linhaNova) imprimirFichaCatequese(linhaNova);
   } catch (err) {
-    erro(mensagemErroGravacao(err, CONFIG.CATEQUESE_ABA, 'planilha Pascom_Controle'));
+    erro(mensagemErroGravacao(err, CONFIG.CATEQUESE_ABA, 'planilha Paroquia_Controle'));
   } finally {
     inscricaoSalvando = false; botao.disabled = false; botao.textContent = 'Salvar inscrição';
   }
@@ -2530,6 +2614,7 @@ function sair() {
   linhasExtras = [];
   linhasCatequese = [];
   linhasAgentes = [];
+  grupoAgentes = 'novos';
   linhasLojinha = [];
   linhasAssuntos = [];
   el('userBox').hidden = true;
@@ -2686,10 +2771,11 @@ window.addEventListener('DOMContentLoaded', () => {
       btnAjuda.setAttribute('aria-expanded', String(!caixa.hidden));
       return;
     }
-    if (e.target.closest('#btnCopiarLinkAgentes')) {
+    const btnCopiar = e.target.closest('.btn-copiar-link-ag');
+    if (btnCopiar) {
       const msg = el('msgCopiarLinkAgentes');
       try {
-        await navigator.clipboard.writeText(el('linkFormAgentes').textContent.trim());
+        await navigator.clipboard.writeText(el(btnCopiar.dataset.alvo).textContent.trim());
         msg.textContent = 'Link copiado!';
       } catch (err) {
         msg.textContent = 'Não consegui copiar. Selecione o link acima e copie com Ctrl+C.';
@@ -2697,7 +2783,8 @@ window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { msg.textContent = ''; }, 3000);
     }
   });
-  el('filtroSituacaoAgentes').addEventListener('change', renderizarAgentes);
+  el('btnSubAgNovos').addEventListener('click', () => trocarGrupoAgentes('novos'));
+  el('btnSubAgAtivos').addEventListener('click', () => trocarGrupoAgentes('ativos'));
   el('tabelaAgentesCorpo').addEventListener('click', (e) => {
     const foto = e.target.closest('img[data-acao="foto"]');
     if (foto) { abrirFotoAgente(Number(foto.dataset.linha)); return; }
@@ -2710,6 +2797,8 @@ window.addEventListener('DOMContentLoaded', () => {
     else if (b.dataset.acao === 'foto-modal') abrirModalFotoAgente(linha);
     else if (b.dataset.acao === 'contato') atualizarStatusAgente(linha, 'Em contato');
     else if (b.dataset.acao === 'reabrir') atualizarStatusAgente(linha, 'Novo');
+    else if (b.dataset.acao === 'afastar' && confirm('Marcar esta pessoa como afastada (não está atuando no momento)? Ela continua na lista de agentes ativos.')) atualizarStatusAgente(linha, 'Afastado');
+    else if (b.dataset.acao === 'reativar') atualizarStatusAgente(linha, 'Ativo');
     else if (b.dataset.acao === 'ativar' && confirm('Confirma que quer marcar este cadastro como Ativo (já faz parte da equipe)? Se a pessoa ainda estiver como "Novo agente", ela passa a "Já é agente" desde este mês.')) atualizarStatusAgente(linha, 'Ativo');
   });
 
