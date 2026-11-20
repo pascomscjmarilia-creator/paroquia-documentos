@@ -127,48 +127,6 @@
         </div>
 
         <div>
-          <label for="funcao">Qual a sua função principal hoje?</label>
-          <select id="funcao"><option value="">Escolha…</option><option value="Fotografia">Fotografia</option><option value="Filmagem">Filmagem</option><option value="Edição de vídeo">Edição de vídeo</option><option value="Arte e design">Arte e design</option><option value="Redes sociais">Redes sociais</option><option value="Projeção e slides">Projeção e slides</option><option value="Coordenação da Pascom">Coordenação da Pascom</option><option value="Várias funções">Várias funções</option><option value="Outra">Outra</option></select>
-        </div>
-
-        <div>
-          <span class="rotulo">Onde você costuma atuar? <span style="font-weight:400;color:#666;">(marque quantas quiser)</span></span>
-          <div class="ag-lista" id="listaAtuaEm">
-            <label><input type="checkbox" name="atuaEm" value="Missas de sábado à noite"> Missas de sábado à noite</label>
-            <label><input type="checkbox" name="atuaEm" value="Missas de domingo"> Missas de domingo</label>
-            <label><input type="checkbox" name="atuaEm" value="Missas e celebrações durante a semana"> Missas e celebrações durante a semana</label>
-            <label><input type="checkbox" name="atuaEm" value="Festas e eventos"> Festas e eventos</label>
-            <label><input type="checkbox" name="atuaEm" value="Redes sociais (dia a dia)"> Redes sociais (dia a dia)</label>
-          </div>
-        </div>
-
-        <div>
-          <span class="rotulo">Como está a sua disponibilidade agora?</span>
-          <div class="ag-lista">
-            <label><input type="radio" name="disponibilidade" value="Atuo toda semana"> Atuo toda semana</label>
-            <label><input type="radio" name="disponibilidade" value="Atuo de vez em quando"> Atuo de vez em quando</label>
-            <label><input type="radio" name="disponibilidade" value="Estou afastado(a) no momento"> Estou afastado(a) no momento</label>
-          </div>
-        </div>
-
-        <div>
-          <span class="rotulo">O que você tem para ajudar a Pascom? <span style="font-weight:400;color:#666;">(marque o que tiver)</span></span>
-          <div class="ag-lista" id="listaEquipamentos">
-            <label><input type="checkbox" name="equipamentos" value="Celular com boa câmera"> Celular com boa câmera</label>
-            <label><input type="checkbox" name="equipamentos" value="Câmera fotográfica ou filmadora"> Câmera fotográfica ou filmadora</label>
-            <label><input type="checkbox" name="equipamentos" value="Computador / notebook"> Computador / notebook</label>
-            <label><input type="checkbox" name="equipamentos" value="Tripé"> Tripé</label>
-            <label><input type="checkbox" name="equipamentos" value="Microfone"> Microfone</label>
-            <label><input type="checkbox" name="equipamentos" value="Nenhum por enquanto"> Nenhum por enquanto</label>
-          </div>
-        </div>
-
-        <div>
-          <label for="camiseta">Tamanho da camiseta da Pascom</label>
-          <select id="camiseta"><option value="">Escolha…</option><option value="Não uso">Não uso</option><option value="PP">PP</option><option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option><option value="XG">XG</option></select>
-        </div>
-
-        <div>
           <span class="rotulo">Você pode ajudar a formar os novos agentes?</span>
           <div class="ag-opcoes">
             <label><input type="radio" name="formar" value="Sim"> Sim</label>
@@ -383,18 +341,12 @@
     const agoraIso = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0');
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(desdeIso)) return mostrarErro('Informe desde quando você é agente da Pascom (mês e ano).');
     if (desdeIso > agoraIso || desdeIso < '1980-01') return mostrarErro('Confira o mês e o ano em que você entrou na Pascom.');
-    const funcao = el('funcao').value, atuaEm = marcados('atuaEm'), disponibilidade = marcado('disponibilidade');
-    const equipamentos = marcados('equipamentos'), camiseta = el('camiseta').value, formar = marcado('formar');
-    if (!funcao) return mostrarErro('Escolha a sua função principal na Pascom.');
-    if (!atuaEm.length) return mostrarErro('Marque onde você costuma atuar.');
-    if (!disponibilidade) return mostrarErro('Informe a sua disponibilidade.');
-    if (!equipamentos.length) return mostrarErro('Marque o que você tem para ajudar (ou "Nenhum por enquanto").');
-    if (!camiseta) return mostrarErro('Escolha o tamanho da camiseta (ou "Não uso").');
+    const formar = marcado('formar');
     if (!formar) return mostrarErro('Informe se pode ajudar a formar os novos agentes.');
     const payload = Object.assign(base, {
       situacao: 'Já é agente',
       desde: desdeIso.slice(5, 7) + '/' + desdeIso.slice(0, 4),
-      funcao, atuaEm, disponibilidade, equipamentos, camiseta, formar
+      formar
     });
     await enviar(payload, () => mostrarSucesso(base.apelido));
   });
