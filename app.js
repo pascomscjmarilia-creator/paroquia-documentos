@@ -35,8 +35,8 @@ const CONFIG = {
     { tipo: 'outro', rotulo: 'Outro documento', exigido: false },
   ],
 
-  // Cadastro de agentes da Pascom (planilha Pascom_Cadastros_e_Atas) — gravado pelo formulário agente-pascom.html via n8n
-  // NOVOS agentes: aba Agentes_Pascom (colunas A–U), gravada por agente-pascom.html. AGENTES ATIVOS: aba Agentes_Ativos (A–T), gravada por agente-pascom-ativo.html.
+  // Cadastro de agentes da Pascom (planilha Pascom_Cadastros_e_Atas) — gravado pelo formulário agente-pascom-novo.html via n8n
+  // NOVOS agentes: aba Agentes_Pascom (colunas A–U), gravada por agente-pascom-novo.html. AGENTES ATIVOS: aba Agentes_Ativos (A–T), gravada por agente-pascom-ativo.html.
   AGENTES_RANGE: 'Agentes_Pascom!A2:U',
   AGENTES_ABA: 'Agentes_Pascom',
   AGENTES_ATIVOS_RANGE: 'Agentes_Ativos!A2:T',
@@ -1395,7 +1395,7 @@ function renderizarAssuntos() {
   });
 }
 
-// ---------- Agentes da Pascom (cadastros feitos pelo formulário agente-pascom.html) ----------
+// ---------- Agentes da Pascom (cadastros feitos pelo formulário agente-pascom-novo.html) ----------
 // Colunas da aba: A Data/Hora · B Nome Completo · C Nome Abreviado · D Nascimento · E Crismado(a) · F WhatsApp ·
 // G E-mail · H Participa de Pastoral/Grupo · I Qual Pastoral/Grupo · J Status (Novo · Em contato · Ativo) ·
 // K Situação na Pascom (Novo agente · Já é agente) · L Agente desde (mm/aaaa) · M Foto (miniatura JPEG em data URL) · N Foto (link do Drive)
