@@ -782,7 +782,7 @@ td.texto-longo {
 #modalCatequeseResultado.erro { color: #b3261e; margin-top: 0; }
 @media (max-width: 640px) { #modalCatequese .modal-linha-dupla { flex-direction: column; } }
 
-/* ---- Aba Agentes Pascom: os botões da coluna "Ação" (WhatsApp, Ficha, Em contato, Ativo/Reabrir) ficam lado a lado, na mesma linha ---- */
+/* ---- Botões da coluna "Ação" lado a lado, na mesma linha (classe acoes-agente, usada nas tabelas do painel) ---- */
 td.acoes-agente { white-space: nowrap; width: 1%; }
 td.acoes-agente .acoes-linha { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; }
 td.acoes-agente .acoes-linha > .btn-acao { margin: 0; flex: 0 0 auto; }
@@ -791,41 +791,3 @@ td.acoes-agente .acoes-linha > .btn-acao { margin: 0; flex: 0 0 auto; }
   td.acoes-agente { white-space: normal; width: auto; }
   td.acoes-agente .acoes-linha { flex-wrap: wrap; justify-content: flex-end; width: 100%; }
 }
-
-/* ---- Aba Agentes Pascom: foto, etiqueta (novo / já é agente) e foto ampliada ---- */
-.ag-celula { display: flex; gap: 10px; align-items: flex-start; }
-.ag-celula-texto { min-width: 0; }
-.ag-foto-mini { width: 54px; height: 54px; flex: 0 0 54px; border-radius: 50%; object-fit: cover; border: 2px solid var(--vinho, #7a1f2b); background: #f3efea; cursor: zoom-in; }
-.ag-foto-vazia { width: 54px; height: 54px; flex: 0 0 54px; border-radius: 50%; background: #eee; color: #9a9a9a; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
-.selo-agente { display: inline-block; margin-top: 3px; padding: 2px 9px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
-.selo-agente.novo { background: #e3f0ff; color: #0b4a8f; }
-.selo-agente.ja { background: #fff4d6; color: #7a5200; }
-#lightboxFotoAgente { position: fixed; inset: 0; z-index: 9999; background: rgba(20, 12, 10, 0.88); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
-#lightboxFotoAgente figure { margin: 0; max-width: min(92vw, 520px); text-align: center; color: #fff; }
-#lightboxFotoAgente img { max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: 0 6px 28px rgba(0,0,0,.5); background: #fff; }
-#lightboxFotoAgente figcaption { margin-top: 10px; font-size: 0.95rem; line-height: 1.4; }
-#lightboxFotoAgente a { color: #f1dfae; }
-@media print { #lightboxFotoAgente { display: none !important; } .ag-foto-mini, .ag-foto-vazia { width: 34px; height: 34px; flex-basis: 34px; } }
-.selo-agente small { display: block; font-weight: 600; font-size: 0.7rem; opacity: 0.85; line-height: 1.2; }
-.selo-agente { line-height: 1.25; border-radius: 10px; }
-button.ag-foto-vazia { border: 2px dashed #c4b8a4; background: #f6f2ea; cursor: pointer; padding: 0; font-size: 1.25rem; }
-button.ag-foto-vazia:hover { background: #efe6d6; border-color: var(--vinho, #7a1f2b); }
-#lightboxFotoAgente .lb-acoes { margin-top: 10px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-#lightboxFotoAgente .lb-acoes button { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 8px; padding: 7px 12px; font-size: .85rem; cursor: pointer; }
-#lightboxFotoAgente .lb-acoes button:hover { background: rgba(255,255,255,.26); }
-.modal-foto-agente { position: fixed; inset: 0; z-index: 9998; background: rgba(20,12,10,.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.modal-foto-agente .mfa-caixa { background: #fff; border-radius: 12px; padding: 18px; width: min(92vw, 380px); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
-.modal-foto-agente h3 { margin: 0 0 6px; color: var(--vinho, #7a1f2b); font-size: 1.05rem; }
-.modal-foto-agente .mfa-dica { margin: 0 0 10px; color: #666; font-size: .88rem; }
-.modal-foto-agente .mfa-previa { width: 130px; height: 130px; margin: 0 auto 12px; border-radius: 50%; overflow: hidden; border: 2px solid var(--vinho, #7a1f2b); background: #f3efea; display: flex; align-items: center; justify-content: center; font-size: 2.4rem; color: #aaa; }
-.modal-foto-agente .mfa-previa img { width: 100%; height: 100%; object-fit: cover; }
-.modal-foto-agente input[type="file"] { width: 100%; font-size: .9rem; }
-.modal-foto-agente .mfa-msg { min-height: 1.2em; margin: 6px 0; font-weight: 600; font-size: .9rem; color: #1b6e3a; }
-.modal-foto-agente .mfa-msg.erro { color: #b3261e; }
-.modal-foto-agente .mfa-botoes { display: flex; gap: 8px; justify-content: flex-end; }
-@media print { .modal-foto-agente { display: none !important; } }
-
-/* Agentes Pascom: sub-abas Novos agentes / Agentes ativos */
-.sub-abas-agentes { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
-.sub-aba-ag { padding: 9px 16px; border-radius: 20px; border: 1px solid var(--vinho, #7a1f2b); background: #fff; color: var(--vinho, #7a1f2b); font-weight: 700; font-size: 0.92rem; cursor: pointer; }
-.sub-aba-ag.ativa { background: var(--vinho, #7a1f2b); color: #fff; }
